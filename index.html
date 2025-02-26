@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
+  <!-- Firebase SDK - Trying a different version -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
@@ -217,8 +217,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     // Firebase Functions
     async function loadHeadphones() {
       if (!isFirebaseInitialized) {
-        console.warn('Firebase not initialized, skipping loadHeadphones');
-        return {};
+        console.warn('Firebase not initialized, returning local headphones');
+        return headphones;
       }
       try {
         const snapshot = await headphonesCollection.get();
@@ -226,19 +226,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         snapshot.forEach(doc => {
           headphones[doc.id] = doc.data();
         });
-        console.log('Headphones loaded:', headphones);
+        console.log('Headphones loaded from Firebase:', headphones);
         return headphones;
       } catch (error) {
         console.error('Error loading headphones:', error);
         alert('Failed to load data from Firebase.');
-        return {};
+        return headphones;
       }
     }
 
     async function saveHeadphone(id, data) {
       if (!isFirebaseInitialized || !headphonesCollection) {
-        console.warn('Firebase not initialized, skipping saveHeadphone');
-        headphones[id] = data; // Store locally as fallback
+        console.warn('Firebase not initialized, saving locally only');
+        headphones[id] = data;
         return;
       }
       try {
