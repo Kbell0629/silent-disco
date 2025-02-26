@@ -224,12 +224,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function initializeSquare() {
-      if (!payments) payments = window.Square.payments(squareAppId);
-      const cardContainer = document.getElementById('card-container');
-      cardContainer.innerHTML = '';
-      cardElement = await payments.card();
-      await cardElement.attach('#card-container');
-      return cardElement;
+      // Disabled for now to avoid payment errors
+      // if (!payments) payments = window.Square.payments(squareAppId);
+      // const cardContainer = document.getElementById('card-container');
+      // cardContainer.innerHTML = '';
+      // cardElement = await payments.card();
+      // await cardElement.attach('#card-container');
+      // return cardElement;
     }
 
     window.onload = async () => {
@@ -451,8 +452,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const phone = document.getElementById('phone').value;
       const date = new Date().toISOString().split('T')[0];
 
-      if (!id || !name || !email || !phone || !signatureData || !cardElement) {
-        alert('Please fill all fields, enter card details, and sign the agreement!');
+      if (!id || !name || !email || !phone || !signatureData) {
+        alert('Please fill all fields and sign the agreement!');
         return;
       }
 
@@ -466,52 +467,54 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
-        const result = await cardElement.tokenize();
-        if (result.status !== 'OK') {
-          alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
-          return;
-        }
-        const paymentToken = result.token;
+        // Payment code disabled for now
+        // const result = await cardElement.tokenize();
+        // if (result.status !== 'OK') {
+        //   alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
+        //   return;
+        // }
+        // const paymentToken = result.token;
 
-        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceId: paymentToken,
-            amount: 10000,
-            currency: 'USD',
-            locationId: 'LQ7MAQD7N37E5'
-          })
-        });
+        // const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     sourceId: paymentToken,
+        //     amount: 10000,
+        //     currency: 'USD',
+        //     locationId: 'LQ7MAQD7N37E5'
+        //   })
+        // });
 
-        const preauthResult = await preauthResponse.json();
-        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
-        const preauthId = preauthResult.paymentId;
+        // const preauthResult = await preauthResponse.json();
+        // if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        // const preauthId = preauthResult.paymentId;
 
         headphones[id] = {
           status: 'checked_out',
           customer: { name, email, phone },
           agreement: { text: agreementText, signature: signatureData, amount: 100, date, timestamp: Date.now() },
-          pre_auth: { pre_auth_id: preauthId, amount: 100 }
+          pre_auth: null // No pre-auth since payment is disabled
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
         if (navigator.onLine) await saveHeadphone(id, headphones[id]);
 
-        const emailResponse = await fetch('/.netlify/functions/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name, email, agreement: agreementText, signature: signatureData, preauthId
-          })
-        });
+        // Email disabled for now
+        // const emailResponse = await fetch('/.netlify/functions/send-email', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     name, email, agreement: agreementText, signature: signatureData, preauthId
+        //   })
+        // });
 
-        if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
+        // if (emailResponse.ok) {
+          alert(`Headphone ${id} checked out!`);
           clearForm('checkout');
           showDashboard();
-        } else {
-          throw new Error('Email failed');
-        }
+        // } else {
+        //   throw new Error('Email failed');
+        // }
       } catch (error) {
         alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
         if (!navigator.onLine) {
@@ -550,14 +553,15 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('checkoutDialog').style.display = 'flex';
       document.getElementById('dialogOverlay').style.display = 'block';
       initSignaturePad('dialogSignaturePad');
-      initDialogCard();
+      // initDialogCard(); // Disabled since payment is off
     }
 
     async function initDialogCard() {
-      const dialogCardContainer = document.getElementById('dialogCardContainer');
-      dialogCardContainer.innerHTML = '';
-      dialogCardElement = await payments.card();
-      await dialogCardElement.attach('#dialogCardContainer');
+      // Disabled for now
+      // const dialogCardContainer = document.getElementById('dialogCardContainer');
+      // dialogCardContainer.innerHTML = '';
+      // dialogCardElement = await payments.card();
+      // await dialogCardElement.attach('#dialogCardContainer');
     }
 
     function showReturnDialog(id) {
@@ -580,8 +584,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const phone = document.getElementById('dialogPhone').value;
       const date = new Date().toISOString().split('T')[0];
 
-      if (!id || !name || !email || !phone || !dialogSignatureData || !dialogCardElement) {
-        alert('Please fill all fields, enter card details, and sign the agreement!');
+      if (!id || !name || !email || !phone || !dialogSignatureData) {
+        alert('Please fill all fields and sign the agreement!');
         return;
       }
 
@@ -595,51 +599,53 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
-        const result = await dialogCardElement.tokenize();
-        if (result.status !== 'OK') {
-          alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
-          return;
-        }
-        const paymentToken = result.token;
+        // Payment code disabled
+        // const result = await dialogCardElement.tokenize();
+        // if (result.status !== 'OK') {
+        //   alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
+        //   return;
+        // }
+        // const paymentToken = result.token;
 
-        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceId: paymentToken,
-            amount: 10000,
-            currency: 'USD',
-            locationId: 'LQ7MAQD7N37E5'
-          })
-        });
+        // const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     sourceId: paymentToken,
+        //     amount: 10000,
+        //     currency: 'USD',
+        //     locationId: 'LQ7MAQD7N37E5'
+        //   })
+        // });
 
-        const preauthResult = await preauthResponse.json();
-        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
-        const preauthId = preauthResult.paymentId;
+        // const preauthResult = await preauthResponse.json();
+        // if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        // const preauthId = preauthResult.paymentId;
 
         headphones[id] = {
           status: 'checked_out',
           customer: { name, email, phone },
           agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date, timestamp: Date.now() },
-          pre_auth: { pre_auth_id: preauthId, amount: 100 }
+          pre_auth: null
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
         if (navigator.onLine) await saveHeadphone(id, headphones[id]);
 
-        const emailResponse = await fetch('/.netlify/functions/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name, email, agreement: agreementText, signature: dialogSignatureData, preauthId
-          })
-        });
+        // Email disabled
+        // const emailResponse = await fetch('/.netlify/functions/send-email', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     name, email, agreement: agreementText, signature: dialogSignatureData, preauthId
+        //   })
+        // });
 
-        if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
+        // if (emailResponse.ok) {
+          alert(`Headphone ${id} checked out!`);
           closeDialog('checkout');
-        } else {
-          throw new Error('Email failed');
-        }
+        // } else {
+        //   throw new Error('Email failed');
+        // }
       } catch (error) {
         alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
         if (!navigator.onLine) closeDialog('checkout');
@@ -669,21 +675,22 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
         if (confirmCharge) {
           try {
-            const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                paymentId: headphones[id].pre_auth.pre_auth_id,
-                amount: headphones[id].pre_auth.amount
-              })
-            });
-            const chargeResult = await chargeResponse.json();
-            if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
+            // Charge disabled
+            // const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
+            //   method: 'POST',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify({
+            //     paymentId: headphones[id].pre_auth.pre_auth_id,
+            //     amount: headphones[id].pre_auth.amount
+            //   })
+            // });
+            // const chargeResult = await chargeResponse.json();
+            // if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
             headphones[id].status = 'charged';
             headphones[id].pre_auth = null;
             localStorage.setItem('headphones', JSON.stringify(headphones));
             if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-            alert(`Headphone ${id} charged successfully!`);
+            alert(`Headphone ${id} marked as charged (payment disabled for now)!`);
             updateDashboard();
           } catch (error) {
             alert(`Charge failed for ${id}: ${error.message}`);
