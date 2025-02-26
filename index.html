@@ -203,8 +203,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       resultElement.textContent = 'Scanning...';
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
-        ndef.scan().then(() => {
-          const controller = new AbortController();
+        try {
+          ndef.scan();
           ndef.onreading = event => {
             const id = event.serialNumber || prompt('Enter headphone ID manually:');
             if (id && headphones[id]) {
@@ -220,24 +220,21 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             } else {
               resultElement.textContent = `Headphone ${id} not found.`;
             }
-            controller.abort();
           };
           ndef.onreadingerror = () => {
             resultElement.textContent = 'NFC scan failed. Enter ID manually.';
             manualEntry('nfcStatus');
-            controller.abort();
           };
           setTimeout(() => {
-            controller.abort();
             if (resultElement.textContent === 'Scanning...') {
               resultElement.textContent = 'Scan timed out. Enter ID manually.';
               manualEntry('nfcStatus');
             }
           }, 5000);
-        }).catch(error => {
+        } catch (error) {
           resultElement.textContent = `Error: ${error.message}. Enter ID manually.`;
           manualEntry('nfcStatus');
-        });
+        }
       } else {
         resultElement.textContent = 'NFC not supported. Enter ID manually.';
         manualEntry('nfcStatus');
@@ -259,33 +256,31 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       button.disabled = true;
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
-        ndef.scan().then(() => {
-          const controller = new AbortController();
+        try {
+          ndef.scan();
           ndef.onreading = event => {
             const id = event.serialNumber || `HP${Date.now()}`;
             input.value = id;
             alert(`Scanned headphone: ${id}`);
-            controller.abort();
             button.disabled = false;
           };
           ndef.onreadingerror = () => {
             alert('No NFC tag detected. Enter manually.');
             manualEntry(context);
-            controller.abort();
             button.disabled = false;
           };
           setTimeout(() => {
-            controller.abort();
-            if (!button.disabled) return;
-            alert('Scan timed out. Enter manually.');
-            manualEntry(context);
-            button.disabled = false;
+            if (!input.value) {
+              alert('Scan timed out. Enter manually.');
+              manualEntry(context);
+              button.disabled = false;
+            }
           }, 5000);
-        }).catch(error => {
+        } catch (error) {
           alert(`NFC error: ${error.message}. Enter manually.`);
           manualEntry(context);
           button.disabled = false;
-        });
+        }
       } else {
         manualEntry(context);
         button.disabled = false;
