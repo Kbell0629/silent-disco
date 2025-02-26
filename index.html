@@ -13,7 +13,7 @@
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea, select { padding: 8px; font-size: 14px; }
-    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
+    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
@@ -131,6 +131,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <h2>Reports</h2>
     <select id="reportType" onchange="generateReport()">
       <option value="">Select a Report</option>
+      <option value="allData">All Data</option>
       <option value="checkedOut">Currently Checked Out Headphones</option>
       <option value="overdue">Overdue Headphones</option>
       <option value="revenue">Revenue Summary</option>
@@ -139,6 +140,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     </select>
     <input id="reportStartDate" type="date" onchange="generateReport()" placeholder="Start Date">
     <input id="reportEndDate" type="date" onchange="generateReport()" placeholder="End Date">
+    <input id="reportSearch" type="text" placeholder="Search reports..." onkeyup="generateReport()">
     <div id="reportOutput"></div>
   </div>
 
@@ -392,7 +394,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('reportType').value = ''; // Reset report selection
       document.getElementById('reportStartDate').value = ''; // Reset start date
       document.getElementById('reportEndDate').value = ''; // Reset end date
-      document.getElementById('reportOutput').innerHTML = '<p>Select a report type and date range to view details.</p>';
+      document.getElementById('reportSearch').value = ''; // Reset search
+      document.getElementById('reportOutput').innerHTML = '<p>Select a report type and optionally filters to view details.</p>';
     }
 
     async function scanNFCStatus() {
@@ -950,6 +953,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const reportType = document.getElementById('reportType').value;
       const startDate = document.getElementById('reportStartDate').value;
       const endDate = document.getElementById('reportEndDate').value || startDate; // Default to startDate if endDate is empty
+      const searchTerm = document.getElementById('reportSearch').value.toLowerCase();
       const output = document.getElementById('reportOutput');
       output.innerHTML = '';
 
@@ -973,12 +977,65 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
       }
 
+      // Apply search filter based on report type
+      let finalArray = filteredArray;
+      if (searchTerm) {
+        finalArray = filteredArray.filter(hp => {
+          const rowData = [
+            hp.id,
+            hp.status,
+            hp.customer?.name || '',
+            hp.customer?.email || '',
+            hp.customer?.phone || '',
+            hp.agreement?.date || '',
+            hp.pre_auth ? 'Hold' : 'Released',
+            hp.groupId || ''
+          ];
+          return rowData.some(data => data.toLowerCase().includes(searchTerm));
+        });
+      }
+
       switch (reportType) {
+        case 'allData':
+          output.innerHTML = `
+            <h3>All Data (${finalArray.length} Headphones)</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Preauth Status</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${finalArray.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}</td>
+                    <td>${hp.customer?.name || 'N/A'}</td>
+                    <td>${hp.customer?.email || 'N/A'}</td>
+                    <td>${hp.customer?.phone || 'N/A'}</td>
+                    <td>${hp.agreement?.date || 'N/A'}</td>
+                    <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
+                    <td>${hp.groupId || 'N/A'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
         case 'checkedOut':
-          const checkedOut = filteredArray.filter(hp => hp.status === 'checked_out');
+          const checkedOut = finalArray.filter(hp => hp.status === 'checked_out');
           output.innerHTML = `
             <h3>Currently Checked Out Headphones (${checkedOut.length})</h3>
-            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
             <table>
               <thead>
                 <tr>
@@ -1007,10 +1064,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           break;
 
         case 'overdue':
-          const overdue = filteredArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
+          const overdue = finalArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
           output.innerHTML = `
             <h3>Overdue Headphones (${overdue.length})</h3>
-            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
             <table>
               <thead>
                 <tr>
@@ -1044,11 +1101,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           break;
 
         case 'revenue':
-          const charged = filteredArray.filter(hp => hp.status === 'charged');
+          const charged = finalArray.filter(hp => hp.status === 'charged');
           const totalRevenue = charged.length * 100; // $100 per charged headphone
           output.innerHTML = `
             <h3>Revenue Summary</h3>
-            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
             <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
             <table>
               <thead>
@@ -1081,7 +1138,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
         case 'customerActivity':
           const customers = {};
-          filteredArray.forEach(hp => {
+          finalArray.forEach(hp => {
             const customerKey = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
             if (!customers[customerKey]) {
               customers[customerKey] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
@@ -1091,7 +1148,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           });
           output.innerHTML = `
             <h3>Customer Activity</h3>
-            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
             <table>
               <thead>
                 <tr>
@@ -1119,7 +1176,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
         case 'groupSummary':
           const groups = {};
-          filteredArray.forEach(hp => {
+          finalArray.forEach(hp => {
             if (hp.groupId) {
               if (!groups[hp.groupId]) {
                 groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
@@ -1133,7 +1190,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           });
           output.innerHTML = `
             <h3>Group Checkout Summary</h3>
-            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'} | Search: "${searchTerm || 'None'}"</p>
             <table>
               <thead>
                 <tr>
