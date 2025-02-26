@@ -231,10 +231,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
+        console.log('Starting card tokenization...');
         const result = await cardElement.tokenize();
+        console.log('Tokenization result:', result);
         if (result.status !== 'OK') throw new Error('Card tokenization failed');
         const paymentToken = result.token;
+        console.log('Payment token:', paymentToken);
 
+        console.log('Sending preauthorization request...');
         const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -247,6 +251,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         const preauthResult = await preauthResponse.json();
+        console.log('Preauthorization response:', preauthResult);
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
@@ -258,6 +263,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
 
+        console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -276,6 +282,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           throw new Error('Email failed');
         }
       } catch (error) {
+        console.error('Checkout error:', error.message);
         alert('Checkout successful, but an error occurred: ' + error.message);
       }
       clearForm('checkout');
