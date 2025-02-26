@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-  <!-- Firebase Compatibility SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK (v8.10.1, last non-module version) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
@@ -169,7 +169,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     let dialogCardElement;
     let db;
     let headphonesCollection;
-    let isFirebaseInitialized = false;
 
     // Your Firebase Configuration
     const firebaseConfig = {
@@ -195,7 +194,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               firebase.initializeApp(firebaseConfig);
               db = firebase.firestore();
               headphonesCollection = db.collection('headphones');
-              isFirebaseInitialized = true;
               console.log('Firebase initialized successfully after', attempts, 'attempts');
               resolve();
             } catch (error) {
@@ -207,7 +205,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             clearInterval(checkFirebase);
             console.error('Firebase SDK failed to load after', attempts, 'attempts');
             alert('Firebase failed to load. Proceeding without database sync.');
-            isFirebaseInitialized = false; // Allow app to proceed without Firebase
             resolve(); // Resolve anyway to continue with Square
           }
         }, 100);
@@ -216,7 +213,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     // Firebase Functions
     async function loadHeadphones() {
-      if (!isFirebaseInitialized) {
+      if (!db || !headphonesCollection) {
         console.warn('Firebase not initialized, returning local headphones');
         return headphones;
       }
@@ -236,7 +233,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function saveHeadphone(id, data) {
-      if (!isFirebaseInitialized || !headphonesCollection) {
+      if (!db || !headphonesCollection) {
         console.warn('Firebase not initialized, saving locally only');
         headphones[id] = data;
         return;
@@ -253,7 +250,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function updateHeadphone(id, data) {
-      if (!isFirebaseInitialized || !headphonesCollection) {
+      if (!db || !headphonesCollection) {
         console.warn('Firebase not initialized, updating locally only');
         headphones[id] = { ...headphones[id], ...data };
         return;
