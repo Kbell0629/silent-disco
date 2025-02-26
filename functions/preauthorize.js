@@ -13,6 +13,7 @@ exports.handler = async function(event) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        idempotency_key: `${Date.now()}-${Math.random()}`, // Unique key per request
         source_id: sourceId,
         amount_money: { amount: amount, currency: currency },
         location_id: locationId,
