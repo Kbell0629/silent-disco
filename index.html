@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silent Disco Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+    .form { display: none; flex-direction: column; gap: 10px; max-width: 400px; margin: 20px auto; }
+    input, textarea { padding: 10px; font-size: 16px; }
+    #statusList { text-align: left; }
+    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
+    #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
+  </style>
+</head>
+<body>
+  <h1>Silent Disco Headphone Tracker</h1>
+  <button onclick="showCheckout(); vibrate()">Checkout Headphone</button>
+  <button onclick="showReturn(); vibrate()">Return Headphone</button>
+  <button onclick="showStatus(); vibrate()">View Status</button>
+
+  <div id="checkout" class="form">
+    <h2>Checkout</h2>
+    <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
+    <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
+    <input id="name" placeholder="Full Name">
+    <input id="email" placeholder="Email">
+    <input id="phone" placeholder="Phone Number">
+    <textarea id="agreement" readonly rows="8">RENTAL AGREEMENT AND COLLATERAL TERMS
+
+By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA SE2 Events INC. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
+
+I understand and agree that failure to return the headphones by the end of the event will result in a replacement fee of $100.00 USD ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee if the headphones are not returned or are returned damaged beyond normal wear and tear.
+
+This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
+    <canvas id="signaturePad" width="300" height="150"></canvas>
+    <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
+    <input id="card" placeholder="Card Last 4 Digits">
+    <button onclick="checkout(); vibrate()">Complete Checkout</button>
+  </div>
+
+  <div id="return" class="form">
+    <h2>Return</h2>
+    <button id="scanReturn" onclick="scanNFC('return'); vibrate()">Scan NFC Tag</button>
+    <input id="returnId" placeholder="Headphone ID" readonly>
+    <button onclick="returnHeadphone(); vibrate()">Return</button>
+  </div>
+
+  <div id="status" class="form">
+    <h2>Status</h2>
+    <pre id="statusList"></pre>
+  </div>
+
+  <script>
+    let headphones = JSON.parse(localStorage.getItem('headphones')) || {};
+    let signatureData = null;
+
+    function vibrate() {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(100);
+      }
+    }
+
+    function showCheckout() {
+      toggleForms('checkout');
+      initSignaturePad();
+    }
+
+    function showReturn() {
+      toggleForms('return');
+    }
+
+    function showStatus() {
+      toggleForms('status');
+      document.getElementById('statusList').textContent = JSON.stringify(headphones, null, 2);
+    }
+
+    function toggleForms(active) {
+      ['checkout', 'return', 'status'].forEach(id => {
+        document.getElementById(id).style.display = id === active ? 'flex' : 'none';
+      });
+    }
+
+    async function scanNFC(context) {
+      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : 'scanReturn');
+      button.disabled = true;
+      if ('NDEFReader' in window) {
+        const ndef = new NDEFReader();
+        try {
+          await ndef.scan();
+          const controller = new AbortController();
+          ndef.onreading = event => {
+            const id = event.serialNumber || `HP${Object.keys(headphones).length + 1}`;
+            setId(context, id);
+            alert(`Scanned headphone: ${id}`);
+            controller.abort();
+            button.disabled = false;
+          };
+          ndef.onreadingerror = () => {
+            alert('No NFC tag detected. Try again or enter manually.');
+            manualEntry(context);
+            controller.abort();
+            button.disabled = false;
+          };
+          setTimeout(() => {
+            controller.abort();
+            if (!button.disabled) return;
+            alert('Scan timed out. Try again or enter manually.');
+            manualEntry(context);
+            button.disabled = false;
+          }, 5000);
+          await new Promise((resolve) => {
+            controller.signal.addEventListener('abort', resolve);
+          });
+        } catch (error) {
+          alert(`NFC error: ${error.message}. Enter ID manually.`);
+          manualEntry(context);
+          button.disabled = false;
+        }
+      } else {
+        alert('NFC not supported in this browser. Enter ID manually.');
