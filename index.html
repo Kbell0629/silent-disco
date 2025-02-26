@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
+  <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
@@ -12,6 +13,7 @@
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
+    #card-container { margin: 10px auto; }
   </style>
 </head>
 <body>
@@ -40,9 +42,9 @@ MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission t
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
+    <div id="card-container"></div>
     <canvas id="signaturePad" width="300" height="150"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
-    <input id="card" placeholder="Card Last 4 Digits">
     <button onclick="checkout(); vibrate()">Complete Checkout</button>
   </div>
 
@@ -59,23 +61,31 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   </div>
 
   <script>
+    const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
     let headphones = JSON.parse(localStorage.getItem('headphones')) || {};
     let signatureData = null;
+    let payments;
+
+    async function initializeSquare() {
+      payments = window.Square.payments(squareAppId);
+      const card = await payments.card();
+      await card.attach('#card-container');
+      return card;
+    }
+
+    let cardElement;
 
     function vibrate() {
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100);
-      }
+      if ('vibrate' in navigator) navigator.vibrate(100);
     }
 
-    function showCheckout() {
+    async function showCheckout() {
       toggleForms('checkout');
       initSignaturePad();
+      cardElement = await initializeSquare();
     }
 
-    function showReturn() {
-      toggleForms('return');
-    }
+    function showReturn() { toggleForms('return'); }
 
     function showStatus() {
       toggleForms('status');
@@ -125,7 +135,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           button.disabled = false;
         }
       } else {
-        alert('NFC not supported in this browser. Enter ID manually.');
+        alert('NFC not supported. Enter ID manually.');
         manualEntry(context);
         button.disabled = false;
       }
@@ -204,11 +214,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
-      const card = document.getElementById('card').value;
       const date = new Date().toLocaleDateString();
 
-      if (!id || !name || !email || !phone || !card || !signatureData) {
-        alert('Please fill all fields and sign the agreement!');
+      if (!id || !name || !email || !phone || !signatureData) {
+        alert('Please fill all fields, enter card details, and sign the agreement!');
         return;
       }
 
@@ -221,47 +230,57 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return;
       }
 
-      headphones[id] = {
-        status: 'checked_out',
-        customer: { name, email, phone },
-        agreement: { text: agreementText, signature: signatureData, amount: 100 },
-        pre_auth: { card_last4: card, pre_auth_id: `PREAUTH-${id}-${Date.now()}`, amount: 100 }
-      };
-      localStorage.setItem('headphones', JSON.stringify(headphones));
-
       try {
-        const response = await fetch('/.netlify/functions/send-email', {
+        const result = await cardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed');
+        const paymentToken = result.token;
+
+        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: paymentToken,
+            amount: 10000,
+            currency: 'USD',
+            locationId: 'LQ7MAQD7N37E5'
+          })
+        });
+
+        const preauthResult = await preauthResponse.json();
+        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        const preauthId = preauthResult.paymentId;
+
+        headphones[id] = {
+          status: 'checked_out',
+          customer: { name, email, phone },
+          agreement: { text: agreementText, signature: signatureData, amount: 100 },
+          pre_auth: { pre_auth_id: preauthId, amount: 100 }
+        };
+        localStorage.setItem('headphones', JSON.stringify(headphones));
+
+        const emailResponse = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: name,
             email: email,
             agreement: agreementText,
-            signature: signatureData
+            signature: signatureData,
+            preauthId: preauthId
           })
         });
-        if (response.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}.`);
+
+        if (emailResponse.ok) {
+          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization ID: ${preauthId}`);
         } else {
-          throw new Error('Function failed');
+          throw new Error('Email failed');
         }
       } catch (error) {
-        alert('Checkout successful, but email failed: ' + error.message);
+        alert('Checkout successful, but an error occurred: ' + error.message);
       }
       clearForm('checkout');
       clearSignature();
       showCheckout();
-    }
-
-    function dataURLtoBlob(dataURL) {
-      const [header, data] = dataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
-      const binary = atob(data);
-      const array = [];
-      for (let i = 0; i < binary.length; i++) {
-        array.push(binary.charCodeAt(i));
-      }
-      return new Blob([new Uint8Array(array)], { type: mime });
     }
 
     function returnHeadphone() {
