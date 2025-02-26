@@ -17,7 +17,7 @@
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
-    #card-container { margin: 10px auto; }
+    #card-container { margin: 10px auto; min-height: 50px; }
     table { width: 100%; border-collapse: collapse; table-layout: auto; }
     th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
     th { background-color: #f2f2f2; }
@@ -63,7 +63,7 @@
       display: none; 
     }
     #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
-    #dialogCardContainer { margin: 8px auto; }
+    #dialogCardContainer { margin: 8px auto; min-height: 50px; }
   </style>
 </head>
 <body>
@@ -222,21 +222,30 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function initializeSquare() {
+      if (!window.Square) {
+        console.error('Square SDK not loaded');
+        return;
+      }
       if (!payments) {
         payments = window.Square.payments(squareAppId);
       }
       const cardContainer = document.getElementById('card-container');
-      cardContainer.innerHTML = '';
+      cardContainer.innerHTML = ''; // Clear any previous content
       cardElement = await payments.card();
       await cardElement.attach('#card-container');
       return cardElement;
     }
 
     window.onload = async () => {
-      await initializeSquare();
-      await loadHeadphones();
-      makeDraggable('checkoutDialog', 'checkoutDialogHeader');
-      makeDraggable('returnDialog', 'returnDialogHeader');
+      try {
+        await initializeSquare();
+        await loadHeadphones();
+        makeDraggable('checkoutDialog', 'checkoutDialogHeader');
+        makeDraggable('returnDialog', 'returnDialogHeader');
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        alert('Failed to initialize app: ' + error.message);
+      }
     };
 
     function vibrate() {
@@ -246,6 +255,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function showCheckout() {
       toggleForms('checkout');
       initSignaturePad('signaturePad');
+      await initializeSquare(); // Ensure card field is re-initialized
     }
 
     function showReturn() { 
@@ -536,7 +546,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
     }
 
-    function showCheckoutDialog(id) {
+    async function showCheckoutDialog(id) {
       document.getElementById('dialogHeadphoneId').value = id;
       document.getElementById('dialogName').value = '';
       document.getElementById('dialogEmail').value = '';
@@ -545,12 +555,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('checkoutDialog').style.display = 'flex';
       document.getElementById('dialogOverlay').style.display = 'block';
       initSignaturePad('dialogSignaturePad');
-      initDialogCard();
+      await initDialogCard(); // Ensure dialog card field is initialized
     }
 
     async function initDialogCard() {
+      if (!window.Square) {
+        console.error('Square SDK not loaded');
+        return;
+      }
+      if (!payments) {
+        payments = window.Square.payments(squareAppId);
+      }
       const dialogCardContainer = document.getElementById('dialogCardContainer');
-      dialogCardContainer.innerHTML = '';
+      dialogCardContainer.innerHTML = ''; // Clear any previous content
       dialogCardElement = await payments.card();
       await dialogCardElement.attach('#dialogCardContainer');
     }
@@ -623,7 +640,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
-
+        
         await saveHeadphone(id, headphoneData);
 
         console.log('Sending email...');
