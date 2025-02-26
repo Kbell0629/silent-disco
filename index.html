@@ -11,6 +11,7 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea, select { padding: 8px; font-size: 14px; }
     #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
@@ -67,6 +68,31 @@
     #headphoneIdsList, #dialogHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
     #headphoneIdsList li, #dialogHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
     .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
+    /* Loading Spinner Styles */
+    .loading-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.3); 
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 2000; 
+    }
+    .spinner { 
+      border: 8px solid #f3f3f3; 
+      border-top: 8px solid #007bff; 
+      border-radius: 50%; 
+      width: 60px; 
+      height: 60px; 
+      animation: spin 1s linear infinite; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
   </style>
 </head>
 <body>
@@ -97,7 +123,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <div id="card-container"></div>
     <canvas id="signaturePad" width="250" height="120"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
-    <button onclick="checkout(); vibrate()">Complete Checkout</button>
+    <button id="checkoutButton" onclick="checkout(); vibrate()">Complete Checkout</button>
   </div>
   <div id="return" class="form">
     <h2>Return</h2>
@@ -170,7 +196,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <div id="dialogCardContainer"></div>
     <canvas id="dialogSignaturePad" width="250" height="120"></canvas>
     <button onclick="clearDialogSignature(); vibrate()">Clear Signature</button>
-    <button onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
+    <button id="dialogCheckoutButton" onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
     <button onclick="closeDialog('checkout'); vibrate()">Cancel</button>
   </div>
 
@@ -184,6 +210,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   </div>
 
   <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null); vibrate()"></div>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+  </div>
 
   <script>
     const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
@@ -325,6 +355,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function vibrate() {
       if ('vibrate' in navigator) navigator.vibrate(100);
+    }
+
+    // Loading State Functions
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('checkoutButton').disabled = true;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = true);
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('checkoutButton').disabled = false;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = false);
     }
 
     // Multi-headphone functions
@@ -588,6 +631,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return;
       }
 
+      showLoading(); // Show loading state
       const groupId = `GROUP_${Date.now()}`; // Unique group ID for this checkout
       const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('agreement').value
@@ -659,6 +703,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       } catch (error) {
         console.error('Checkout error:', error.message);
         alert('Checkout failed: ' + error.message);
+      } finally {
+        hideLoading(); // Hide loading state regardless of success or failure
       }
     }
 
@@ -834,6 +880,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
         const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
         if (confirmCharge) {
+          showLoading(); // Show loading state
           try {
             const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
               method: 'POST',
@@ -856,6 +903,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             updateDashboard();
           } catch (error) {
             alert(`Charge failed for ${id}: ${error.message}`);
+          } finally {
+            hideLoading(); // Hide loading state
           }
         }
       } else {
