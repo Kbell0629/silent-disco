@@ -298,7 +298,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
-      const date = new Date().toLocaleDateString();
+      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
       if (!id || !name || !email || !phone || !signatureData || !cardElement) {
         alert('Please fill all fields, enter card details, and sign the agreement!');
@@ -342,7 +342,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         headphones[id] = {
           status: 'checked_out',
           customer: { name, email, phone },
-          agreement: { text: agreementText, signature: signatureData, amount: 100, date: date },
+          agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
@@ -400,7 +400,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       headphones[id] = { 
         status: 'checked_out', 
         customer: { name: 'Manual', email: 'manual@example.com', phone: 'N/A' }, 
-        agreement: { date: new Date().toLocaleDateString() },
+        agreement: { date: new Date().toISOString().split('T')[0], timestamp: Date.now() },
         pre_auth: null 
       };
       localStorage.setItem('headphones', JSON.stringify(headphones));
@@ -453,10 +453,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const tbody = document.getElementById('headphoneList');
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const dateFilter = document.getElementById('dateFilter').value;
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
       tbody.innerHTML = '';
       Object.keys(headphones).forEach(id => {
         const hp = headphones[id];
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
+        const checkoutTime = hp.agreement?.timestamp || 0;
+        const overdue = now - checkoutTime > twelveHours;
         const rowData = [
           hp.customer?.name || 'N/A',
           statusText,
@@ -475,7 +479,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>
               <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
               <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
-              <button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>
+              ${hp.status === 'checked_out' && hp.pre_auth && overdue ? `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>` : ''}
             </td>
             <td>${hp.customer?.name || 'N/A'}</td>
             <td>${statusText}</td>
