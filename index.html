@@ -463,7 +463,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
                 <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
                 <strong>Date:</strong> ${hp.agreement.date || 'N/A'}
-                <strong>Group ID:</strong> ${hp.groupId || 'N/A'}
+                <strong>Group ID:</strong> ${hp.groupId || 'Single'}
               `;
             } else {
               resultElement.textContent = `Headphone ${id} not found.`;
@@ -632,7 +632,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       showLoading(); // Show loading state
-      const groupId = `GROUP_${Date.now()}`; // Unique group ID for this checkout
+      const groupId = headphoneIds.length > 1 ? `GROUP_${Date.now()}` : null; // Only assign groupId for multiple headphones
       const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('agreement').value
         .replace('[Customer Name]', name)
@@ -664,7 +664,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        // Save each headphone with group ID
+        // Save each headphone with conditional groupId
         for (const id of headphoneIds) {
           if (headphones[id] && headphones[id].status === 'checked_out') {
             alert(`Headphone ${id} is already checked out! Skipping this one.`);
@@ -675,8 +675,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             customer: { name, email, phone },
             agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
             pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 }, // Total amount for group
-            groupId: groupId
           };
+          if (groupId) headphoneData.groupId = groupId; // Only add groupId if multiple headphones
           await saveHeadphone(id, headphoneData);
         }
 
@@ -784,7 +784,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return;
       }
 
-      const groupId = `GROUP_${Date.now()}`; // Unique group ID for this checkout
+      const groupId = headphoneIds.length > 1 ? `GROUP_${Date.now()}` : null; // Only assign groupId for multiple headphones
       const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('dialogAgreement').value
         .replace('[Customer Name]', name)
@@ -816,7 +816,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        // Save each headphone with group ID
+        // Save each headphone with conditional groupId
         for (const id of headphoneIds) {
           if (headphones[id] && headphones[id].status === 'checked_out') {
             alert(`Headphone ${id} is already checked out! Skipping this one.`);
@@ -827,8 +827,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             customer: { name, email, phone },
             agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
             pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 }, // Total amount for group
-            groupId: groupId
           };
+          if (groupId) headphoneData.groupId = groupId; // Only add groupId if multiple headphones
           await saveHeadphone(id, headphoneData);
         }
 
@@ -948,7 +948,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           hp.customer?.phone || 'N/A',
           hp.id,
           hp.agreement?.date || 'N/A',
-          hp.groupId || 'N/A'
+          hp.groupId || 'Single' // Display 'Single' if no groupId
         ];
         if (
           rowData.some(data => data.toLowerCase().includes(searchTerm)) &&
@@ -973,7 +973,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
             <td>${hp.id}</td>
-            <td>${hp.groupId || 'N/A'}</td>
+            <td>${hp.groupId || 'Single'}</td> <!-- Show 'Single' if no groupId -->
           `;
           tbody.appendChild(row);
         }
@@ -1038,7 +1038,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             hp.customer?.phone || '',
             hp.agreement?.date || '',
             hp.pre_auth ? 'Hold' : 'Released',
-            hp.groupId || ''
+            hp.groupId || 'Single' // Use 'Single' in search if no groupId
           ];
           return rowData.some(data => data.toLowerCase().includes(searchTerm));
         });
@@ -1072,7 +1072,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     <td>${hp.customer?.phone || 'N/A'}</td>
                     <td>${hp.agreement?.date || 'N/A'}</td>
                     <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
-                    <td>${hp.groupId || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1104,7 +1104,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     <td>${hp.customer.email}</td>
                     <td>${hp.customer.phone}</td>
                     <td>${hp.agreement.date}</td>
-                    <td>${hp.groupId || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1140,7 +1140,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                       <td>${hp.customer.phone}</td>
                       <td>${hp.agreement.date}</td>
                       <td>${daysOverdue}</td>
-                      <td>${hp.groupId || 'N/A'}</td>
+                      <td>${hp.groupId || 'Single'}</td>
                     </tr>
                   `;
                 }).join('')}
@@ -1177,7 +1177,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     <td>${hp.customer.phone}</td>
                     <td>${hp.agreement.date}</td>
                     <td>$100.00</td>
-                    <td>${hp.groupId || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1226,7 +1226,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         case 'groupSummary':
           const groups = {};
           finalArray.forEach(hp => {
-            if (hp.groupId) {
+            if (hp.groupId) { // Only include entries with a groupId
               if (!groups[hp.groupId]) {
                 groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
               }
