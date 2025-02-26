@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
-  <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
@@ -98,7 +94,6 @@ MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission t
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
-    <div id="card-container"></div>
     <canvas id="signaturePad"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
     <button onclick="checkout(); vibrate()">Complete Checkout</button>
@@ -121,7 +116,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           <th>Actions</th>
           <th>Customer</th>
           <th>Status</th>
-          <th>Preauth Status</th>
           <th>Email</th>
           <th>Phone</th>
           <th>ID</th>
@@ -157,7 +151,6 @@ MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission t
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
-    <div id="dialogCardContainer"></div>
     <canvas id="dialogSignaturePad"></canvas>
     <button onclick="clearDialogSignature(); vibrate()">Clear Signature</button>
     <button onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
@@ -176,101 +169,41 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null); vibrate()"></div>
 
   <script>
-    const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
-    let headphones = {};
+    let headphones = JSON.parse(localStorage.getItem('headphones')) || {};
     let signatureData = null;
     let dialogSignatureData = null;
-    let payments;
-    let cardElement;
-    let dialogCardElement;
 
-    // Firebase Initialization with your config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAjHcOfj2LkeRkFi_RKAd9umJ80a8ujBPM",
-      authDomain: "silentdiscotracker.firebaseapp.com",
-      projectId: "silentdiscotracker",
-      storageBucket: "silentdiscotracker.firebasestorage.app",
-      messagingSenderId: "527385130136",
-      appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
-    };
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    async function saveHeadphone(id, data) {
-      try {
-        await db.collection('headphones').doc(id).set(data);
-      } catch (error) {
-        console.error('Failed to save to Firebase:', error);
-      }
-    }
-
-    async function loadHeadphones() {
-      try {
-        const snapshot = await db.collection('headphones').get();
-        return snapshot.docs.reduce((acc, doc) => ({ ...acc, [doc.id]: doc.data() }), {});
-      } catch (error) {
-        console.error('Failed to load from Firebase:', error);
-        return JSON.parse(localStorage.getItem('headphones') || '{}');
-      }
-    }
-
-    async function syncLocalToCloud() {
-      if (navigator.onLine) {
-        const localData = JSON.parse(localStorage.getItem('headphones') || '{}');
-        for (const [id, data] of Object.entries(localData)) {
-          await saveHeadphone(id, data);
-        }
-      }
-    }
-
-    async function initializeSquare() {
-      // Disabled for now to avoid payment errors
-      // if (!payments) payments = window.Square.payments(squareAppId);
-      // const cardContainer = document.getElementById('card-container');
-      // cardContainer.innerHTML = '';
-      // cardElement = await payments.card();
-      // await cardElement.attach('#card-container');
-      // return cardElement;
-    }
-
-    window.onload = async () => {
-      headphones = await loadHeadphones();
-      localStorage.setItem('headphones', JSON.stringify(headphones));
-      await initializeSquare();
+    window.onload = function() {
+      alert('Page loaded! Buttons should work now.');
       makeDraggable('checkoutDialog', 'checkoutDialogHeader');
       makeDraggable('returnDialog', 'returnDialogHeader');
-      window.addEventListener('online', syncLocalToCloud);
-      if (!('NDEFReader' in window)) {
-        document.querySelectorAll('button[id^="scan"]').forEach(btn => btn.style.display = 'none');
-        alert('NFC not supported. Use manual entry.');
-      }
     };
 
     function vibrate() {
       if ('vibrate' in navigator && navigator.vibrate(100)) return;
     }
 
-    async function showCheckout() {
+    function showCheckout() {
       toggleForms('checkout');
       initSignaturePad('signaturePad');
     }
 
-    function showReturn() { toggleForms('return'); }
+    function showReturn() {
+      toggleForms('return');
+    }
 
-    async function showDashboard() {
+    function showDashboard() {
       toggleForms('dashboard');
-      headphones = await loadHeadphones();
       updateDashboard();
     }
 
-    async function scanNFCStatus() {
+    function scanNFCStatus() {
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
       resultElement.textContent = 'Scanning...';
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
-        try {
-          await ndef.scan();
+        ndef.scan().then(() => {
           const controller = new AbortController();
           ndef.onreading = event => {
             const id = event.serialNumber || prompt('Enter headphone ID manually:');
@@ -282,7 +215,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 <strong>Customer:</strong> ${hp.customer.name}<br>
                 <strong>Email:</strong> ${hp.customer.email}<br>
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
-                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
                 <strong>Date:</strong> ${hp.agreement.date || 'N/A'}
               `;
             } else {
@@ -302,11 +234,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               manualEntry('nfcStatus');
             }
           }, 5000);
-          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-        } catch (error) {
+        }).catch(error => {
           resultElement.textContent = `Error: ${error.message}. Enter ID manually.`;
           manualEntry('nfcStatus');
-        }
+        });
       } else {
         resultElement.textContent = 'NFC not supported. Enter ID manually.';
         manualEntry('nfcStatus');
@@ -322,14 +253,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('dialogOverlay').style.display = 'none';
     }
 
-    async function scanNFC(context) {
+    function scanNFC(context) {
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
       button.disabled = true;
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
-        try {
-          await ndef.scan();
+        ndef.scan().then(() => {
           const controller = new AbortController();
           ndef.onreading = event => {
             const id = event.serialNumber || `HP${Date.now()}`;
@@ -351,12 +281,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             manualEntry(context);
             button.disabled = false;
           }, 5000);
-          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-        } catch (error) {
+        }).catch(error => {
           alert(`NFC error: ${error.message}. Enter manually.`);
           manualEntry(context);
           button.disabled = false;
-        }
+        });
       } else {
         manualEntry(context);
         button.disabled = false;
@@ -445,7 +374,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       dialogSignatureData = null;
     }
 
-    async function checkout() {
+    function checkout() {
       const id = document.getElementById('headphoneId').value;
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
@@ -466,66 +395,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return;
       }
 
-      try {
-        // Payment code disabled for now
-        // const result = await cardElement.tokenize();
-        // if (result.status !== 'OK') {
-        //   alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
-        //   return;
-        // }
-        // const paymentToken = result.token;
-
-        // const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     sourceId: paymentToken,
-        //     amount: 10000,
-        //     currency: 'USD',
-        //     locationId: 'LQ7MAQD7N37E5'
-        //   })
-        // });
-
-        // const preauthResult = await preauthResponse.json();
-        // if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
-        // const preauthId = preauthResult.paymentId;
-
-        headphones[id] = {
-          status: 'checked_out',
-          customer: { name, email, phone },
-          agreement: { text: agreementText, signature: signatureData, amount: 100, date, timestamp: Date.now() },
-          pre_auth: null // No pre-auth since payment is disabled
-        };
-        localStorage.setItem('headphones', JSON.stringify(headphones));
-        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-
-        // Email disabled for now
-        // const emailResponse = await fetch('/.netlify/functions/send-email', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     name, email, agreement: agreementText, signature: signatureData, preauthId
-        //   })
-        // });
-
-        // if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out!`);
-          clearForm('checkout');
-          showDashboard();
-        // } else {
-        //   throw new Error('Email failed');
-        // }
-      } catch (error) {
-        alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
-        if (!navigator.onLine) {
-          alert('Saved locally. Will sync when online.');
-          clearForm('checkout');
-          showDashboard();
-        }
-      }
+      headphones[id] = {
+        status: 'checked_out',
+        customer: { name, email, phone },
+        agreement: { text: agreementText, signature: signatureData, amount: 100, date, timestamp: Date.now() }
+      };
+      localStorage.setItem('headphones', JSON.stringify(headphones));
+      alert(`Headphone ${id} checked out!`);
+      clearForm('checkout');
+      showDashboard();
     }
 
-    async function returnHeadphone() {
+    function returnHeadphone() {
       const id = document.getElementById('returnId').value;
       if (!id) {
         alert('Please scan or enter a headphone ID!');
@@ -533,10 +414,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
         headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
         localStorage.setItem('headphones', JSON.stringify(headphones));
-        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-        alert(`Headphone ${id} returned${navigator.onLine ? '' : ' locally. Will sync when online.'}!`);
+        alert(`Headphone ${id} returned!`);
         clearForm('return');
         showDashboard();
       } else {
@@ -553,15 +432,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('checkoutDialog').style.display = 'flex';
       document.getElementById('dialogOverlay').style.display = 'block';
       initSignaturePad('dialogSignaturePad');
-      // initDialogCard(); // Disabled since payment is off
-    }
-
-    async function initDialogCard() {
-      // Disabled for now
-      // const dialogCardContainer = document.getElementById('dialogCardContainer');
-      // dialogCardContainer.innerHTML = '';
-      // dialogCardElement = await payments.card();
-      // await dialogCardElement.attach('#dialogCardContainer');
     }
 
     function showReturnDialog(id) {
@@ -577,7 +447,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       showDashboard();
     }
 
-    async function submitCheckoutDialog() {
+    function submitCheckoutDialog() {
       const id = document.getElementById('dialogHeadphoneId').value;
       const name = document.getElementById('dialogName').value;
       const email = document.getElementById('dialogEmail').value;
@@ -598,61 +468,17 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return;
       }
 
-      try {
-        // Payment code disabled
-        // const result = await dialogCardElement.tokenize();
-        // if (result.status !== 'OK') {
-        //   alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
-        //   return;
-        // }
-        // const paymentToken = result.token;
-
-        // const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     sourceId: paymentToken,
-        //     amount: 10000,
-        //     currency: 'USD',
-        //     locationId: 'LQ7MAQD7N37E5'
-        //   })
-        // });
-
-        // const preauthResult = await preauthResponse.json();
-        // if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
-        // const preauthId = preauthResult.paymentId;
-
-        headphones[id] = {
-          status: 'checked_out',
-          customer: { name, email, phone },
-          agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date, timestamp: Date.now() },
-          pre_auth: null
-        };
-        localStorage.setItem('headphones', JSON.stringify(headphones));
-        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-
-        // Email disabled
-        // const emailResponse = await fetch('/.netlify/functions/send-email', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     name, email, agreement: agreementText, signature: dialogSignatureData, preauthId
-        //   })
-        // });
-
-        // if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out!`);
-          closeDialog('checkout');
-        // } else {
-        //   throw new Error('Email failed');
-        // }
-      } catch (error) {
-        alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
-        if (!navigator.onLine) closeDialog('checkout');
-      }
+      headphones[id] = {
+        status: 'checked_out',
+        customer: { name, email, phone },
+        agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date, timestamp: Date.now() }
+      };
+      localStorage.setItem('headphones', JSON.stringify(headphones));
+      alert(`Headphone ${id} checked out!`);
+      closeDialog('checkout');
     }
 
-    async function submitReturnDialog() {
+    function submitReturnDialog() {
       const id = document.getElementById('dialogReturnId').value;
       if (!id) {
         alert('Please scan or enter a headphone ID!');
@@ -660,44 +486,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
         headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
         localStorage.setItem('headphones', JSON.stringify(headphones));
-        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-        alert(`Headphone ${id} returned${navigator.onLine ? '' : ' locally. Will sync when online.'}!`);
+        alert(`Headphone ${id} returned!`);
         closeDialog('return');
       } else {
         alert('Headphone not found or not checked out!');
-      }
-    }
-
-    async function dashboardCharge(id) {
-      if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
-        const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
-        if (confirmCharge) {
-          try {
-            // Charge disabled
-            // const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify({
-            //     paymentId: headphones[id].pre_auth.pre_auth_id,
-            //     amount: headphones[id].pre_auth.amount
-            //   })
-            // });
-            // const chargeResult = await chargeResponse.json();
-            // if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
-            headphones[id].status = 'charged';
-            headphones[id].pre_auth = null;
-            localStorage.setItem('headphones', JSON.stringify(headphones));
-            if (navigator.onLine) await saveHeadphone(id, headphones[id]);
-            alert(`Headphone ${id} marked as charged (payment disabled for now)!`);
-            updateDashboard();
-          } catch (error) {
-            alert(`Charge failed for ${id}: ${error.message}`);
-          }
-        }
-      } else {
-        alert(`Cannot charge for ${id}: Not checked out or no preauthorization available.`);
       }
     }
 
@@ -716,7 +509,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const rowData = [
           hp.customer?.name || 'N/A',
           statusText,
-          hp.pre_auth ? 'Hold' : 'Released',
           hp.customer?.email || 'N/A',
           hp.customer?.phone || 'N/A',
           id,
@@ -734,14 +526,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           if (hp.status === 'checked_out') {
             actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${id}')">Check In</button>`;
           }
-          if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
-            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>`;
-          }
           row.innerHTML = `
             <td>${actionsHtml}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
             <td>${statusText}</td>
-            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
             <td>${id}</td>
@@ -763,10 +551,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function clearForm(formId) {
       document.getElementById(formId).querySelectorAll('input').forEach(input => input.value = '');
-      if (formId === 'checkout') {
-        document.getElementById('card-container').innerHTML = '';
-        initializeSquare();
-      }
     }
 
     function makeDraggable(dialogId, headerId) {
