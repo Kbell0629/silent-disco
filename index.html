@@ -10,6 +10,7 @@
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea { padding: 10px; font-size: 16px; }
+    #searchInput { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
@@ -65,17 +66,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <div id="dashboard" class="form">
     <h2>Dashboard</h2>
+    <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
     <table id="headphoneTable">
       <thead>
         <tr>
-          <th>ID</th>
+          <th>Actions</th>
           <th>Status</th>
           <th>Customer</th>
           <th>Email</th>
           <th>Phone</th>
           <th>Preauth ID</th>
           <th>Preauth Status</th>
-          <th>Actions</th>
+          <th>ID</th>
         </tr>
       </thead>
       <tbody id="headphoneList"></tbody>
@@ -141,7 +143,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               const hp = headphones[id];
               resultElement.innerHTML = `
                 <strong>ID:</strong> ${id}<br>
-                <strong>Status:</strong> ${hp.status}<br>
+                <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : 'Returned'}<br>
                 <strong>Customer:</strong> ${hp.customer.name}<br>
                 <strong>Email:</strong> ${hp.customer.email}<br>
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
@@ -415,25 +417,42 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function updateDashboard() {
       const tbody = document.getElementById('headphoneList');
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       tbody.innerHTML = '';
       Object.keys(headphones).forEach(id => {
         const hp = headphones[id];
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${id}</td>
-          <td>${hp.status}</td>
-          <td>${hp.customer?.name || 'N/A'}</td>
-          <td>${hp.customer?.email || 'N/A'}</td>
-          <td>${hp.customer?.phone || 'N/A'}</td>
-          <td>${hp.pre_auth?.pre_auth_id || 'N/A'}</td>
-          <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
-          <td>
-            <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
-            <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
-          </td>
-        `;
-        tbody.appendChild(row);
+        const statusText = hp.status === 'checked_out' ? 'Checked Out' : 'Returned';
+        const rowData = [
+          id,
+          statusText,
+          hp.customer?.name || 'N/A',
+          hp.customer?.email || 'N/A',
+          hp.customer?.phone || 'N/A',
+          hp.pre_auth?.pre_auth_id || 'N/A',
+          hp.pre_auth ? 'Hold' : 'Released'
+        ];
+        if (rowData.some(data => data.toLowerCase().includes(searchTerm))) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>
+              <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
+              <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
+            </td>
+            <td>${statusText}</td>
+            <td>${hp.customer?.name || 'N/A'}</td>
+            <td>${hp.customer?.email || 'N/A'}</td>
+            <td>${hp.customer?.phone || 'N/A'}</td>
+            <td>${hp.pre_auth?.pre_auth_id || 'N/A'}</td>
+            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
+            <td>${id}</td>
+          `;
+          tbody.appendChild(row);
+        }
       });
+    }
+
+    function searchHeadphones() {
+      updateDashboard();
     }
 
     function clearForm(formId) {
