@@ -167,6 +167,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     let payments;
     let cardElement;
     let dialogCardElement;
+    let db;
+    let headphonesCollection;
 
     // Your Firebase Configuration
     const firebaseConfig = {
@@ -178,10 +180,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const headphonesCollection = db.collection('headphones');
+    // Initialize Firebase synchronously before any other operations
+    function initializeFirebase() {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      headphonesCollection = db.collection('headphones');
+    }
 
     // Firebase Functions
     async function loadHeadphones() {
@@ -200,6 +204,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function saveHeadphone(id, data) {
+      if (!headphonesCollection) {
+        throw new Error('Firebase not initialized');
+      }
       try {
         await headphonesCollection.doc(id).set(data);
         headphones[id] = data;
@@ -211,6 +218,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function updateHeadphone(id, data) {
+      if (!headphonesCollection) {
+        throw new Error('Firebase not initialized');
+      }
       try {
         await headphonesCollection.doc(id).update(data);
         headphones[id] = { ...headphones[id], ...data };
@@ -230,14 +240,16 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         payments = window.Square.payments(squareAppId);
       }
       const cardContainer = document.getElementById('card-container');
-      cardContainer.innerHTML = ''; // Clear any previous content
+      cardContainer.innerHTML = '';
       cardElement = await payments.card();
       await cardElement.attach('#card-container');
       return cardElement;
     }
 
+    // Initialize everything on load
     window.onload = async () => {
       try {
+        initializeFirebase(); // Ensure Firebase is initialized first
         await initializeSquare();
         await loadHeadphones();
         makeDraggable('checkoutDialog', 'checkoutDialogHeader');
@@ -255,7 +267,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function showCheckout() {
       toggleForms('checkout');
       initSignaturePad('signaturePad');
-      await initializeSquare(); // Ensure card field is re-initialized
+      await initializeSquare(); // Re-initialize card field
     }
 
     function showReturn() { 
@@ -555,7 +567,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('checkoutDialog').style.display = 'flex';
       document.getElementById('dialogOverlay').style.display = 'block';
       initSignaturePad('dialogSignaturePad');
-      await initDialogCard(); // Ensure dialog card field is initialized
+      await initDialogCard();
     }
 
     async function initDialogCard() {
@@ -567,7 +579,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         payments = window.Square.payments(squareAppId);
       }
       const dialogCardContainer = document.getElementById('dialogCardContainer');
-      dialogCardContainer.innerHTML = ''; // Clear any previous content
+      dialogCardContainer.innerHTML = '';
       dialogCardElement = await payments.card();
       await dialogCardElement.attach('#dialogCardContainer');
     }
@@ -640,7 +652,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
-        
+
         await saveHeadphone(id, headphoneData);
 
         console.log('Sending email...');
