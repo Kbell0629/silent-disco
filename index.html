@@ -393,8 +393,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     function dashboardCheckout(id) {
-      if (headphones[id]) {
-        alert(`Headphone ${id} is already checked out or returned. Use the Checkout form for new rentals.`);
+      if (headphones[id] && headphones[id].status !== 'returned' && headphones[id].status !== 'charged') {
+        alert(`Headphone ${id} is already checked out. Use the Checkout form for new rentals or check it in first.`);
         return;
       }
       headphones[id] = { 
@@ -477,8 +477,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>
-              <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
-              <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
+              ${hp.status !== 'checked_out' ? `<button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>` : ''}
+              ${hp.status === 'checked_out' ? `<button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>` : ''}
               ${hp.status === 'checked_out' && hp.pre_auth && overdue ? `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>` : ''}
             </td>
             <td>${hp.customer?.name || 'N/A'}</td>
