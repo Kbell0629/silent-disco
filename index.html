@@ -10,7 +10,7 @@
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea { padding: 10px; font-size: 16px; }
-    #searchInput { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
+    #searchInput, #dateFilter { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
@@ -20,6 +20,7 @@
     th { background-color: #f2f2f2; }
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
+    .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
     #dashboard { overflow-x: auto; }
   </style>
 </head>
@@ -66,6 +67,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="dashboard" class="form">
     <h2>Dashboard</h2>
     <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
+    <input id="dateFilter" type="date" onchange="filterByDate()">
     <table id="headphoneTable">
       <thead>
         <tr>
@@ -145,7 +147,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 <strong>Customer:</strong> ${hp.customer.name}<br>
                 <strong>Email:</strong> ${hp.customer.email}<br>
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
-                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}
+                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
+                <strong>Date:</strong> ${hp.agreement.date || 'N/A'}
               `;
             } else {
               resultElement.textContent = `Headphone ${id} not found.`;
@@ -269,190 +272,4 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       function stopDrawing() {
         if (drawing) {
           drawing = false;
-          signatureData = canvas.toDataURL();
-        }
-      }
-
-      function getPosition(e) {
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches ? e.touches[0] : e;
-        return {
-          x: touch.clientX - rect.left,
-          y: touch.clientY - rect.top
-        };
-      }
-    }
-
-    function clearSignature() {
-      const canvas = document.getElementById('signaturePad');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      signatureData = null;
-    }
-
-    async function checkout() {
-      const id = document.getElementById('headphoneId').value;
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const phone = document.getElementById('phone').value;
-      const date = new Date().toLocaleDateString();
-
-      if (!id || !name || !email || !phone || !signatureData || !cardElement) {
-        alert('Please fill all fields, enter card details, and sign the agreement!');
-        return;
-      }
-
-      const agreementText = document.getElementById('agreement').value
-        .replace('[Customer Name]', name)
-        .replace('[Date]', date);
-
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        alert('This headphone is already checked out!');
-        return;
-      }
-
-      try {
-        console.log('Starting card tokenization...');
-        const result = await cardElement.tokenize();
-        console.log('Tokenization result:', result);
-        if (result.status !== 'OK') throw new Error('Card tokenization failed: ' + (result.errors?.[0]?.message || 'Unknown error'));
-        const paymentToken = result.token;
-        console.log('Payment token:', paymentToken);
-
-        console.log('Sending preauthorization request...');
-        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceId: paymentToken,
-            amount: 10000,
-            currency: 'USD',
-            locationId: 'LQ7MAQD7N37E5'
-          })
-        });
-
-        const preauthResult = await preauthResponse.json();
-        console.log('Preauthorization response:', preauthResult);
-        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
-        const preauthId = preauthResult.paymentId;
-
-        headphones[id] = {
-          status: 'checked_out',
-          customer: { name, email, phone },
-          agreement: { text: agreementText, signature: signatureData, amount: 100 },
-          pre_auth: { pre_auth_id: preauthId, amount: 100 }
-        };
-        localStorage.setItem('headphones', JSON.stringify(headphones));
-
-        console.log('Sending email...');
-        const emailResponse = await fetch('/.netlify/functions/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name,
-            email: email,
-            agreement: agreementText,
-            signature: signatureData,
-            preauthId: preauthId
-          })
-        });
-
-        if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
-        } else {
-          throw new Error('Email failed');
-        }
-      } catch (error) {
-        console.error('Checkout error:', error.message);
-        alert('Checkout successful, but an error occurred: ' + error.message);
-      }
-      clearForm('checkout');
-      clearSignature();
-      showCheckout();
-    }
-
-    function returnHeadphone() {
-      const id = document.getElementById('returnId').value;
-      if (!id) {
-        alert('Please scan a headphone!');
-        return;
-      }
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
-        localStorage.setItem('headphones', JSON.stringify(headphones));
-        alert(`Headphone ${id} returned!`);
-        clearForm('return');
-        showReturn();
-      } else {
-        alert('Headphone not found or not checked out!');
-      }
-    }
-
-    function dashboardCheckout(id) {
-      if (headphones[id]) {
-        alert(`Headphone ${id} is already checked out or returned. Use the Checkout form for new rentals.`);
-        return;
-      }
-      headphones[id] = { status: 'checked_out', customer: { name: 'Manual', email: 'manual@example.com', phone: 'N/A' }, pre_auth: null };
-      localStorage.setItem('headphones', JSON.stringify(headphones));
-      alert(`Headphone ${id} checked out manually!`);
-      updateDashboard();
-    }
-
-    function dashboardCheckin(id) {
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
-        localStorage.setItem('headphones', JSON.stringify(headphones));
-        alert(`Headphone ${id} checked in manually!`);
-        updateDashboard();
-      } else {
-        alert(`Headphone ${id} is not checked out!`);
-      }
-    }
-
-    function updateDashboard() {
-      const tbody = document.getElementById('headphoneList');
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      tbody.innerHTML = '';
-      Object.keys(headphones).forEach(id => {
-        const hp = headphones[id];
-        const statusText = hp.status === 'checked_out' ? 'Checked Out' : 'Returned';
-        const rowData = [
-          hp.customer?.name || 'N/A',
-          statusText,
-          hp.pre_auth ? 'Hold' : 'Released',
-          hp.customer?.email || 'N/A',
-          hp.customer?.phone || 'N/A',
-          id
-        ];
-        if (rowData.some(data => data.toLowerCase().includes(searchTerm))) {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>
-              <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
-              <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
-            </td>
-            <td>${hp.customer?.name || 'N/A'}</td>
-            <td>${statusText}</td>
-            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
-            <td>${hp.customer?.email || 'N/A'}</td>
-            <td>${hp.customer?.phone || 'N/A'}</td>
-            <td>${id}</td>
-          `;
-          tbody.appendChild(row);
-        }
-      });
-    }
-
-    function searchHeadphones() {
-      updateDashboard();
-    }
-
-    function clearForm(formId) {
-      document.getElementById(formId).querySelectorAll('input').forEach(input => input.value = '');
-    }
-  </script>
-</body>
-</html>
+          signature
