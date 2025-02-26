@@ -545,10 +545,32 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     function manualEntry(context) {
-      const id = prompt('Enter headphone ID (e.g., HP123):');
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
-      if (id) input.value = id;
+      const regex = /^HP\d{3}$/; // Matches HP followed by 3 digits
+
+      // Get the highest existing headphone ID number
+      const existingIds = Object.keys(headphones).filter(id => regex.test(id));
+      let nextNum = 1; // Default to HP001 if no IDs exist
+      if (existingIds.length > 0) {
+        const numbers = existingIds.map(id => parseInt(id.replace('HP', ''), 10));
+        nextNum = Math.max(...numbers) + 1; // Next number in sequence
+      }
+      const suggestedId = `HP${String(nextNum).padStart(3, '0')}`; // e.g., HP006
+
+      let id;
+      do {
+        id = prompt(`Enter headphone ID (e.g., HP123).\nSuggested ID: ${suggestedId}. Press OK to accept or enter a different ID`, suggestedId);
+        if (id === null) { // User clicked Cancel
+          button.disabled = false;
+          return; // Exit without setting a value
+        }
+        if (!regex.test(id)) {
+          alert('Invalid ID format. Please enter an ID like HP123 (HP followed by 3 digits).');
+        }
+      } while (!regex.test(id)); // Keep asking until valid
+
+      input.value = id;
       button.disabled = false;
     }
 
@@ -973,7 +995,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
             <td>${hp.id}</td>
-            <td>${hp.groupId || 'Single'}</td> <!-- Show 'Single' if no groupId -->
+            <td>${hp.groupId || 'Single'}</td>
           `;
           tbody.appendChild(row);
         }
