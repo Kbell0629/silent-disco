@@ -841,9 +841,25 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const dateFilter = document.getElementById('dateFilter').value;
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
+
+      // Convert headphones object to array for sorting
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({
+        id,
+        ...hp
+      }));
+
+      // Sort by groupId (nulls last) and then by id within groups
+      headphoneArray.sort((a, b) => {
+        const groupA = a.groupId || 'ZZZZZZ'; // Push null groupIds to end
+        const groupB = b.groupId || 'ZZZZZZ';
+        if (groupA === groupB) {
+          return a.id.localeCompare(b.id); // Sort by id within same group
+        }
+        return groupA.localeCompare(groupB); // Sort by groupId first
+      });
+
       tbody.innerHTML = '';
-      Object.keys(headphones).forEach(id => {
-        const hp = headphones[id];
+      headphoneArray.forEach(hp => {
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
         const checkoutTime = hp.agreement?.timestamp || now;
         const overdue = hp.status === 'checked_out' && (now - checkoutTime > twelveHours);
@@ -853,7 +869,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           hp.pre_auth ? 'Hold' : 'Released',
           hp.customer?.email || 'N/A',
           hp.customer?.phone || 'N/A',
-          id,
+          hp.id,
           hp.agreement?.date || 'N/A',
           hp.groupId || 'N/A'
         ];
@@ -864,13 +880,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           const row = document.createElement('tr');
           let actionsHtml = '';
           if (hp.status !== 'checked_out') {
-            actionsHtml += `<button class="checkout-btn" onclick="showCheckoutDialog('${id}')">Check Out</button>`;
+            actionsHtml += `<button class="checkout-btn" onclick="showCheckoutDialog('${hp.id}')">Check Out</button>`;
           }
           if (hp.status === 'checked_out') {
-            actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${id}')">Check In</button>`;
+            actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${hp.id}')">Check In</button>`;
           }
           if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
-            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>`;
+            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
           }
           row.innerHTML = `
             <td>${actionsHtml}</td>
@@ -879,7 +895,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
-            <td>${id}</td>
+            <td>${hp.id}</td>
             <td>${hp.groupId || 'N/A'}</td>
           `;
           tbody.appendChild(row);
