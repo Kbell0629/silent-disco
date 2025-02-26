@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-  <!-- Firebase SDK (v8.10.1, last non-module version) -->
+  <!-- Firebase SDK (v8.10.1) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <style>
@@ -64,26 +64,31 @@
     }
     #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
     #dialogCardContainer { margin: 8px auto; min-height: 50px; }
+    #headphoneIdsList, #dialogHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
   </style>
 </head>
 <body>
   <h1>Silent Disco Headphone Tracker</h1>
-  <button onclick="showCheckout(); vibrate()">Checkout Headphone</button>
+  <button onclick="showCheckout(); vibrate()">Checkout Headphones</button>
   <button onclick="showReturn(); vibrate()">Return Headphone</button>
   <button onclick="showDashboard(); vibrate()">View Dashboard</button>
   <button onclick="scanNFCStatus(); vibrate()">Scan NFC Status</button>
 
   <div id="checkout" class="form">
-    <h2>Checkout</h2>
+    <h2>Checkout Headphones</h2>
     <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
     <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
+    <button onclick="addHeadphoneId(); vibrate()">Add Headphone ID</button>
+    <ul id="headphoneIdsList"></ul>
     <input id="name" placeholder="Full Name">
     <input id="email" placeholder="Email">
     <input id="phone" placeholder="Phone Number">
     <textarea id="agreement" readonly rows="12">RENTAL AGREEMENT AND COLLATERAL TERMS
 
-By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
-I understand and agree that failure to return the headphones by the end of the event will result in a replacement fee of $100.00 USD ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee if the headphones are not returned or are returned damaged beyond normal wear and tear.
+By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
+I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
 LIABILITY RELEASE: I hereby release, waive, discharge, and agree not to sue SE2 Silent Disco DBA and SE2 Events Inc., its officers, employees, agents, or affiliates ("Released Parties") from any and all liability, claims, demands, actions, or causes of action arising out of or related to any loss, damage, or injury, including death, that may be sustained by me or my property while using the headphones or attending the event, whether caused by the negligence of the Released Parties or otherwise. I assume full responsibility for any risk of bodily injury, death, or property damage arising from my use of the headphones and participation in the event.
 MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission to use my email address and phone number provided herein for marketing purposes, including but not limited to sending promotional offers, event updates, and newsletters. I understand I may opt out of these communications at any time by following the unsubscribe instructions provided in such messages.
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
@@ -114,6 +119,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           <th>Email</th>
           <th>Phone</th>
           <th>ID</th>
+          <th>Group ID</th>
         </tr>
       </thead>
       <tbody id="headphoneList"></tbody>
@@ -127,16 +133,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <!-- Checkout Dialog -->
   <div id="checkoutDialog" class="dialog">
-    <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphone</div>
+    <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphones</div>
     <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
     <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
+    <button onclick="addDialogHeadphoneId(); vibrate()">Add Headphone ID</button>
+    <ul id="dialogHeadphoneIdsList"></ul>
     <input id="dialogName" placeholder="Full Name">
     <input id="dialogEmail" placeholder="Email">
     <input id="dialogPhone" placeholder="Phone Number">
     <textarea id="dialogAgreement" readonly rows="10">RENTAL AGREEMENT AND COLLATERAL TERMS
 
-By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
-I understand and agree that failure to return the headphones by the end of the event will result in a replacement fee of $100.00 USD ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee if the headphones are not returned or are returned damaged beyond normal wear and tear.
+By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
+I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
 LIABILITY RELEASE: I hereby release, waive, discharge, and agree not to sue SE2 Silent Disco DBA and SE2 Events Inc., its officers, employees, agents, or affiliates ("Released Parties") from any and all liability, claims, demands, actions, or causes of action arising out of or related to any loss, damage, or injury, including death, that may be sustained by me or my property while using the headphones or attending the event, whether caused by the negligence of the Released Parties or otherwise. I assume full responsibility for any risk of bodily injury, death, or property damage arising from my use of the headphones and participation in the event.
 MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission to use my email address and phone number provided herein for marketing purposes, including but not limited to sending promotional offers, event updates, and newsletters. I understand I may opt out of these communications at any time by following the unsubscribe instructions provided in such messages.
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
@@ -285,7 +293,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     // Initialize everything on load
     window.onload = async () => {
       try {
-        await waitForFirebase(); // Wait for Firebase to load and initialize
+        await waitForFirebase();
         await initializeSquare();
         await loadHeadphones();
         makeDraggable('checkoutDialog', 'checkoutDialogHeader');
@@ -301,10 +309,55 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       if ('vibrate' in navigator) navigator.vibrate(100);
     }
 
+    // Multi-headphone functions
+    function addHeadphoneId() {
+      const id = document.getElementById('headphoneId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (headphones[id] && headphones[id].status === 'checked_out') {
+        alert(`Headphone ${id} is already checked out!`);
+        return;
+      }
+      const list = document.getElementById('headphoneIdsList');
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      list.appendChild(li);
+      document.getElementById('headphoneId').value = ''; // Clear input
+    }
+
+    function addDialogHeadphoneId() {
+      const id = document.getElementById('dialogHeadphoneId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (headphones[id] && headphones[id].status === 'checked_out') {
+        alert(`Headphone ${id} is already checked out!`);
+        return;
+      }
+      const list = document.getElementById('dialogHeadphoneIdsList');
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      list.appendChild(li);
+      document.getElementById('dialogHeadphoneId').value = ''; // Clear input
+    }
+
+    function removeHeadphoneId(button, id) {
+      button.parentElement.remove();
+    }
+
+    function getHeadphoneIds(listId) {
+      const list = document.getElementById(listId);
+      return Array.from(list.children).map(li => li.textContent.split(' ')[0]);
+    }
+
     async function showCheckout() {
       toggleForms('checkout');
       initSignaturePad('signaturePad');
       await initializeSquare();
+      document.getElementById('headphoneIdsList').innerHTML = ''; // Clear previous IDs
     }
 
     function showReturn() { 
@@ -339,6 +392,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
                 <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
                 <strong>Date:</strong> ${hp.agreement.date || 'N/A'}
+                <strong>Group ID:</strong> ${hp.groupId || 'N/A'}
               `;
             } else {
               resultElement.textContent = `Headphone ${id} not found.`;
@@ -495,25 +549,23 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function checkout() {
-      const id = document.getElementById('headphoneId').value;
+      const headphoneIds = getHeadphoneIds('headphoneIdsList');
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
       const date = new Date().toISOString().split('T')[0];
 
-      if (!id || !name || !email || !phone || !signatureData || !cardElement) {
-        alert('Please fill all fields, enter card details, and sign the agreement!');
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) {
+        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
         return;
       }
 
+      const groupId = `GROUP_${Date.now()}`; // Unique group ID for this checkout
+      const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('agreement').value
         .replace('[Customer Name]', name)
-        .replace('[Date]', date);
-
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        alert('This headphone is already checked out!');
-        return;
-      }
+        .replace('[Date]', date)
+        .replace('[Headphone IDs]', headphoneIdsText);
 
       try {
         console.log('Starting card tokenization...');
@@ -529,7 +581,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sourceId: paymentToken,
-            amount: 10000,
+            amount: headphoneIds.length * 10000, // $100 per headphone
             currency: 'USD',
             locationId: 'LQ7MAQD7N37E5'
           })
@@ -540,14 +592,21 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        const headphoneData = {
-          status: 'checked_out',
-          customer: { name, email, phone },
-          agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
-          pre_auth: { pre_auth_id: preauthId, amount: 100 }
-        };
-
-        await saveHeadphone(id, headphoneData);
+        // Save each headphone with group ID
+        for (const id of headphoneIds) {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out! Skipping this one.`);
+            continue;
+          }
+          const headphoneData = {
+            status: 'checked_out',
+            customer: { name, email, phone },
+            agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 }, // Total amount for group
+            groupId: groupId
+          };
+          await saveHeadphone(id, headphoneData);
+        }
 
         console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
@@ -563,7 +622,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
           clearForm('checkout');
           showDashboard();
         } else {
@@ -605,6 +664,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('dialogOverlay').style.display = 'block';
       initSignaturePad('dialogSignaturePad');
       await initDialogCard();
+      document.getElementById('dialogHeadphoneIdsList').innerHTML = ''; // Clear previous IDs
+      if (id) addDialogHeadphoneId(); // Add initial ID if provided
     }
 
     async function initDialogCard() {
@@ -638,25 +699,23 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function submitCheckoutDialog() {
-      const id = document.getElementById('dialogHeadphoneId').value;
+      const headphoneIds = getHeadphoneIds('dialogHeadphoneIdsList');
       const name = document.getElementById('dialogName').value;
       const email = document.getElementById('dialogEmail').value;
       const phone = document.getElementById('dialogPhone').value;
       const date = new Date().toISOString().split('T')[0];
 
-      if (!id || !name || !email || !phone || !dialogSignatureData || !dialogCardElement) {
-        alert('Please fill all fields, enter card details, and sign the agreement!');
+      if (!headphoneIds.length || !name || !email || !phone || !dialogSignatureData || !dialogCardElement) {
+        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
         return;
       }
 
+      const groupId = `GROUP_${Date.now()}`; // Unique group ID for this checkout
+      const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('dialogAgreement').value
         .replace('[Customer Name]', name)
-        .replace('[Date]', date);
-
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        alert('This headphone is already checked out!');
-        return;
-      }
+        .replace('[Date]', date)
+        .replace('[Headphone IDs]', headphoneIdsText);
 
       try {
         console.log('Starting dialog card tokenization...');
@@ -672,7 +731,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sourceId: paymentToken,
-            amount: 10000,
+            amount: headphoneIds.length * 10000, // $100 per headphone
             currency: 'USD',
             locationId: 'LQ7MAQD7N37E5'
           })
@@ -683,14 +742,21 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        const headphoneData = {
-          status: 'checked_out',
-          customer: { name, email, phone },
-          agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
-          pre_auth: { pre_auth_id: preauthId, amount: 100 }
-        };
-
-        await saveHeadphone(id, headphoneData);
+        // Save each headphone with group ID
+        for (const id of headphoneIds) {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out! Skipping this one.`);
+            continue;
+          }
+          const headphoneData = {
+            status: 'checked_out',
+            customer: { name, email, phone },
+            agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 }, // Total amount for group
+            groupId: groupId
+          };
+          await saveHeadphone(id, headphoneData);
+        }
 
         console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
@@ -706,7 +772,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
           closeDialog('checkout');
         } else {
           throw new Error('Email failed');
@@ -746,7 +812,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 paymentId: headphones[id].pre_auth.pre_auth_id,
-                amount: headphones[id].pre_auth.amount
+                amount: 10000 // Charge $100 per headphone
               })
             });
             const chargeResult = await chargeResponse.json();
@@ -788,7 +854,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           hp.customer?.email || 'N/A',
           hp.customer?.phone || 'N/A',
           id,
-          hp.agreement?.date || 'N/A'
+          hp.agreement?.date || 'N/A',
+          hp.groupId || 'N/A'
         ];
         if (
           rowData.some(data => data.toLowerCase().includes(searchTerm)) &&
@@ -813,6 +880,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
             <td>${id}</td>
+            <td>${hp.groupId || 'N/A'}</td>
           `;
           tbody.appendChild(row);
         }
@@ -831,6 +899,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById(formId).querySelectorAll('input').forEach(input => input.value = '');
       if (formId === 'checkout') {
         document.getElementById('card-container').innerHTML = '';
+        document.getElementById('headphoneIdsList').innerHTML = '';
         initializeSquare();
       }
     }
