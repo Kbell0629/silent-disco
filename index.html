@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
@@ -144,6 +147,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <button onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
     <button onclick="closeDialog('checkout'); vibrate()">Cancel</button>
   </div>
+
   <!-- Return Dialog -->
   <div id="returnDialog" class="dialog">
     <div id="returnDialogHeader" class="dialog-header">Return Headphone</div>
@@ -157,12 +161,65 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <script>
     const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
-    let headphones = JSON.parse(localStorage.getItem('headphones')) || {};
+    let headphones = {};
     let signatureData = null;
     let dialogSignatureData = null;
     let payments;
     let cardElement;
     let dialogCardElement;
+
+    // Your Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAjHcOfj2LkeRkFi_RKAd9umJ80a8ujBPM",
+      authDomain: "silentdiscotracker.firebaseapp.com",
+      projectId: "silentdiscotracker",
+      storageBucket: "silentdiscotracker.firebasestorage.app",
+      messagingSenderId: "527385130136",
+      appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const headphonesCollection = db.collection('headphones');
+
+    // Firebase Functions
+    async function loadHeadphones() {
+      try {
+        const snapshot = await headphonesCollection.get();
+        headphones = {};
+        snapshot.forEach(doc => {
+          headphones[doc.id] = doc.data();
+        });
+        return headphones;
+      } catch (error) {
+        console.error('Error loading headphones:', error);
+        alert('Failed to load data from Firebase.');
+        return {};
+      }
+    }
+
+    async function saveHeadphone(id, data) {
+      try {
+        await headphonesCollection.doc(id).set(data);
+        headphones[id] = data;
+      } catch (error) {
+        console.error('Error saving headphone:', error);
+        alert('Failed to save to Firebase: ' + error.message);
+        throw error;
+      }
+    }
+
+    async function updateHeadphone(id, data) {
+      try {
+        await headphonesCollection.doc(id).update(data);
+        headphones[id] = { ...headphones[id], ...data };
+      } catch (error) {
+        console.error('Error updating headphone:', error);
+        alert('Failed to update Firebase: ' + error.message);
+        throw error;
+      }
+    }
 
     async function initializeSquare() {
       if (!payments) {
@@ -177,6 +234,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     window.onload = async () => {
       await initializeSquare();
+      await loadHeadphones();
       makeDraggable('checkoutDialog', 'checkoutDialogHeader');
       makeDraggable('returnDialog', 'returnDialogHeader');
     };
@@ -190,10 +248,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       initSignaturePad('signaturePad');
     }
 
-    function showReturn() { toggleForms('return'); }
+    function showReturn() { 
+      toggleForms('return'); 
+    }
 
-    function showDashboard() {
+    async function showDashboard() {
       toggleForms('dashboard');
+      await loadHeadphones();
       updateDashboard();
     }
 
@@ -212,18 +273,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             if (id && headphones[id]) {
               const hp = headphones[id];
               resultElement.innerHTML = `
-                <strong>ID:</strong> ${id}
-
-                <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}
-
-                <strong>Customer:</strong> ${hp.customer.name}
-
-                <strong>Email:</strong> ${hp.customer.email}
-
-                <strong>Phone:</strong> ${hp.customer.phone}
-
-                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}
-
+                <strong>ID:</strong> ${id}<br>
+                <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br>
+                <strong>Customer:</strong> ${hp.customer.name}<br>
+                <strong>Email:</strong> ${hp.customer.email}<br>
+                <strong>Phone:</strong> ${hp.customer.phone}<br>
+                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
                 <strong>Date:</strong> ${hp.agreement.date || 'N/A'}
               `;
             } else {
@@ -271,7 +326,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           await ndef.scan();
           const controller = new AbortController();
           ndef.onreading = event => {
-            const id = event.serialNumber || `HP${Object.keys(headphones).length + 1}`;
+            const id = event.serialNumber || `HP${Date.now()}`;
             input.value = id;
             alert(`Scanned headphone: ${id}`);
             controller.abort();
@@ -385,7 +440,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
-      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const date = new Date().toISOString().split('T')[0];
 
       if (!id || !name || !email || !phone || !signatureData || !cardElement) {
         alert('Please fill all fields, enter card details, and sign the agreement!');
@@ -426,13 +481,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        headphones[id] = {
+        const headphoneData = {
           status: 'checked_out',
           customer: { name, email, phone },
           agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
-        localStorage.setItem('headphones', JSON.stringify(headphones));
+
+        await saveHeadphone(id, headphoneData);
 
         console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
@@ -456,20 +512,22 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
       } catch (error) {
         console.error('Checkout error:', error.message);
-        alert('Checkout successful, but an error occurred: ' + error.message);
+        alert('Checkout failed: ' + error.message);
       }
     }
 
-    function returnHeadphone() {
+    async function returnHeadphone() {
       const id = document.getElementById('returnId').value;
       if (!id) {
         alert('Please scan a headphone!');
         return;
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
-        headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
-        localStorage.setItem('headphones', JSON.stringify(headphones));
+        const updatedData = {
+          status: 'returned',
+          pre_auth: null
+        };
+        await updateHeadphone(id, updatedData);
         alert(`Headphone ${id} returned!`);
         clearForm('return');
         showDashboard();
@@ -559,13 +617,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
-        headphones[id] = {
+        const headphoneData = {
           status: 'checked_out',
           customer: { name, email, phone },
           agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
-        localStorage.setItem('headphones', JSON.stringify(headphones));
+
+        await saveHeadphone(id, headphoneData);
 
         console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
@@ -592,16 +651,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
     }
 
-    function submitReturnDialog() {
+    async function submitReturnDialog() {
       const id = document.getElementById('dialogReturnId').value;
       if (!id) {
         alert('Please scan or enter a headphone ID!');
         return;
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
-        headphones[id].status = 'returned';
-        headphones[id].pre_auth = null;
-        localStorage.setItem('headphones', JSON.stringify(headphones));
+        const updatedData = {
+          status: 'returned',
+          pre_auth: null
+        };
+        await updateHeadphone(id, updatedData);
         alert(`Headphone ${id} returned!`);
         closeDialog('return');
       } else {
@@ -624,9 +685,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             });
             const chargeResult = await chargeResponse.json();
             if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
-            headphones[id].status = 'charged';
-            headphones[id].pre_auth = null;
-            localStorage.setItem('headphones', JSON.stringify(headphones));
+            
+            const updatedData = {
+              status: 'charged',
+              pre_auth: null
+            };
+            await updateHeadphone(id, updatedData);
+            
             alert(`Headphone ${id} charged successfully!`);
             updateDashboard();
           } catch (error) {
@@ -643,7 +708,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const dateFilter = document.getElementById('dateFilter').value;
       const now = Date.now();
-      const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+      const twelveHours = 12 * 60 * 60 * 1000;
       tbody.innerHTML = '';
       Object.keys(headphones).forEach(id => {
         const hp = headphones[id];
@@ -716,7 +781,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       header.addEventListener('mousedown', startDragging);
       document.addEventListener('mousemove', drag);
       document.addEventListener('mouseup', stopDragging);
-
       header.addEventListener('touchstart', startDragging);
       document.addEventListener('touchmove', drag);
       document.addEventListener('touchend', stopDragging);
@@ -748,7 +812,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           currentY = y;
           dialog.style.left = `${x}px`;
           dialog.style.top = `${y}px`;
-          dialog.style.transform = 'none'; // Remove centering transform during drag
+          dialog.style.transform = 'none';
         }
       }
 
@@ -757,7 +821,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         header.style.cursor = 'move';
       }
 
-      // Initialize position
       currentX = dialog.offsetLeft;
       currentY = dialog.offsetTop;
     }
