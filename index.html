@@ -12,8 +12,8 @@
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
-    input, textarea { padding: 8px; font-size: 14px; }
-    #searchInput, #dateFilter { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
+    input, textarea, select { padding: 8px; font-size: 14px; }
+    #searchInput, #dateFilter, #reportType { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
@@ -24,7 +24,7 @@
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
-    #dashboard { overflow-x: auto; }
+    #dashboard, #reports { overflow-x: auto; }
     .dialog { 
       position: absolute; 
       top: 10%; 
@@ -74,6 +74,7 @@
   <button onclick="showCheckout(); vibrate()">Checkout Headphones</button>
   <button onclick="showReturn(); vibrate()">Return Headphone</button>
   <button onclick="showDashboard(); vibrate()">View Dashboard</button>
+  <button onclick="showReports(); vibrate()">View Reports</button>
   <button onclick="scanNFCStatus(); vibrate()">Scan NFC Status</button>
 
   <div id="checkout" class="form">
@@ -124,6 +125,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       </thead>
       <tbody id="headphoneList"></tbody>
     </table>
+  </div>
+
+  <div id="reports" class="form">
+    <h2>Reports</h2>
+    <select id="reportType" onchange="generateReport()">
+      <option value="">Select a Report</option>
+      <option value="checkedOut">Currently Checked Out Headphones</option>
+      <option value="overdue">Overdue Headphones</option>
+      <option value="revenue">Revenue Summary</option>
+      <option value="customerActivity">Customer Activity</option>
+      <option value="groupSummary">Group Checkout Summary</option>
+    </select>
+    <div id="reportOutput"></div>
   </div>
 
   <div id="nfcStatus" class="form">
@@ -370,6 +384,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       updateDashboard();
     }
 
+    async function showReports() {
+      toggleForms('reports');
+      await loadHeadphones();
+      document.getElementById('reportType').value = ''; // Reset report selection
+      document.getElementById('reportOutput').innerHTML = '<p>Select a report type to view details.</p>';
+    }
+
     async function scanNFCStatus() {
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
@@ -421,7 +442,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     function toggleForms(active) {
-      ['checkout', 'return', 'dashboard', 'nfcStatus'].forEach(id => {
+      ['checkout', 'return', 'dashboard', 'nfcStatus', 'reports'].forEach(id => {
         document.getElementById(id).style.display = id === active ? 'flex' : 'none';
       });
       document.getElementById('checkoutDialog').style.display = 'none';
@@ -917,6 +938,213 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         document.getElementById('card-container').innerHTML = '';
         document.getElementById('headphoneIdsList').innerHTML = '';
         initializeSquare();
+      }
+    }
+
+    // Reporting Functions
+    function generateReport() {
+      const reportType = document.getElementById('reportType').value;
+      const output = document.getElementById('reportOutput');
+      output.innerHTML = '';
+
+      if (!reportType) {
+        output.innerHTML = '<p>Select a report type to view details.</p>';
+        return;
+      }
+
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+
+      switch (reportType) {
+        case 'checkedOut':
+          const checkedOut = headphoneArray.filter(hp => hp.status === 'checked_out');
+          output.innerHTML = `
+            <h3>Currently Checked Out Headphones (${checkedOut.length})</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${checkedOut.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.customer.name}</td>
+                    <td>${hp.customer.email}</td>
+                    <td>${hp.customer.phone}</td>
+                    <td>${hp.agreement.date}</td>
+                    <td>${hp.groupId || 'N/A'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'overdue':
+          const overdue = headphoneArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
+          output.innerHTML = `
+            <h3>Overdue Headphones (${overdue.length})</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Days Overdue</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${overdue.map(hp => {
+                  const daysOverdue = Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24));
+                  return `
+                    <tr>
+                      <td>${hp.id}</td>
+                      <td>${hp.customer.name}</td>
+                      <td>${hp.customer.email}</td>
+                      <td>${hp.customer.phone}</td>
+                      <td>${hp.agreement.date}</td>
+                      <td>${daysOverdue}</td>
+                      <td>${hp.groupId || 'N/A'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'revenue':
+          const charged = headphoneArray.filter(hp => hp.status === 'charged');
+          const totalRevenue = charged.length * 100; // $100 per charged headphone
+          output.innerHTML = `
+            <h3>Revenue Summary</h3>
+            <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Charge Date</th>
+                  <th>Amount</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${charged.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.customer.name}</td>
+                    <td>${hp.customer.email}</td>
+                    <td>${hp.customer.phone}</td>
+                    <td>${hp.agreement.date}</td>
+                    <td>$100.00</td>
+                    <td>${hp.groupId || 'N/A'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'customerActivity':
+          const customers = {};
+          headphoneArray.forEach(hp => {
+            const customerKey = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[customerKey]) {
+              customers[customerKey] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            }
+            customers[customerKey].checkouts++;
+            customers[customerKey].headphones.push(hp.id);
+          });
+          output.innerHTML = `
+            <h3>Customer Activity</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Total Checkouts</th>
+                  <th>Headphone IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.values(customers).map(c => `
+                  <tr>
+                    <td>${c.name}</td>
+                    <td>${c.email}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.checkouts}</td>
+                    <td>${c.headphones.join(', ')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'groupSummary':
+          const groups = {};
+          headphoneArray.forEach(hp => {
+            if (hp.groupId) {
+              if (!groups[hp.groupId]) {
+                groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
+              }
+              groups[hp.groupId].ids.push(hp.id);
+              groups[hp.groupId].total++;
+              if (hp.status === 'checked_out') groups[hp.groupId].checkedOut++;
+              if (hp.status === 'returned') groups[hp.groupId].returned++;
+              if (hp.status === 'charged') groups[hp.groupId].charged++;
+            }
+          });
+          output.innerHTML = `
+            <h3>Group Checkout Summary</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Group ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Total Headphones</th>
+                  <th>Checked Out</th>
+                  <th>Returned</th>
+                  <th>Charged</th>
+                  <th>Headphone IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(groups).map(([groupId, g]) => `
+                  <tr>
+                    <td>${groupId}</td>
+                    <td>${g.customer.name}</td>
+                    <td>${g.customer.email}</td>
+                    <td>${g.total}</td>
+                    <td>${g.checkedOut}</td>
+                    <td>${g.returned}</td>
+                    <td>${g.charged}</td>
+                    <td>${g.ids.join(', ')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        default:
+          output.innerHTML = '<p>Invalid report type selected.</p>';
       }
     }
 
