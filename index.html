@@ -16,11 +16,10 @@
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
     #card-container { margin: 10px auto; }
     table { width: 100%; border-collapse: collapse; table-layout: auto; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    th { background-color: #f2f2f2; font-size: 14px; }
-    td { font-size: 14px; }
-    .checkin-btn { background-color: #28a745; padding: 5px; margin: 2px; }
-    .checkout-btn { background-color: #dc3545; padding: 5px; margin: 2px; }
+    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+    th { background-color: #f2f2f2; }
+    .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
+    .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     #dashboard { overflow-x: auto; }
   </style>
 </head>
@@ -71,12 +70,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <thead>
         <tr>
           <th>Actions</th>
-          <th>Status</th>
           <th>Customer</th>
+          <th>Status</th>
+          <th>Preauth Status</th>
           <th>Email</th>
           <th>Phone</th>
-          <th>Preauth ID</th>
-          <th>Preauth Status</th>
           <th>ID</th>
         </tr>
       </thead>
@@ -147,7 +145,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 <strong>Customer:</strong> ${hp.customer.name}<br>
                 <strong>Email:</strong> ${hp.customer.email}<br>
                 <strong>Phone:</strong> ${hp.customer.phone}<br>
-                <strong>Preauth ID:</strong> ${hp.pre_auth?.pre_auth_id || 'N/A'}<br>
                 <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}
               `;
             } else {
@@ -361,7 +358,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         if (emailResponse.ok) {
-          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization ID: ${preauthId}`);
+          alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
         } else {
           throw new Error('Email failed');
         }
@@ -423,13 +420,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const hp = headphones[id];
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : 'Returned';
         const rowData = [
-          id,
-          statusText,
           hp.customer?.name || 'N/A',
+          statusText,
+          hp.pre_auth ? 'Hold' : 'Released',
           hp.customer?.email || 'N/A',
           hp.customer?.phone || 'N/A',
-          hp.pre_auth?.pre_auth_id || 'N/A',
-          hp.pre_auth ? 'Hold' : 'Released'
+          id
         ];
         if (rowData.some(data => data.toLowerCase().includes(searchTerm))) {
           const row = document.createElement('tr');
@@ -438,12 +434,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               <button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>
               <button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>
             </td>
-            <td>${statusText}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
+            <td>${statusText}</td>
+            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
             <td>${hp.customer?.email || 'N/A'}</td>
             <td>${hp.customer?.phone || 'N/A'}</td>
-            <td>${hp.pre_auth?.pre_auth_id || 'N/A'}</td>
-            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
             <td>${id}</td>
           `;
           tbody.appendChild(row);
