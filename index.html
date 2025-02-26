@@ -9,10 +9,10 @@
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
-    input, textarea { padding: 10px; font-size: 16px; }
+    input, textarea { padding: 8px; font-size: 14px; }
     #searchInput, #dateFilter { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
-    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
+    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
     #card-container { margin: 10px auto; }
     table { width: 100%; border-collapse: collapse; table-layout: auto; }
@@ -22,10 +22,45 @@
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
     #dashboard { overflow-x: auto; }
-    .dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #000; z-index: 1000; display: none; flex-direction: column; gap: 10px; max-width: 90%; }
-    .dialog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999; display: none; }
-    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 10px auto; }
-    #dialogCardContainer { margin: 10px auto; }
+    .dialog { 
+      position: absolute; 
+      top: 10%; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: white; 
+      padding: 15px; 
+      border: 2px solid #000; 
+      z-index: 1000; 
+      display: none; 
+      flex-direction: column; 
+      gap: 8px; 
+      max-width: 90%; 
+      max-height: 80vh; 
+      overflow-y: auto; 
+      border-radius: 5px; 
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    }
+    .dialog-header { 
+      background: #007bff; 
+      color: white; 
+      padding: 5px; 
+      cursor: move; 
+      font-size: 16px; 
+      text-align: center; 
+      border-radius: 5px 5px 0 0; 
+    }
+    .dialog-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.5); 
+      z-index: 999; 
+      display: none; 
+    }
+    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
+    #dialogCardContainer { margin: 8px auto; }
   </style>
 </head>
 <body>
@@ -56,7 +91,7 @@ PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or aud
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="card-container"></div>
-    <canvas id="signaturePad" width="300" height="150"></canvas>
+    <canvas id="signaturePad" width="250" height="120"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
     <button onclick="checkout(); vibrate()">Complete Checkout</button>
   </div>
@@ -95,13 +130,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <!-- Checkout Dialog -->
   <div id="checkoutDialog" class="dialog">
-    <h2>Checkout Headphone</h2>
+    <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphone</div>
     <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
     <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
     <input id="dialogName" placeholder="Full Name">
     <input id="dialogEmail" placeholder="Email">
     <input id="dialogPhone" placeholder="Phone Number">
-    <textarea id="dialogAgreement" readonly rows="12">RENTAL AGREEMENT AND COLLATERAL TERMS
+    <textarea id="dialogAgreement" readonly rows="10">RENTAL AGREEMENT AND COLLATERAL TERMS
 
 By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
 
@@ -115,7 +150,7 @@ PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or aud
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="dialogCardContainer"></div>
-    <canvas id="dialogSignaturePad" width="300" height="150"></canvas>
+    <canvas id="dialogSignaturePad" width="250" height="120"></canvas>
     <button onclick="clearDialogSignature(); vibrate()">Clear Signature</button>
     <button onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
     <button onclick="closeDialog('checkout'); vibrate()">Cancel</button>
@@ -123,7 +158,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <!-- Return Dialog -->
   <div id="returnDialog" class="dialog">
-    <h2>Return Headphone</h2>
+    <div id="returnDialogHeader" class="dialog-header">Return Headphone</div>
     <button id="dialogScanReturn" onclick="scanNFC('dialogReturn'); vibrate()">Scan NFC Tag</button>
     <input id="dialogReturnId" placeholder="Headphone ID" readonly>
     <button onclick="submitReturnDialog(); vibrate()">Return</button>
@@ -154,6 +189,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     window.onload = async () => {
       await initializeSquare();
+      makeDraggable('checkoutDialog', 'checkoutDialogHeader');
+      makeDraggable('returnDialog', 'returnDialogHeader');
     };
 
     function vibrate() {
@@ -418,6 +455,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
         if (emailResponse.ok) {
           alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
+          clearForm('checkout');
+          showDashboard();
         } else {
           throw new Error('Email failed');
         }
@@ -425,9 +464,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         console.error('Checkout error:', error.message);
         alert('Checkout successful, but an error occurred: ' + error.message);
       }
-      clearForm('checkout');
-      clearSignature();
-      showCheckout();
     }
 
     function returnHeadphone() {
@@ -442,7 +478,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         localStorage.setItem('headphones', JSON.stringify(headphones));
         alert(`Headphone ${id} returned!`);
         clearForm('return');
-        showReturn();
+        showDashboard();
       } else {
         alert('Headphone not found or not checked out!');
       }
@@ -480,6 +516,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         document.getElementById('returnDialog').style.display = 'none';
       }
       document.getElementById('dialogOverlay').style.display = 'none';
+      showDashboard();
     }
 
     async function submitCheckoutDialog() {
@@ -552,7 +589,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (emailResponse.ok) {
           alert(`Headphone ${id} checked out! Agreement emailed to ${email}. Preauthorization completed.`);
           closeDialog('checkout');
-          updateDashboard();
         } else {
           throw new Error('Email failed');
         }
@@ -574,7 +610,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         localStorage.setItem('headphones', JSON.stringify(headphones));
         alert(`Headphone ${id} returned!`);
         closeDialog('return');
-        updateDashboard();
       } else {
         alert('Headphone not found or not checked out!');
       }
@@ -673,6 +708,64 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         document.getElementById('card-container').innerHTML = '';
         initializeSquare();
       }
+    }
+
+    function makeDraggable(dialogId, headerId) {
+      const dialog = document.getElementById(dialogId);
+      const header = document.getElementById(headerId);
+      let isDragging = false;
+      let currentX;
+      let currentY;
+      let initialX;
+      let initialY;
+
+      header.addEventListener('mousedown', startDragging);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDragging);
+
+      header.addEventListener('touchstart', startDragging);
+      document.addEventListener('touchmove', drag);
+      document.addEventListener('touchend', stopDragging);
+
+      function startDragging(e) {
+        isDragging = true;
+        if (e.type === 'mousedown') {
+          initialX = e.clientX - currentX;
+          initialY = e.clientY - currentY;
+        } else {
+          initialX = e.touches[0].clientX - currentX;
+          initialY = e.touches[0].clientY - currentY;
+        }
+        header.style.cursor = 'grabbing';
+      }
+
+      function drag(e) {
+        if (isDragging) {
+          e.preventDefault();
+          let x, y;
+          if (e.type === 'mousemove') {
+            x = e.clientX - initialX;
+            y = e.clientY - initialY;
+          } else {
+            x = e.touches[0].clientX - initialX;
+            y = e.touches[0].clientY - initialY;
+          }
+          currentX = x;
+          currentY = y;
+          dialog.style.left = `${x}px`;
+          dialog.style.top = `${y}px`;
+          dialog.style.transform = 'none'; // Remove centering transform during drag
+        }
+      }
+
+      function stopDragging() {
+        isDragging = false;
+        header.style.cursor = 'move';
+      }
+
+      // Initialize position
+      currentX = dialog.offsetLeft;
+      currentY = dialog.offsetTop;
     }
   </script>
 </body>
