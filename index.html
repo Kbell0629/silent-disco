@@ -459,8 +459,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       Object.keys(headphones).forEach(id => {
         const hp = headphones[id];
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
-        const checkoutTime = hp.agreement?.timestamp || 0;
-        const overdue = now - checkoutTime > twelveHours;
+        const checkoutTime = hp.agreement?.timestamp || now; // Fallback to now if timestamp missing
+        const overdue = hp.status === 'checked_out' && (now - checkoutTime > twelveHours);
         const rowData = [
           hp.customer?.name || 'N/A',
           statusText,
@@ -475,12 +475,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           (!dateFilter || hp.agreement?.date === dateFilter)
         ) {
           const row = document.createElement('tr');
+          let actionsHtml = '';
+          if (hp.status !== 'checked_out') {
+            actionsHtml += `<button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>`;
+          }
+          if (hp.status === 'checked_out') {
+            actionsHtml += `<button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>`;
+          }
+          if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
+            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>`;
+          }
           row.innerHTML = `
-            <td>
-              ${hp.status !== 'checked_out' ? `<button class="checkout-btn" onclick="dashboardCheckout('${id}')">Check Out</button>` : ''}
-              ${hp.status === 'checked_out' ? `<button class="checkin-btn" onclick="dashboardCheckin('${id}')">Check In</button>` : ''}
-              ${hp.status === 'checked_out' && hp.pre_auth && overdue ? `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>` : ''}
-            </td>
+            <td>${actionsHtml}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
             <td>${statusText}</td>
             <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
