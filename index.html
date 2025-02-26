@@ -169,6 +169,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     let dialogCardElement;
     let db;
     let headphonesCollection;
+    let isFirebaseInitialized = false;
 
     // Your Firebase Configuration
     const firebaseConfig = {
@@ -180,16 +181,30 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
     };
 
-    // Wait for Firebase to load before initializing
+    // Wait for Firebase to load and initialize
     async function waitForFirebase() {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        const maxAttempts = 50; // ~5 seconds timeout
+        let attempts = 0;
         const checkFirebase = setInterval(() => {
-          if (typeof firebase !== 'undefined' && firebase.app) {
+          attempts++;
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore) {
             clearInterval(checkFirebase);
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            headphonesCollection = db.collection('headphones');
-            resolve();
+            try {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+              headphonesCollection = db.collection('headphones');
+              isFirebaseInitialized = true;
+              console.log('Firebase initialized successfully');
+              resolve();
+            } catch (error) {
+              console.error('Firebase initialization failed:', error);
+              reject(error);
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkFirebase);
+            console.error('Firebase SDK failed to load within timeout');
+            reject(new Error('Firebase SDK failed to load'));
           }
         }, 100);
       });
@@ -197,6 +212,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     // Firebase Functions
     async function loadHeadphones() {
+      if (!isFirebaseInitialized) {
+        throw new Error('Firebase not initialized');
+      }
       try {
         const snapshot = await headphonesCollection.get();
         headphones = {};
@@ -212,7 +230,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function saveHeadphone(id, data) {
-      if (!headphonesCollection) {
+      if (!isFirebaseInitialized || !headphonesCollection) {
         throw new Error('Firebase not initialized');
       }
       try {
@@ -226,7 +244,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function updateHeadphone(id, data) {
-      if (!headphonesCollection) {
+      if (!isFirebaseInitialized || !headphonesCollection) {
         throw new Error('Firebase not initialized');
       }
       try {
@@ -273,22 +291,38 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function showCheckout() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       toggleForms('checkout');
       initSignaturePad('signaturePad');
       await initializeSquare();
     }
 
     function showReturn() { 
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       toggleForms('return'); 
     }
 
     async function showDashboard() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       toggleForms('dashboard');
       await loadHeadphones();
       updateDashboard();
     }
 
     async function scanNFCStatus() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
       resultElement.textContent = 'Scanning...';
@@ -347,6 +381,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function scanNFC(context) {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
       button.disabled = true;
@@ -466,6 +504,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function checkout() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       const id = document.getElementById('headphoneId').value;
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
@@ -547,6 +589,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function returnHeadphone() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       const id = document.getElementById('returnId').value;
       if (!id) {
         alert('Please scan a headphone!');
@@ -567,6 +613,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function showCheckoutDialog(id) {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       document.getElementById('dialogHeadphoneId').value = id;
       document.getElementById('dialogName').value = '';
       document.getElementById('dialogEmail').value = '';
@@ -593,6 +643,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     function showReturnDialog(id) {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       document.getElementById('dialogReturnId').value = id;
       document.getElementById('returnDialog').style.display = 'flex';
       document.getElementById('dialogOverlay').style.display = 'block';
@@ -609,6 +663,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function submitCheckoutDialog() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       const id = document.getElementById('dialogHeadphoneId').value;
       const name = document.getElementById('dialogName').value;
       const email = document.getElementById('dialogEmail').value;
@@ -689,6 +747,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function submitReturnDialog() {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       const id = document.getElementById('dialogReturnId').value;
       if (!id) {
         alert('Please scan or enter a headphone ID!');
@@ -708,6 +770,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function dashboardCharge(id) {
+      if (!isFirebaseInitialized) {
+        alert('App is still loading, please wait...');
+        return;
+      }
       if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
         const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
         if (confirmCharge) {
