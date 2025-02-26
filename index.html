@@ -5,25 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
-    input, textarea { padding: 8px; font-size: 14px; }
+    input, textarea { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
     #searchInput, #dateFilter { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
-    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
+    #signaturePad, #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 100%; max-width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
-    #card-container { margin: 10px auto; }
+    #card-container, #dialogCardContainer { margin: 10px auto; }
     table { width: 100%; border-collapse: collapse; table-layout: auto; }
-    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
     th { background-color: #f2f2f2; }
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
     #dashboard { overflow-x: auto; }
     .dialog { 
-      position: absolute; 
+      position: fixed; 
       top: 10%; 
       left: 50%; 
       transform: translateX(-50%); 
@@ -59,8 +62,13 @@
       z-index: 999; 
       display: none; 
     }
-    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
-    #dialogCardContainer { margin: 8px auto; }
+    @media (max-width: 600px) {
+      button { font-size: 14px; padding: 10px; }
+      #signaturePad, #dialogSignaturePad { height: 100px; }
+      table th, table td { font-size: 10px; padding: 3px; }
+      .dialog { width: 90%; top: 5%; }
+      th:nth-child(5), td:nth-child(5), th:nth-child(6), td:nth-child(6) { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -75,8 +83,8 @@
     <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
     <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
     <input id="name" placeholder="Full Name">
-    <input id="email" placeholder="Email">
-    <input id="phone" placeholder="Phone Number">
+    <input id="email" placeholder="Email" type="email">
+    <input id="phone" placeholder="Phone Number" type="tel">
     <textarea id="agreement" readonly rows="12">RENTAL AGREEMENT AND COLLATERAL TERMS
 
 By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
@@ -91,7 +99,7 @@ PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or aud
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="card-container"></div>
-    <canvas id="signaturePad" width="250" height="120"></canvas>
+    <canvas id="signaturePad"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
     <button onclick="checkout(); vibrate()">Complete Checkout</button>
   </div>
@@ -105,7 +113,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <div id="dashboard" class="form">
     <h2>Dashboard</h2>
-    <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
+    <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="debouncedSearch()">
     <input id="dateFilter" type="date" onchange="filterByDate()">
     <table id="headphoneTable">
       <thead>
@@ -134,8 +142,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
     <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
     <input id="dialogName" placeholder="Full Name">
-    <input id="dialogEmail" placeholder="Email">
-    <input id="dialogPhone" placeholder="Phone Number">
+    <input id="dialogEmail" placeholder="Email" type="email">
+    <input id="dialogPhone" placeholder="Phone Number" type="tel">
     <textarea id="dialogAgreement" readonly rows="10">RENTAL AGREEMENT AND COLLATERAL TERMS
 
 By signing below, I, [Customer Name], agree to rent one (1) pair of wireless headphones from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
@@ -150,7 +158,7 @@ PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or aud
 
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="dialogCardContainer"></div>
-    <canvas id="dialogSignaturePad" width="250" height="120"></canvas>
+    <canvas id="dialogSignaturePad"></canvas>
     <button onclick="clearDialogSignature(); vibrate()">Clear Signature</button>
     <button onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
     <button onclick="closeDialog('checkout'); vibrate()">Cancel</button>
@@ -169,17 +177,54 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <script>
     const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
-    let headphones = JSON.parse(localStorage.getItem('headphones')) || {};
+    let headphones = {};
     let signatureData = null;
     let dialogSignatureData = null;
     let payments;
     let cardElement;
     let dialogCardElement;
 
-    async function initializeSquare() {
-      if (!payments) {
-        payments = window.Square.payments(squareAppId);
+    // Firebase Initialization with your config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAjHcOfj2LkeRkFi_RKAd9umJ80a8ujBPM",
+      authDomain: "silentdiscotracker.firebaseapp.com",
+      projectId: "silentdiscotracker",
+      storageBucket: "silentdiscotracker.firebasestorage.app",
+      messagingSenderId: "527385130136",
+      appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function saveHeadphone(id, data) {
+      try {
+        await db.collection('headphones').doc(id).set(data);
+      } catch (error) {
+        console.error('Failed to save to Firebase:', error);
       }
+    }
+
+    async function loadHeadphones() {
+      try {
+        const snapshot = await db.collection('headphones').get();
+        return snapshot.docs.reduce((acc, doc) => ({ ...acc, [doc.id]: doc.data() }), {});
+      } catch (error) {
+        console.error('Failed to load from Firebase:', error);
+        return JSON.parse(localStorage.getItem('headphones') || '{}');
+      }
+    }
+
+    async function syncLocalToCloud() {
+      if (navigator.onLine) {
+        const localData = JSON.parse(localStorage.getItem('headphones') || '{}');
+        for (const [id, data] of Object.entries(localData)) {
+          await saveHeadphone(id, data);
+        }
+      }
+    }
+
+    async function initializeSquare() {
+      if (!payments) payments = window.Square.payments(squareAppId);
       const cardContainer = document.getElementById('card-container');
       cardContainer.innerHTML = '';
       cardElement = await payments.card();
@@ -188,13 +233,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     window.onload = async () => {
+      headphones = await loadHeadphones();
+      localStorage.setItem('headphones', JSON.stringify(headphones));
       await initializeSquare();
       makeDraggable('checkoutDialog', 'checkoutDialogHeader');
       makeDraggable('returnDialog', 'returnDialogHeader');
+      window.addEventListener('online', syncLocalToCloud);
+      if (!('NDEFReader' in window)) {
+        document.querySelectorAll('button[id^="scan"]').forEach(btn => btn.style.display = 'none');
+        alert('NFC not supported. Use manual entry.');
+      }
     };
 
     function vibrate() {
-      if ('vibrate' in navigator) navigator.vibrate(100);
+      if ('vibrate' in navigator && navigator.vibrate(100)) return;
     }
 
     async function showCheckout() {
@@ -204,8 +256,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function showReturn() { toggleForms('return'); }
 
-    function showDashboard() {
+    async function showDashboard() {
       toggleForms('dashboard');
+      headphones = await loadHeadphones();
       updateDashboard();
     }
 
@@ -213,7 +266,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
       resultElement.textContent = 'Scanning...';
-
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
         try {
@@ -238,23 +290,25 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             controller.abort();
           };
           ndef.onreadingerror = () => {
-            resultElement.textContent = 'NFC scan failed. Try again.';
+            resultElement.textContent = 'NFC scan failed. Enter ID manually.';
+            manualEntry('nfcStatus');
             controller.abort();
           };
           setTimeout(() => {
             controller.abort();
             if (resultElement.textContent === 'Scanning...') {
-              resultElement.textContent = 'Scan timed out.';
+              resultElement.textContent = 'Scan timed out. Enter ID manually.';
+              manualEntry('nfcStatus');
             }
           }, 5000);
-          await new Promise((resolve) => {
-            controller.signal.addEventListener('abort', resolve);
-          });
+          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
         } catch (error) {
-          resultElement.textContent = `Error: ${error.message}`;
+          resultElement.textContent = `Error: ${error.message}. Enter ID manually.`;
+          manualEntry('nfcStatus');
         }
       } else {
-        resultElement.textContent = 'NFC not supported.';
+        resultElement.textContent = 'NFC not supported. Enter ID manually.';
+        manualEntry('nfcStatus');
       }
     }
 
@@ -277,14 +331,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           await ndef.scan();
           const controller = new AbortController();
           ndef.onreading = event => {
-            const id = event.serialNumber || `HP${Object.keys(headphones).length + 1}`;
+            const id = event.serialNumber || `HP${Date.now()}`;
             input.value = id;
             alert(`Scanned headphone: ${id}`);
             controller.abort();
             button.disabled = false;
           };
           ndef.onreadingerror = () => {
-            alert('No NFC tag detected. Try again or enter manually.');
+            alert('No NFC tag detected. Enter manually.');
             manualEntry(context);
             controller.abort();
             button.disabled = false;
@@ -292,20 +346,17 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           setTimeout(() => {
             controller.abort();
             if (!button.disabled) return;
-            alert('Scan timed out. Try again or enter manually.');
+            alert('Scan timed out. Enter manually.');
             manualEntry(context);
             button.disabled = false;
           }, 5000);
-          await new Promise((resolve) => {
-            controller.signal.addEventListener('abort', resolve);
-          });
+          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
         } catch (error) {
-          alert(`NFC error: ${error.message}. Enter ID manually.`);
+          alert(`NFC error: ${error.message}. Enter manually.`);
           manualEntry(context);
           button.disabled = false;
         }
       } else {
-        alert('NFC not supported. Enter ID manually.');
         manualEntry(context);
         button.disabled = false;
       }
@@ -313,14 +364,21 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function manualEntry(context) {
       const id = prompt('Enter headphone ID (e.g., HP123):');
-      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
-      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
-      if (id) input.value = id;
-      button.disabled = false;
+      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : context === 'dialogReturnId' : 'nfcStatusResult');
+      if (id) {
+        if (context === 'nfcStatus') {
+          document.getElementById('nfcStatusResult').textContent = `Manually entered ID: ${id}`;
+        } else {
+          input.value = id;
+        }
+      }
+      document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn').disabled = false;
     }
 
     function initSignaturePad(canvasId) {
       const canvas = document.getElementById(canvasId);
+      canvas.width = canvas.offsetWidth;
+      canvas.height = 120;
       const ctx = canvas.getContext('2d');
       let drawing = false;
 
@@ -355,9 +413,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (drawing) {
           drawing = false;
           if (canvasId === 'signaturePad') {
-            signatureData = canvas.toDataURL();
+            signatureData = canvas.toDataURL('image/png', 0.5);
           } else {
-            dialogSignatureData = canvas.toDataURL();
+            dialogSignatureData = canvas.toDataURL('image/png', 0.5);
           }
         }
       }
@@ -391,7 +449,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
-      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const date = new Date().toISOString().split('T')[0];
 
       if (!id || !name || !email || !phone || !signatureData || !cardElement) {
         alert('Please fill all fields, enter card details, and sign the agreement!');
@@ -408,14 +466,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
-        console.log('Starting card tokenization...');
         const result = await cardElement.tokenize();
-        console.log('Tokenization result:', result);
-        if (result.status !== 'OK') throw new Error('Card tokenization failed: ' + (result.errors?.[0]?.message || 'Unknown error'));
+        if (result.status !== 'OK') {
+          alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
+          return;
+        }
         const paymentToken = result.token;
-        console.log('Payment token:', paymentToken);
 
-        console.log('Sending preauthorization request...');
         const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -428,28 +485,23 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         const preauthResult = await preauthResponse.json();
-        console.log('Preauthorization response:', preauthResult);
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
         headphones[id] = {
           status: 'checked_out',
           customer: { name, email, phone },
-          agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
+          agreement: { text: agreementText, signature: signatureData, amount: 100, date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
+        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
 
-        console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: name,
-            email: email,
-            agreement: agreementText,
-            signature: signatureData,
-            preauthId: preauthId
+            name, email, agreement: agreementText, signature: signatureData, preauthId
           })
         });
 
@@ -461,22 +513,27 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           throw new Error('Email failed');
         }
       } catch (error) {
-        console.error('Checkout error:', error.message);
-        alert('Checkout successful, but an error occurred: ' + error.message);
+        alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
+        if (!navigator.onLine) {
+          alert('Saved locally. Will sync when online.');
+          clearForm('checkout');
+          showDashboard();
+        }
       }
     }
 
-    function returnHeadphone() {
+    async function returnHeadphone() {
       const id = document.getElementById('returnId').value;
       if (!id) {
-        alert('Please scan a headphone!');
+        alert('Please scan or enter a headphone ID!');
         return;
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
         headphones[id].status = 'returned';
         headphones[id].pre_auth = null;
         localStorage.setItem('headphones', JSON.stringify(headphones));
-        alert(`Headphone ${id} returned!`);
+        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
+        alert(`Headphone ${id} returned${navigator.onLine ? '' : ' locally. Will sync when online.'}!`);
         clearForm('return');
         showDashboard();
       } else {
@@ -510,11 +567,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     function closeDialog(type) {
-      if (type === 'checkout') {
-        document.getElementById('checkoutDialog').style.display = 'none';
-      } else if (type === 'return') {
-        document.getElementById('returnDialog').style.display = 'none';
-      }
+      if (type === 'checkout') document.getElementById('checkoutDialog').style.display = 'none';
+      else if (type === 'return') document.getElementById('returnDialog').style.display = 'none';
       document.getElementById('dialogOverlay').style.display = 'none';
       showDashboard();
     }
@@ -541,14 +595,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
-        console.log('Starting dialog card tokenization...');
         const result = await dialogCardElement.tokenize();
-        console.log('Tokenization result:', result);
-        if (result.status !== 'OK') throw new Error('Card tokenization failed: ' + (result.errors?.[0]?.message || 'Unknown error'));
+        if (result.status !== 'OK') {
+          alert(`Card error: ${result.errors?.[0]?.message || 'Please try another card.'}`);
+          return;
+        }
         const paymentToken = result.token;
-        console.log('Payment token:', paymentToken);
 
-        console.log('Sending preauthorization request...');
         const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -561,28 +614,23 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         });
 
         const preauthResult = await preauthResponse.json();
-        console.log('Preauthorization response:', preauthResult);
         if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
         const preauthId = preauthResult.paymentId;
 
         headphones[id] = {
           status: 'checked_out',
           customer: { name, email, phone },
-          agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
+          agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date, timestamp: Date.now() },
           pre_auth: { pre_auth_id: preauthId, amount: 100 }
         };
         localStorage.setItem('headphones', JSON.stringify(headphones));
+        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
 
-        console.log('Sending email...');
         const emailResponse = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: name,
-            email: email,
-            agreement: agreementText,
-            signature: dialogSignatureData,
-            preauthId: preauthId
+            name, email, agreement: agreementText, signature: dialogSignatureData, preauthId
           })
         });
 
@@ -593,12 +641,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           throw new Error('Email failed');
         }
       } catch (error) {
-        console.error('Checkout error:', error.message);
-        alert('Checkout failed: ' + error.message);
+        alert(`Checkout ${navigator.onLine ? 'failed' : 'saved locally'}: ${error.message}`);
+        if (!navigator.onLine) closeDialog('checkout');
       }
     }
 
-    function submitReturnDialog() {
+    async function submitReturnDialog() {
       const id = document.getElementById('dialogReturnId').value;
       if (!id) {
         alert('Please scan or enter a headphone ID!');
@@ -608,7 +656,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         headphones[id].status = 'returned';
         headphones[id].pre_auth = null;
         localStorage.setItem('headphones', JSON.stringify(headphones));
-        alert(`Headphone ${id} returned!`);
+        if (navigator.onLine) await saveHeadphone(id, headphones[id]);
+        alert(`Headphone ${id} returned${navigator.onLine ? '' : ' locally. Will sync when online.'}!`);
         closeDialog('return');
       } else {
         alert('Headphone not found or not checked out!');
@@ -633,6 +682,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             headphones[id].status = 'charged';
             headphones[id].pre_auth = null;
             localStorage.setItem('headphones', JSON.stringify(headphones));
+            if (navigator.onLine) await saveHeadphone(id, headphones[id]);
             alert(`Headphone ${id} charged successfully!`);
             updateDashboard();
           } catch (error) {
@@ -649,7 +699,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const dateFilter = document.getElementById('dateFilter').value;
       const now = Date.now();
-      const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+      const twelveHours = 12 * 60 * 60 * 1000;
       tbody.innerHTML = '';
       Object.keys(headphones).forEach(id => {
         const hp = headphones[id];
@@ -694,8 +744,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       });
     }
 
-    function searchHeadphones() {
-      updateDashboard();
+    let searchTimeout;
+    function debouncedSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(updateDashboard, 300);
     }
 
     function filterByDate() {
@@ -722,7 +774,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       header.addEventListener('mousedown', startDragging);
       document.addEventListener('mousemove', drag);
       document.addEventListener('mouseup', stopDragging);
-
       header.addEventListener('touchstart', startDragging);
       document.addEventListener('touchmove', drag);
       document.addEventListener('touchend', stopDragging);
@@ -754,7 +805,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           currentY = y;
           dialog.style.left = `${x}px`;
           dialog.style.top = `${y}px`;
-          dialog.style.transform = 'none'; // Remove centering transform during drag
+          dialog.style.transform = 'none';
         }
       }
 
@@ -763,7 +814,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         header.style.cursor = 'move';
       }
 
-      // Initialize position
       currentX = dialog.offsetLeft;
       currentY = dialog.offsetTop;
     }
