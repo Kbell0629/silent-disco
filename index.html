@@ -180,11 +180,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
     };
 
-    // Initialize Firebase synchronously before any other operations
-    function initializeFirebase() {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      headphonesCollection = db.collection('headphones');
+    // Wait for Firebase to load before initializing
+    async function waitForFirebase() {
+      return new Promise((resolve) => {
+        const checkFirebase = setInterval(() => {
+          if (typeof firebase !== 'undefined' && firebase.app) {
+            clearInterval(checkFirebase);
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            headphonesCollection = db.collection('headphones');
+            resolve();
+          }
+        }, 100);
+      });
     }
 
     // Firebase Functions
@@ -249,7 +257,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     // Initialize everything on load
     window.onload = async () => {
       try {
-        initializeFirebase(); // Ensure Firebase is initialized first
+        await waitForFirebase(); // Wait for Firebase to load and initialize
         await initializeSquare();
         await loadHeadphones();
         makeDraggable('checkoutDialog', 'checkoutDialogHeader');
@@ -267,7 +275,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function showCheckout() {
       toggleForms('checkout');
       initSignaturePad('signaturePad');
-      await initializeSquare(); // Re-initialize card field
+      await initializeSquare();
     }
 
     function showReturn() { 
