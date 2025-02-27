@@ -744,6 +744,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           };
           await updateHeadphone(id, updatedData);
         }
+        await sendReturnEmail(selected);
         alert(`Headphone(s) ${selected.join(', ')} returned successfully!`);
         closeDialog('manualReturn');
         if (context === 'dialogReturn') {
@@ -907,6 +908,47 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
     }
 
+    async function sendReturnEmail(returnedIds) {
+      const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
+      const headphoneList = returnedIds.join(', ');
+      const emailBody = `
+Dear ${customer.name || 'Customer'},
+
+Thank you for attending our Silent Disco event with SE2 Silent Disco! We hope you had an amazing experience. We're pleased to confirm that we've received the following headphone(s): ${headphoneList}. 
+
+You are no longer responsible for these items, and any associated payment holds have been released. We appreciate your prompt return and hope to see you at future events!
+
+For any questions, contact us at:
+- Website: www.se2.events
+- Email: se2login@gmail.com
+
+Best regards,
+The SE2 Silent Disco Team
+      `;
+
+      const emailPayload = {
+        name: customer.name || 'Customer',
+        email: customer.email || '',
+        agreement: emailBody,
+        signature: '',
+        preauthId: ''
+      };
+
+      const emailResponse = await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error('Failed to send return email:', errorText);
+        return `Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`;
+      }
+      console.log('Return email sent successfully to:', customer.email);
+      return `Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`;
+    }
+
     async function returnHeadphones() {
       const headphoneIds = getReturnHeadphoneIds();
       if (!headphoneIds.length) {
@@ -948,44 +990,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
-          const headphoneList = returnedIds.join(', ');
-          const emailBody = `
-Dear ${customer.name || 'Customer'},
-
-Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
-
-If you have any questions or need assistance, feel free to reach out to us at SE2 Silent Disco. You can visit our website at www.se2.events or email us at se2login@gmail.com. We’d love to see you at future events!
-
-Warm regards,
-The SE2 Silent Disco Team
-www.se2.events
-Email: se2login@gmail.com
-          `;
-
-          const emailPayload = {
-            name: customer.name || 'Customer',
-            email: customer.email || '',
-            agreement: emailBody,
-            signature: '',
-            preauthId: ''
-          };
-          console.log('Sending return email with payload:', emailPayload);
-
-          const emailResponse = await fetch('/.netlify/functions/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(emailPayload)
-          });
-
-          if (!emailResponse.ok) {
-            const errorText = await emailResponse.text();
-            console.error('Failed to send return email:', errorText);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
-          } else {
-            console.log('Return email sent successfully to:', customer.email);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`);
-          }
+          const message = await sendReturnEmail(returnedIds);
+          alert(message);
         } else {
           alert('No headphones were returned.');
         }
@@ -1061,44 +1067,8 @@ Email: se2login@gmail.com
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
-          const headphoneList = returnedIds.join(', ');
-          const emailBody = `
-Dear ${customer.name || 'Customer'},
-
-Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
-
-If you have any questions or need assistance, feel free to reach out to us at SE2 Silent Disco. You can visit our website at www.se2.events or email us at se2login@gmail.com. We’d love to see you at future events!
-
-Warm regards,
-The SE2 Silent Disco Team
-www.se2.events
-Email: se2login@gmail.com
-          `;
-
-          const emailPayload = {
-            name: customer.name || 'Customer',
-            email: customer.email || '',
-            agreement: emailBody,
-            signature: '',
-            preauthId: ''
-          };
-          console.log('Sending return email with payload:', emailPayload);
-
-          const emailResponse = await fetch('/.netlify/functions/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(emailPayload)
-          });
-
-          if (!emailResponse.ok) {
-            const errorText = await emailResponse.text();
-            console.error('Failed to send return email:', errorText);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
-          } else {
-            console.log('Return email sent successfully to:', customer.email);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`);
-          }
+          const message = await sendReturnEmail(returnedIds);
+          alert(message);
         } else {
           alert('No headphones were returned.');
         }
