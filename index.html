@@ -948,10 +948,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer;
+          const customer = headphones[returnedIds[0]].customer || { name: 'Unknown', email: '' };
           const headphoneList = returnedIds.join(', ');
           const emailBody = `
-Dear ${customer.name},
+Dear ${customer.name || 'Customer'},
 
 Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
 
@@ -963,24 +963,20 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
-          console.log('Sending return email with payload:', {
-            name: customer.name,
-            email: customer.email,
+          const emailPayload = {
+            name: customer.name || 'Customer',
+            email: customer.email || '',
             agreement: emailBody,
             signature: '',
-            preauthId: ''
-          });
+            preauthId: '',
+            bcc: 'se2login@gmail.com'
+          };
+          console.log('Sending return email with payload:', emailPayload);
 
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: customer.name,
-              email: customer.email,
-              agreement: emailBody,
-              signature: '', // Empty string instead of null
-              preauthId: '' // Empty string instead of null
-            })
+            body: JSON.stringify(emailPayload)
           });
 
           if (!emailResponse.ok) {
@@ -989,7 +985,7 @@ Email: se2login@gmail.com
             alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
           } else {
             console.log('Return email sent successfully to:', customer.email);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`);
           }
         } else {
           alert('No headphones were returned.');
@@ -1066,10 +1062,10 @@ Email: se2login@gmail.com
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer;
+          const customer = headphones[returnedIds[0]].customer || { name: 'Unknown', email: '' };
           const headphoneList = returnedIds.join(', ');
           const emailBody = `
-Dear ${customer.name},
+Dear ${customer.name || 'Customer'},
 
 Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
 
@@ -1081,24 +1077,20 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
-          console.log('Sending return email with payload:', {
-            name: customer.name,
-            email: customer.email,
+          const emailPayload = {
+            name: customer.name || 'Customer',
+            email: customer.email || '',
             agreement: emailBody,
             signature: '',
-            preauthId: ''
-          });
+            preauthId: '',
+            bcc: 'se2login@gmail.com'
+          };
+          console.log('Sending return email with payload:', emailPayload);
 
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: customer.name,
-              email: customer.email,
-              agreement: emailBody,
-              signature: '',
-              preauthId: ''
-            })
+            body: JSON.stringify(emailPayload)
           });
 
           if (!emailResponse.ok) {
@@ -1107,7 +1099,7 @@ Email: se2login@gmail.com
             alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
           } else {
             console.log('Return email sent successfully to:', customer.email);
-            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`);
           }
         } else {
           alert('No headphones were returned.');
