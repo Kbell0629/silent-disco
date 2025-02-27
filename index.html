@@ -46,6 +46,7 @@
     .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:2000;}
     .spinner{border:8px solid #EDEDED;border-top:8px solid #6B48FF;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;}
     .dashboard-table-wrapper{max-height:400px;overflow-y:auto;overflow-x:auto;width:100%;}
+    .dashboard-actions{margin:20px 0;display:flex;gap:10px;justify-content:center;}
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
     @media (max-width:768px){header img{height:40px;}header h1{font-size:22px;}.button-group{gap:15px;}button{width:95%;font-size:16px;padding:12px 20px;}.form{padding:15px;}input,textarea,select{width:100%;}table{font-size:12px;}th,td{padding:8px;}.dashboard-table-wrapper{max-height:300px;}}
   </style>
@@ -101,11 +102,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <h2>Dashboard</h2>
       <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
       <input id="dateFilter" type="date" onchange="filterByDate()">
+      <div class="dashboard-actions">
+        <button onclick="showReturnDialogForSelected();vibrate()">Return Selected</button>
+      </div>
       <div class="dashboard-table-wrapper">
         <table id="headphoneTable">
           <thead>
             <tr>
-              <th>Actions</th>
+              <th>Select</th>
               <th>Customer</th>
               <th>Status</th>
               <th>Preauth Status</th>
@@ -145,10 +149,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <p id="nfcStatusResult">Scan an NFC tag to see headphone status.</p>
     </div>
     <div id="returnDialog" class="dialog">
-      <div id="returnDialogHeader" class="dialog-header">Return Headphones</div>
-      <button id="dialogScanReturn" onclick="scanNFC('dialogReturn');vibrate()">Scan NFC Tag</button>
-      <input id="dialogReturnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('dialogReturn');vibrate()">
-      <button onclick="addDialogReturnHeadphoneId();vibrate()">Add Headphone ID</button>
+      <div id="returnDialogHeader" class="dialog-header">Confirm Return Headphones</div>
       <ul id="dialogReturnHeadphoneIdsList"></ul>
       <button onclick="submitReturnDialog();vibrate()">Return All</button>
       <button onclick="closeDialog('return');vibrate()">Cancel</button>
@@ -345,18 +346,15 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('returnId').value = '';
     }
 
-    function addDialogReturnHeadphoneId() {
-      const id = document.getElementById('dialogReturnId').value.trim();
-      if (!id) return alert('Please scan or enter a headphone ID!');
-      if (!headphones[id] || headphones[id].status !== 'checked_out') return alert(`Headphone ${id} is not checked out!`);
+    function addDialogReturnHeadphoneId(id) {
+      if (!headphones[id] || headphones[id].status !== 'checked_out') return;
       const list = document.getElementById('dialogReturnHeadphoneIdsList');
       const existingIds = getDialogReturnHeadphoneIds();
-      if (existingIds.includes(id)) return alert(`Headphone ${id} already in return list!`);
+      if (existingIds.includes(id)) return;
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
       li.dataset.id = id;
       list.appendChild(li);
-      document.getElementById('dialogReturnId').value = '';
     }
 
     function removeHeadphoneId(button, id) {
@@ -516,7 +514,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           controller.abort();
           button.disabled = false;
           if (context === 'return') addReturnHeadphoneId();
-          else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
           else addHeadphoneId();
         };
         ndef.onreadingerror = () => {
@@ -576,7 +573,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       input.dataset.entryMethod = 'Manual';
       button.disabled = false;
       if (context === 'return') addReturnHeadphoneId();
-      else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
       else addHeadphoneId();
     }
 
@@ -608,7 +604,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const context = document.getElementById('manualReturnSearch').dataset.context;
       if (!selected.length) return alert('Please select at least one headphone!');
       const groupIds = selected.map(id => headphones[id].groupId || 'Single');
-      if (new Set(groupIds).size > 1) return alert('All selected headphones must belong to the same group.');
+      if (new Set(groupIds).size > 1) return alert('All selected headphones must belong to the same group or all be singles.');
       try {
         for (const id of selected) await updateHeadphone(id, { status: 'returned', pre_auth: null });
         const message = await sendReturnEmail(selected);
@@ -830,20 +826,8 @@ The SE2 Silent Disco Team
     async function returnHeadphones() {
       const headphoneIds = getReturnHeadphoneIds();
       if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
-      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || null);
-      const uniqueGroups = [...new Set(groupIds.filter(id => id !== null))];
-      const hasGroups = groupIds.some(id => id !== null);
-      const hasSingles = groupIds.some(id => id === null);
-      if ((hasGroups && hasSingles) || (uniqueGroups.length > 1)) {
-        const mismatched = headphoneIds.filter(id => {
-          const groupId = headphones[id]?.groupId || null;
-          return (hasGroups && groupId === null) || (uniqueGroups.length > 1 && groupId !== uniqueGroups[0] && groupId !== null);
-        });
-        alert(`All headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
-        const list = document.getElementById('returnHeadphoneIdsList');
-        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
-        return;
-      }
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
+      if (new Set(groupIds).size > 1) return alert('All headphones must belong to the same group or all be singles.');
       try {
         let returnedIds = [];
         for (const id of headphoneIds) {
@@ -866,12 +850,20 @@ The SE2 Silent Disco Team
       }
     }
 
-    function showReturnDialog(id) {
-      document.getElementById('dialogReturnId').value = id;
-      document.getElementById('returnDialog').style.display = 'flex';
-      document.getElementById('dialogOverlay').style.display = 'block';
-      document.getElementById('dialogReturnHeadphoneIdsList').innerHTML = '';
-      if (id) addDialogReturnHeadphoneId();
+    function showReturnDialogForSelected() {
+      const selected = Array.from(document.querySelectorAll('input[name="checkinHeadphone"]:checked')).map(input => input.value);
+      if (!selected.length) return alert('Please select at least one headphone to return!');
+      
+      const groupIds = selected.map(id => headphones[id].groupId || 'Single');
+      if (new Set(groupIds).size > 1) return alert('All selected headphones must belong to the same group or all be singles.');
+      
+      const dialog = document.getElementById('returnDialog');
+      const overlay = document.getElementById('dialogOverlay');
+      const list = document.getElementById('dialogReturnHeadphoneIdsList');
+      list.innerHTML = '';
+      selected.forEach(id => addDialogReturnHeadphoneId(id));
+      dialog.style.display = 'flex';
+      overlay.style.display = 'block';
     }
 
     function closeDialog(type) {
@@ -881,40 +873,33 @@ The SE2 Silent Disco Team
       if (type !== 'manualReturn') showDashboard();
     }
 
-async function submitReturnDialog() {
-  const headphoneIds = getDialogReturnHeadphoneIds();
-  if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
-  
-  // Check group consistency
-  const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
-  if (new Set(groupIds).size > 1) {
-    const mismatched = headphoneIds.filter(id => headphones[id]?.groupId !== groupIds[0] && groupIds.includes(headphones[id]?.groupId));
-    alert(`All selected headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
-    const list = document.getElementById('dialogReturnHeadphoneIdsList');
-    Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
-    return;
-  }
-
-  try {
-    let returnedIds = [];
-    for (const id of headphoneIds) {
-      if (!headphones[id] || headphones[id].status !== 'checked_out') {
-        alert(`Headphone ${id} not checked out! Skipping.`);
-        continue;
+    async function submitReturnDialog() {
+      const headphoneIds = getDialogReturnHeadphoneIds();
+      if (!headphoneIds.length) return alert('No headphones selected to return!');
+      
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
+      if (new Set(groupIds).size > 1) return alert('All headphones must belong to the same group or all be singles.');
+      
+      try {
+        let returnedIds = [];
+        for (const id of headphoneIds) {
+          if (!headphones[id] || headphones[id].status !== 'checked_out') {
+            alert(`Headphone ${id} not checked out! Skipping.`);
+            continue;
+          }
+          await updateHeadphone(id, { status: 'returned', pre_auth: null });
+          returnedIds.push(id);
+        }
+        if (returnedIds.length) {
+          const message = await sendReturnEmail(returnedIds);
+          alert(message);
+        } else alert('No headphones returned.');
+        closeDialog('return');
+      } catch (error) {
+        console.error('Return error:', error.message);
+        alert('Failed to return headphones: ' + error.message);
       }
-      await updateHeadphone(id, { status: 'returned', pre_auth: null });
-      returnedIds.push(id);
     }
-    if (returnedIds.length) {
-      const message = await sendReturnEmail(returnedIds);
-      alert(message);
-    } else alert('No headphones returned.');
-    closeDialog('return');
-  } catch (error) {
-    console.error('Return error:', error.message);
-    alert('Failed to return headphones: ' + error.message);
-  }
-}
 
     async function dashboardCharge(id) {
       if (!headphones[id] || headphones[id].status !== 'checked_out' || !headphones[id].pre_auth) return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);
@@ -973,8 +958,12 @@ async function submitReturnDialog() {
         if (rowData.some(data => data.toLowerCase().includes(searchTerm)) && (!dateFilter || hp.agreement?.date === dateFilter)) {
           const row = document.createElement('tr');
           let actionsHtml = '';
-          if (hp.status === 'checked_out') actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${hp.id}')">Check In</button>`;
-          if (hp.status === 'checked_out' && hp.pre_auth && overdue) actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
+          if (hp.status === 'checked_out') {
+            actionsHtml += `<input type="checkbox" name="checkinHeadphone" value="${hp.id}">`;
+          }
+          if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
+            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
+          }
           row.innerHTML = `
             <td>${actionsHtml}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
