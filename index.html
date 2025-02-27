@@ -40,21 +40,25 @@
     }
     .button-group {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px; /* Increased gap for better spacing */
       margin-bottom: 30px;
+      width: 100%;
     }
     button {
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 15px 30px; /* Increased padding for larger buttons */
+      font-size: 18px; /* Slightly larger text */
       font-weight: 600;
       background: #6B48FF;
       color: #FFFFFF;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px; /* Slightly larger radius for smoother look */
       cursor: pointer;
       transition: background 0.3s ease, transform 0.2s ease;
+      width: 90%; /* Buttons take up most of the screen width */
+      max-width: 600px; /* Caps the width on larger screens */
+      text-align: center;
     }
     button:hover {
       background: #5439CC;
@@ -121,7 +125,7 @@
     .checkin-btn { background: #28A745; }
     .charge-btn { background: #FFC107; color: #1A1A1A; }
     .delete-btn { background: #808080; }
-    .button-group button, .form button { width: auto; min-width: 150px; }
+    .button-group button, .form button { width: auto; min-width: 150px; } /* Override for form buttons */
     #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList {
       list-style: none;
       padding: 0;
@@ -203,8 +207,12 @@
     @media (max-width: 768px) {
       header img { height: 40px; }
       header h1 { font-size: 22px; }
-      .button-group { flex-direction: column; align-items: center; }
-      button { width: 80%; max-width: 300px; }
+      .button-group { gap: 15px; }
+      button { 
+        width: 95%; /* Slightly wider on mobile */
+        font-size: 16px; /* Slightly smaller text on mobile */
+        padding: 12px 20px; /* Adjusted padding for mobile */
+      }
       .form { padding: 15px; }
       input, textarea, select { width: 100%; }
       table { font-size: 12px; }
@@ -722,7 +730,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const regex = /^HP\d{7}$/;
       let id;
       if (context === 'checkout') {
-        // Generate the next available ID based on existing IDs
         const suggestedId = generateUniqueHeadphoneId();
         const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
         if (!userId || !regex.test(userId)) {
