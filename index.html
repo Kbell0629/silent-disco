@@ -107,7 +107,7 @@
   <div id="checkout" class="form">
     <h2>Checkout Headphones</h2>
     <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
-    <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly onclick="manualEntry('checkout'); vibrate()">
+    <input id="headphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('checkout'); vibrate()">
     <button onclick="addHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="headphoneIdsList"></ul>
     <input id="name" placeholder="Full Name">
@@ -129,7 +129,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="return" class="form">
     <h2>Return</h2>
     <button id="scanReturn" onclick="scanNFC('return'); vibrate()">Scan NFC Tag</button>
-    <input id="returnId" placeholder="Headphone ID" readonly onclick="showManualReturnDialog('return'); vibrate()">
+    <input id="returnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('return'); vibrate()">
     <button onclick="returnHeadphone(); vibrate()">Return</button>
   </div>
 
@@ -182,7 +182,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="checkoutDialog" class="dialog">
     <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphones</div>
     <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
-    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly onclick="manualEntry('dialogCheckout'); vibrate()">
+    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('dialogCheckout'); vibrate()">
     <button onclick="addDialogHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="dialogHeadphoneIdsList"></ul>
     <input id="dialogName" placeholder="Full Name">
@@ -207,7 +207,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="returnDialog" class="dialog">
     <div id="returnDialogHeader" class="dialog-header">Return Headphone</div>
     <button id="dialogScanReturn" onclick="scanNFC('dialogReturn'); vibrate()">Scan NFC Tag</button>
-    <input id="dialogReturnId" placeholder="Headphone ID" readonly onclick="showManualReturnDialog('dialogReturn'); vibrate()">
+    <input id="dialogReturnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('dialogReturn'); vibrate()">
     <button onclick="submitReturnDialog(); vibrate()">Return</button>
     <button onclick="closeDialog('return'); vibrate()">Cancel</button>
   </div>
@@ -623,7 +623,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     function manualEntry(context) {
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
-      const regex = /^HP\d{3}$/; // Matches HP followed by 3 digits
+      const regex = /^HP\d{7}$/; // Matches HP followed by 7 digits
 
       // Get existing headphone IDs from the database
       const existingIds = Object.keys(headphones).filter(id => regex.test(id));
@@ -635,22 +635,22 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       // Combine all IDs to avoid duplicates
       const allIds = [...new Set([...existingIds, ...checkoutIds])];
       
-      let nextNum = 1; // Start at HP001
+      let nextNum = 1; // Start at HP0000001
       if (allIds.length > 0) {
         const numbers = allIds.map(id => parseInt(id.replace('HP', ''), 10));
         nextNum = Math.max(...numbers) + 1; // Next number in sequence
       }
-      const suggestedId = `HP${String(nextNum).padStart(3, '0')}`; // e.g., HP001 or HP006
+      const suggestedId = `HP${String(nextNum).padStart(7, '0')}`; // e.g., HP0000001 or HP0000006
 
       let id;
       do {
-        id = prompt(`Enter headphone ID (e.g., HP123).\nSuggested ID: ${suggestedId}. Press OK to accept or enter a different ID`, suggestedId);
+        id = prompt(`Enter headphone ID (e.g., HP0000001).\nSuggested ID: ${suggestedId}. Press OK to accept or enter a different ID`, suggestedId);
         if (id === null) { // User clicked Cancel
           button.disabled = false;
           return; // Exit without setting a value
         }
         if (!regex.test(id)) {
-          alert('Invalid ID format. Please enter an ID like HP123 (HP followed by 3 digits).');
+          alert('Invalid ID format. Please enter an ID like HP0000001 (HP followed by 7 digits).');
         } else if ((context === 'checkout' || context === 'dialogCheckout') && checkoutIds.includes(id)) {
           alert(`Headphone ${id} is already in the checkout list. Please choose a different ID.`);
           id = null; // Force re-prompt
