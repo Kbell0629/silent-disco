@@ -25,7 +25,7 @@
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
-    .delete-btn { background-color: #ff4444; padding: 4px; margin: 1px; font-size: 12px; }
+    .delete-btn { background-color: #808080; padding: 4px; margin: 1px; font-size: 12px; color: white; }
     #dashboard, #reports { overflow-x: auto; }
     .dialog { 
       position: absolute; 
@@ -150,6 +150,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           <th>ID</th>
           <th>Entry Method</th>
           <th>Group ID</th>
+          <th>Delete</th>
         </tr>
       </thead>
       <tbody id="headphoneList"></tbody>
@@ -1137,7 +1138,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
             actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
           }
-          actionsHtml += `<button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button>`;
           row.innerHTML = `
             <td>${actionsHtml}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
@@ -1148,6 +1148,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             <td>${hp.id}</td>
             <td>${hp.entryMethod || 'N/A'}</td>
             <td>${hp.groupId || 'Single'}</td>
+            <td><button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button></td>
           `;
           tbody.appendChild(row);
         }
