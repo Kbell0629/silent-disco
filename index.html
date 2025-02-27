@@ -247,15 +247,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     let dialogCardElement;
     let db;
     let headphonesCollection;
+    let squareLocationId;
+    let firebaseConfig;
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAjHcOfj2LkeRkFi_RKAd9umJ80a8ujBPM",
-      authDomain: "silentdiscotracker.firebaseapp.com",
-      projectId: "silentdiscotracker",
-      storageBucket: "silentdiscotracker.firebasestorage.app",
-      messagingSenderId: "527385130136",
-      appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
-    };
+    async function fetchConfig() {
+      try {
+        const response = await fetch('/.netlify/functions/get-config');
+        const config = await response.json();
+        squareLocationId = config.squareLocationId;
+        firebaseConfig = config.firebaseConfig;
+      } catch (error) {
+        console.error('Failed to fetch config:', error);
+        alert('Failed to load configuration. Please try again later.');
+      }
+    }
 
     async function waitForFirebase() {
       return new Promise((resolve, reject) => {
@@ -372,6 +377,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     window.onload = async () => {
       try {
+        await fetchConfig(); // Fetch config first
         await waitForFirebase();
         await initializeSquare();
         await loadHeadphones();
@@ -896,7 +902,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             sourceId: paymentToken,
             amount: headphoneIds.length * 10000,
             currency: 'USD',
-            locationId: 'LQ7MAQD7N37E5'
+            locationId: squareLocationId // Use fetched value
           })
         });
 
@@ -1072,7 +1078,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             sourceId: paymentToken,
             amount: headphoneIds.length * 10000,
             currency: 'USD',
-            locationId: 'LQ7MAQD7N37E5'
+            locationId: squareLocationId // Use fetched value
           })
         });
 
