@@ -881,43 +881,40 @@ The SE2 Silent Disco Team
       if (type !== 'manualReturn') showDashboard();
     }
 
-    async function submitReturnDialog() {
-      const headphoneIds = getDialogReturnHeadphoneIds();
-      if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
-      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || null);
-      const uniqueGroups = [...new Set(groupIds.filter(id => id !== null))];
-      const hasGroups = groupIds.some(id => id !== null);
-      const hasSingles = groupIds.some(id => id === null);
-      if ((hasGroups && hasSingles) || (uniqueGroups.length > 1)) {
-        const mismatched = headphoneIds.filter(id => {
-          const groupId = headphones[id]?.groupId || null;
-          return (hasGroups && groupId === null) || (uniqueGroups.length > 1 && groupId !== uniqueGroups[0] && groupId !== null);
-        });
-        alert(`All headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
-        const list = document.getElementById('dialogReturnHeadphoneIdsList');
-        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
-        return;
+async function submitReturnDialog() {
+  const headphoneIds = getDialogReturnHeadphoneIds();
+  if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
+  
+  // Check group consistency
+  const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
+  if (new Set(groupIds).size > 1) {
+    const mismatched = headphoneIds.filter(id => headphones[id]?.groupId !== groupIds[0] && groupIds.includes(headphones[id]?.groupId));
+    alert(`All selected headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
+    const list = document.getElementById('dialogReturnHeadphoneIdsList');
+    Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
+    return;
+  }
+
+  try {
+    let returnedIds = [];
+    for (const id of headphoneIds) {
+      if (!headphones[id] || headphones[id].status !== 'checked_out') {
+        alert(`Headphone ${id} not checked out! Skipping.`);
+        continue;
       }
-      try {
-        let returnedIds = [];
-        for (const id of headphoneIds) {
-          if (!headphones[id] || headphones[id].status !== 'checked_out') {
-            alert(`Headphone ${id} not checked out! Skipping.`);
-            continue;
-          }
-          await updateHeadphone(id, { status: 'returned', pre_auth: null });
-          returnedIds.push(id);
-        }
-        if (returnedIds.length) {
-          const message = await sendReturnEmail(returnedIds);
-          alert(message);
-        } else alert('No headphones returned.');
-        closeDialog('return');
-      } catch (error) {
-        console.error('Return error:', error.message);
-        alert('Failed to return headphones: ' + error.message);
-      }
+      await updateHeadphone(id, { status: 'returned', pre_auth: null });
+      returnedIds.push(id);
     }
+    if (returnedIds.length) {
+      const message = await sendReturnEmail(returnedIds);
+      alert(message);
+    } else alert('No headphones returned.');
+    closeDialog('return');
+  } catch (error) {
+    console.error('Return error:', error.message);
+    alert('Failed to return headphones: ' + error.message);
+  }
+}
 
     async function dashboardCharge(id) {
       if (!headphones[id] || headphones[id].status !== 'checked_out' || !headphones[id].pre_auth) return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);
