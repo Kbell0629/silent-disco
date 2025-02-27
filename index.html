@@ -8,184 +8,33 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    button {
-      padding: 15px;
-      font-size: 18px;
-      margin: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-    .form {
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 90%;
-      margin: 20px auto;
-    }
-    input, textarea, select {
-      padding: 8px;
-      font-size: 14px;
-    }
-    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch {
-      padding: 10px;
-      width: 80%;
-      max-width: 300px;
-      margin-bottom: 10px;
-    }
-    #signaturePad {
-      border: 2px solid #000;
-      background: #f0f0f0;
-      width: 250px;
-      height: 120px;
-      margin: 10px auto;
-    }
-    #clearSignature {
-      font-size: 14px;
-      padding: 10px;
-      background: #ff4444;
-    }
-    #card-container {
-      margin: 10px auto;
-      min-height: 50px;
-    }
-    #paymentOptions p {
-      margin: 5px 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: auto;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 5px;
-      text-align: left;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 12px;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    .checkin-btn {
-      background-color: #28a745;
-      padding: 4px;
-      margin: 1px;
-      font-size: 12px;
-    }
-    .checkout-btn {
-      background-color: #dc3545;
-      padding: 4px;
-      margin: 1px;
-      font-size: 12px;
-    }
-    .charge-btn {
-      background-color: #ffc107;
-      padding: 4px;
-      margin: 1px;
-      font-size: 12px;
-    }
-    .delete-btn {
-      background-color: #808080;
-      padding: 4px;
-      margin: 1px;
-      font-size: 12px;
-      color: white;
-    }
-    #dashboard, #reports, #manualReturnDialog table {
-      overflow-x: auto;
-    }
-    .dialog {
-      position: absolute;
-      top: 5%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 20px;
-      border: 2px solid #000;
-      z-index: 1000;
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      max-width: 95%;
-      max-height: 90vh;
-      overflow-y: auto;
-      border-radius: 5px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    .dialog-header {
-      background: #007bff;
-      color: white;
-      padding: 8px;
-      cursor: move;
-      font-size: 18px;
-      text-align: center;
-      border-radius: 5px 5px 0 0;
-    }
-    .dialog-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 999;
-      display: none;
-    }
-    #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList {
-      list-style: none;
-      padding: 0;
-      margin: 10px 0;
-    }
-    #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px;
-      border-bottom: 1px solid #ddd;
-    }
-    .remove-btn {
-      background-color: #dc3545;
-      padding: 5px;
-      font-size: 12px;
-    }
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-    .spinner {
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #007bff;
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
+    input, textarea, select { padding: 8px; font-size: 14px; }
+    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
+    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
+    #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
+    #card-container { margin: 10px auto; min-height: 50px; }
+    #paymentOptions p { margin: 5px 0; }
+    table { width: 100%; border-collapse: collapse; table-layout: auto; }
+    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+    th { background-color: #f2f2f2; }
+    .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
+    .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
+    .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
+    .delete-btn { background-color: #808080; padding: 4px; margin: 1px; font-size: 12px; color: white; }
+    #dashboard, #reports, #manualReturnDialog table { overflow-x: auto; }
+    .dialog { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border: 2px solid #000; z-index: 1000; display: none; flex-direction: column; gap: 12px; max-width: 95%; max-height: 90vh; overflow-y: auto; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+    .dialog-header { background: #007bff; color: white; padding: 8px; cursor: move; font-size: 18px; text-align: center; border-radius: 5px 5px 0 0; }
+    .dialog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999; display: none; }
+    #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); display: none; justify-content: center; align-items: center; z-index: 2000; }
+    .spinner { border: 8px solid #f3f3f3; border-top: 8px solid #007bff; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -214,7 +63,7 @@ MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission t
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="paymentOptions">
-      <button id="tapToPay" onclick="tapToPayCheckout(); vibrate()">Tap to Pay with Card/Device</button>
+      <button id="tapToPay" onclick="tapToPayCheckout(); vibrate()">Tap Card to Checkout</button>
       <p>OR</p>
       <div id="card-container"></div>
     </div>
@@ -803,7 +652,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const controller = new AbortController();
         ndef.onreading = async event => {
           const nfcId = event.serialNumber;
-          const paymentToken = `token_${nfcId}_${Date.now()}`; // Placeholder; integrate with Square NFC API
+          const paymentToken = 'cnon:card-nonce-ok'; // Sandbox test nonce; replace with Square Reader SDK in production
           await processPayment(paymentToken);
           controller.abort();
         };
