@@ -472,7 +472,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const ndef = new NDEFReader();
       try {
         await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone to add. Stop by navigating away.');
+        alert('Scanning NFC tags... Scan each headphone to add. Times out in 10 seconds if no tags are detected.');
+        const controller = new AbortController();
+        let scannedCount = 0;
+        let lastScanTime = Date.now();
+
         ndef.onreading = event => {
           const nfcId = event.serialNumber.toLowerCase();
           const id = generateUniqueHeadphoneId();
@@ -487,19 +491,38 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
             list.appendChild(li);
             checkoutListIds.add(id);
+            scannedCount++;
             alert(`Headphone ${id} with NFC ID ${nfcId} added to checkout list.`);
           }
           input.value = '';
           input.dataset.nfcId = nfcId;
           input.dataset.entryMethod = 'NFC';
+          lastScanTime = Date.now(); // Reset timeout on each scan
         };
+
         ndef.onreadingerror = () => {
-          alert('Error reading NFC tag. Try again or enter manually.');
+          console.log('NFC reading error occurred.');
         };
+
+        // Timeout check: 10 seconds of inactivity
+        const timeoutCheck = setInterval(() => {
+          if (Date.now() - lastScanTime >= 10000) {
+            controller.abort();
+            clearInterval(timeoutCheck);
+            if (scannedCount === 0) {
+              alert('No NFC tags detected after 10 seconds. Please enter headphone IDs manually.');
+              manualEntry('checkout');
+            } else {
+              alert(`NFC scan complete. ${scannedCount} headphone(s) added to checkout list.`);
+            }
+            button.disabled = false;
+          }
+        }, 500);
+
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
       } catch (error) {
         alert(`NFC scan failed: ${error.message}. Enter ID manually.`);
         manualEntry('checkout');
-      } finally {
         button.disabled = false;
       }
     }
