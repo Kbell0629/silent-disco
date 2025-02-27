@@ -14,7 +14,7 @@
     button:disabled { background-color: #cccccc; cursor: not-allowed; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea, select { padding: 8px; font-size: 14px; }
-    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
+    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
     #statusList { text-align: left; }
     #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
@@ -66,9 +66,10 @@
     }
     #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
     #dialogCardContainer { margin: 8px auto; min-height: 50px; }
-    #headphoneIdsList, #dialogHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
-    #headphoneIdsList li, #dialogHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    #headphoneIdsList, #dialogHeadphoneIdsList, #manualReturnList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li, #manualReturnList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
     .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
+    #manualReturnList label { display: flex; align-items: center; gap: 5px; }
     /* Loading Spinner Styles */
     .loading-overlay { 
       position: fixed; 
@@ -209,6 +210,15 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <input id="dialogReturnId" placeholder="Headphone ID" readonly>
     <button onclick="submitReturnDialog(); vibrate()">Return</button>
     <button onclick="closeDialog('return'); vibrate()">Cancel</button>
+  </div>
+
+  <!-- Manual Return Dialog -->
+  <div id="manualReturnDialog" class="dialog">
+    <div id="manualReturnDialogHeader" class="dialog-header">Select Headphones to Return</div>
+    <input id="manualReturnSearch" type="text" placeholder="Search headphones..." onkeyup="filterManualReturnList()">
+    <ul id="manualReturnList"></ul>
+    <button onclick="submitManualReturn(); vibrate()">Return Selected</button>
+    <button onclick="closeDialog('manualReturn'); vibrate()">Cancel</button>
   </div>
 
   <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null); vibrate()"></div>
@@ -369,6 +379,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         await loadHeadphones();
         makeDraggable('checkoutDialog', 'checkoutDialogHeader');
         makeDraggable('returnDialog', 'returnDialogHeader');
+        makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
         console.log('App initialization complete');
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -534,6 +545,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       });
       document.getElementById('checkoutDialog').style.display = 'none';
       document.getElementById('returnDialog').style.display = 'none';
+      document.getElementById('manualReturnDialog').style.display = 'none';
       document.getElementById('dialogOverlay').style.display = 'none';
     }
 
@@ -556,7 +568,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           };
           ndef.onreadingerror = () => {
             alert('No NFC tag detected. Try again or enter manually.');
-            manualEntry(context);
+            if (context === 'return' || context === 'dialogReturn') {
+              showManualReturnDialog(context);
+            } else {
+              manualEntry(context);
+            }
             controller.abort();
             button.disabled = false;
           };
@@ -564,7 +580,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             controller.abort();
             if (!button.disabled) return;
             alert('Scan timed out. Try again or enter manually.');
-            manualEntry(context);
+            if (context === 'return' || context === 'dialogReturn') {
+              showManualReturnDialog(context);
+            } else {
+              manualEntry(context);
+            }
             button.disabled = false;
           }, 5000);
           await new Promise((resolve) => {
@@ -572,12 +592,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           });
         } catch (error) {
           alert(`NFC error: ${error.message}. Enter ID manually.`);
-          manualEntry(context);
+          if (context === 'return' || context === 'dialogReturn') {
+            showManualReturnDialog(context);
+          } else {
+            manualEntry(context);
+          }
           button.disabled = false;
         }
       } else {
         alert('NFC not supported. Enter ID manually.');
-        manualEntry(context);
+        if (context === 'return' || context === 'dialogReturn') {
+          showManualReturnDialog(context);
+        } else {
+          manualEntry(context);
+        }
         button.disabled = false;
       }
     }
@@ -611,6 +639,80 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       input.value = id;
       input.dataset.entryMethod = 'Manual'; // Mark as manual entry
       button.disabled = false;
+    }
+
+    function showManualReturnDialog(context) {
+      const dialog = document.getElementById('manualReturnDialog');
+      const overlay = document.getElementById('dialogOverlay');
+      const list = document.getElementById('manualReturnList');
+      const checkedOut = Object.entries(headphones).filter(([_, hp]) => hp.status === 'checked_out');
+
+      dialog.style.display = 'flex';
+      overlay.style.display = 'block';
+      list.innerHTML = '';
+
+      checkedOut.forEach(([id, hp]) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" name="returnHeadphone" value="${id}">
+            ${id} - ${hp.customer.name} (Group: ${hp.groupId || 'Single'})
+          </label>
+        `;
+        list.appendChild(li);
+      });
+
+      document.getElementById('manualReturnSearch').value = '';
+      document.getElementById('manualReturnSearch').dataset.context = context; // Store context for submission
+    }
+
+    function filterManualReturnList() {
+      const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
+      const list = document.getElementById('manualReturnList');
+      const items = list.getElementsByTagName('li');
+
+      Array.from(items).forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    }
+
+    async function submitManualReturn() {
+      const list = document.getElementById('manualReturnList');
+      const selected = Array.from(list.querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
+      const context = document.getElementById('manualReturnSearch').dataset.context;
+
+      if (selected.length === 0) {
+        alert('Please select at least one headphone to return!');
+        return;
+      }
+
+      // Validate that all selected headphones are from the same group (or all Single)
+      const groupIds = selected.map(id => headphones[id].groupId || 'Single');
+      const uniqueGroups = [...new Set(groupIds)];
+      if (uniqueGroups.length > 1) {
+        alert('You can only return multiple headphones from the same group. Please select headphones with the same Group ID or individual Single entries.');
+        return;
+      }
+
+      try {
+        for (const id of selected) {
+          const updatedData = {
+            status: 'returned',
+            pre_auth: null
+          };
+          await updateHeadphone(id, updatedData);
+        }
+        alert(`Headphone(s) ${selected.join(', ')} returned successfully!`);
+        closeDialog('manualReturn');
+        if (context === 'dialogReturn') {
+          closeDialog('return');
+        } else {
+          showDashboard();
+        }
+      } catch (error) {
+        alert('Failed to return headphones: ' + error.message);
+      }
     }
 
     function initSignaturePad(canvasId) {
@@ -831,9 +933,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         document.getElementById('checkoutDialog').style.display = 'none';
       } else if (type === 'return') {
         document.getElementById('returnDialog').style.display = 'none';
+      } else if (type === 'manualReturn') {
+        document.getElementById('manualReturnDialog').style.display = 'none';
       }
       document.getElementById('dialogOverlay').style.display = 'none';
-      showDashboard();
+      if (type !== 'manualReturn') showDashboard();
     }
 
     async function submitCheckoutDialog() {
