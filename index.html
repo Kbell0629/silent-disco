@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Silent Disco Tracker</title>
   <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-  <!-- Firebase v9 with compatibility mode -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
@@ -964,28 +963,35 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
+          console.log('Attempting to send return email to:', customer.email);
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              to: customer.email,
-              bcc: 'se2login@gmail.com',
-              subject: 'Headphone Return Confirmation - Thank You!',
-              body: emailBody
+              name: customer.name,
+              email: customer.email,
+              agreement: emailBody, // Using 'agreement' as the body field to match checkout
+              signature: null, // No signature for return email
+              preauthId: null // No preauth ID for return email
             })
           });
 
           if (!emailResponse.ok) {
-            console.error('Failed to send return email:', await emailResponse.text());
-            alert('Headphones returned, but email notification failed. Please contact support.');
+            const errorText = await emailResponse.text();
+            console.error('Failed to send return email:', errorText);
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
           } else {
+            console.log('Return email sent successfully to:', customer.email);
             alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
           }
+        } else {
+          alert('No headphones were returned.');
         }
 
         clearForm('return');
         showDashboard();
       } catch (error) {
+        console.error('Return error:', error.message);
         alert('Failed to return headphones: ' + error.message);
       }
     }
@@ -1068,27 +1074,34 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
+          console.log('Attempting to send return email to:', customer.email);
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              to: customer.email,
-              bcc: 'se2login@gmail.com',
-              subject: 'Headphone Return Confirmation - Thank You!',
-              body: emailBody
+              name: customer.name,
+              email: customer.email,
+              agreement: emailBody,
+              signature: null,
+              preauthId: null
             })
           });
 
           if (!emailResponse.ok) {
-            console.error('Failed to send return email:', await emailResponse.text());
-            alert('Headphones returned, but email notification failed. Please contact support.');
+            const errorText = await emailResponse.text();
+            console.error('Failed to send return email:', errorText);
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`);
           } else {
+            console.log('Return email sent successfully to:', customer.email);
             alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
           }
+        } else {
+          alert('No headphones were returned.');
         }
 
         closeDialog('return');
       } catch (error) {
+        console.error('Return error:', error.message);
         alert('Failed to return headphones: ' + error.message);
       }
     }
