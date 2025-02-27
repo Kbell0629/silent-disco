@@ -625,11 +625,19 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
       const regex = /^HP\d{3}$/; // Matches HP followed by 3 digits
 
-      // Get the highest existing headphone ID number, starting from HP001
+      // Get existing headphone IDs from the database
       const existingIds = Object.keys(headphones).filter(id => regex.test(id));
+      
+      // Get IDs currently in the checkout list (if applicable)
+      const listId = context === 'checkout' ? 'headphoneIdsList' : context === 'dialogCheckout' ? 'dialogHeadphoneIdsList' : null;
+      const checkoutIds = listId ? getHeadphoneIds(listId) : [];
+      
+      // Combine all IDs to avoid duplicates
+      const allIds = [...new Set([...existingIds, ...checkoutIds])];
+      
       let nextNum = 1; // Start at HP001
-      if (existingIds.length > 0) {
-        const numbers = existingIds.map(id => parseInt(id.replace('HP', ''), 10));
+      if (allIds.length > 0) {
+        const numbers = allIds.map(id => parseInt(id.replace('HP', ''), 10));
         nextNum = Math.max(...numbers) + 1; // Next number in sequence
       }
       const suggestedId = `HP${String(nextNum).padStart(3, '0')}`; // e.g., HP001 or HP006
@@ -643,8 +651,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
         if (!regex.test(id)) {
           alert('Invalid ID format. Please enter an ID like HP123 (HP followed by 3 digits).');
+        } else if ((context === 'checkout' || context === 'dialogCheckout') && checkoutIds.includes(id)) {
+          alert(`Headphone ${id} is already in the checkout list. Please choose a different ID.`);
+          id = null; // Force re-prompt
         }
-      } while (!regex.test(id)); // Keep asking until valid
+      } while (!regex.test(id) || (context === 'checkout' || context === 'dialogCheckout') && checkoutIds.includes(id)); // Keep asking until valid and not a duplicate in checkout
 
       input.value = id;
       input.dataset.entryMethod = 'Manual'; // Mark as manual entry
