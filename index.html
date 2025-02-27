@@ -189,7 +189,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <input id="dialogName" placeholder="Full Name">
     <input id="dialogEmail" placeholder="Email">
     <input id="dialogPhone" placeholder="Phone Number">
-    <textarea id="dialogAgreement" readonly rows="10">RENTAL AGREEMENT AND COLLATERAL TERMS
+    <textarea id="dialogAgreement" readonly rows="12">RENTAL AGREEMENT AND COLLATERAL TERMS
 
 By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
 I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
@@ -1176,13 +1176,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         let headphoneCount;
 
         if (groupId) {
-          // Count headphones in the same group
           headphoneCount = Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length;
-          chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount); // Convert to cents
+          chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount);
         } else {
-          // Single headphone
           headphoneCount = 1;
-          chargeAmount = headphones[id].pre_auth.amount * 100; // Convert to cents
+          chargeAmount = headphones[id].pre_auth.amount * 100;
         }
 
         const chargeAmountDollars = (chargeAmount / 100).toFixed(2);
@@ -1196,7 +1194,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 paymentId: headphones[id].pre_auth.pre_auth_id,
-                amount: chargeAmount // Dynamic amount in cents
+                amount: chargeAmount
               })
             });
             const chargeResult = await chargeResponse.json();
