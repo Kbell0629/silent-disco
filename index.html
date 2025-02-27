@@ -963,16 +963,23 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
-          console.log('Attempting to send return email to:', customer.email);
+          console.log('Sending return email with payload:', {
+            name: customer.name,
+            email: customer.email,
+            agreement: emailBody,
+            signature: '',
+            preauthId: ''
+          });
+
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: customer.name,
               email: customer.email,
-              agreement: emailBody, // Using 'agreement' as the body field to match checkout
-              signature: null, // No signature for return email
-              preauthId: null // No preauth ID for return email
+              agreement: emailBody,
+              signature: '', // Empty string instead of null
+              preauthId: '' // Empty string instead of null
             })
           });
 
@@ -1074,7 +1081,14 @@ www.se2.events
 Email: se2login@gmail.com
           `;
 
-          console.log('Attempting to send return email to:', customer.email);
+          console.log('Sending return email with payload:', {
+            name: customer.name,
+            email: customer.email,
+            agreement: emailBody,
+            signature: '',
+            preauthId: ''
+          });
+
           const emailResponse = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1082,8 +1096,8 @@ Email: se2login@gmail.com
               name: customer.name,
               email: customer.email,
               agreement: emailBody,
-              signature: null,
-              preauthId: null
+              signature: '',
+              preauthId: ''
             })
           });
 
