@@ -29,18 +29,18 @@
     #dashboard, #reports, #manualReturnDialog table { overflow-x: auto; }
     .dialog { 
       position: absolute; 
-      top: 10%; 
+      top: 5%; 
       left: 50%; 
       transform: translateX(-50%); 
       background: white; 
-      padding: 15px; 
+      padding: 20px; 
       border: 2px solid #000; 
       z-index: 1000; 
       display: none; 
       flex-direction: column; 
-      gap: 8px; 
-      max-width: 90%; 
-      max-height: 80vh; 
+      gap: 12px; 
+      max-width: 95%; 
+      max-height: 90vh; 
       overflow-y: auto; 
       border-radius: 5px; 
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
@@ -48,9 +48,9 @@
     .dialog-header { 
       background: #007bff; 
       color: white; 
-      padding: 5px; 
+      padding: 8px; 
       cursor: move; 
-      font-size: 16px; 
+      font-size: 18px; 
       text-align: center; 
       border-radius: 5px 5px 0 0; 
     }
@@ -64,8 +64,8 @@
       z-index: 999; 
       display: none; 
     }
-    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
-    #dialogCardContainer { margin: 8px auto; min-height: 50px; }
+    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
+    #dialogCardContainer { margin: 10px auto; min-height: 50px; }
     #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
     #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
     .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
@@ -189,7 +189,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <input id="dialogName" placeholder="Full Name">
     <input id="dialogEmail" placeholder="Email">
     <input id="dialogPhone" placeholder="Phone Number">
-    <textarea id="dialogAgreement" readonly rows="12">RENTAL AGREEMENT AND COLLATERAL TERMS
+    <textarea id="dialogAgreement" readonly rows="20">RENTAL AGREEMENT AND COLLATERAL TERMS
 
 By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
 I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
