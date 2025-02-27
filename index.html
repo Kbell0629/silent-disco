@@ -9,45 +9,104 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
     button:disabled { background-color: #cccccc; cursor: not-allowed; }
     .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
     input, textarea, select { padding: 8px; font-size: 14px; }
     #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
-    #signaturePad, #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
+    #statusList { text-align: left; }
+    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
     #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
-    #card-container, #dialogCardContainer { margin: 10px auto; min-height: 50px; }
-    table { width: 100%; border-collapse: collapse; table-layout: auto; overflow-x: auto; }
-    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #card-container { margin: 10px auto; min-height: 50px; }
+    table { width: 100%; border-collapse: collapse; table-layout: auto; }
+    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
     th { background-color: #f2f2f2; }
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
     .delete-btn { background-color: #808080; padding: 4px; margin: 1px; font-size: 12px; color: white; }
-    .dialog { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); background: white; padding: 15px; border: 2px solid #000; z-index: 1000; display: none; flex-direction: column; gap: 8px; max-width: 90%; max-height: 80vh; overflow-y: auto; border-radius: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-    .dialog-header { background: #007bff; color: white; padding: 5px; cursor: move; font-size: 16px; text-align: center; border-radius: 5px 5px 0 0; }
-    .dialog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
-    ul { list-style: none; padding: 0; margin: 10px 0; }
-    ul li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    #dashboard, #reports, #manualReturnDialog table { overflow-x: auto; }
+    .dialog { 
+      position: absolute; 
+      top: 10%; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: white; 
+      padding: 15px; 
+      border: 2px solid #000; 
+      z-index: 1000; 
+      display: none; 
+      flex-direction: column; 
+      gap: 8px; 
+      max-width: 90%; 
+      max-height: 80vh; 
+      overflow-y: auto; 
+      border-radius: 5px; 
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    }
+    .dialog-header { 
+      background: #007bff; 
+      color: white; 
+      padding: 5px; 
+      cursor: move; 
+      font-size: 16px; 
+      text-align: center; 
+      border-radius: 5px 5px 0 0; 
+    }
+    .dialog-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.5); 
+      z-index: 999; 
+      display: none; 
+    }
+    #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
+    #dialogCardContainer { margin: 8px auto; min-height: 50px; }
+    #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
     .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
-    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; justify-content: center; align-items: center; z-index: 2000; }
-    .spinner { border: 8px solid #f3f3f3; border-top: 8px solid #007bff; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.3); 
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 2000; 
+    }
+    .spinner { 
+      border: 8px solid #f3f3f3; 
+      border-top: 8px solid #007bff; 
+      border-radius: 50%; 
+      width: 60px; 
+      height: 60px; 
+      animation: spin 1s linear infinite; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
   </style>
 </head>
 <body>
   <h1>Silent Disco Headphone Tracker</h1>
-  <button onclick="showForm('checkout')">Checkout Headphones</button>
-  <button onclick="showForm('return')">Return Headphones</button>
-  <button onclick="showForm('dashboard')">View Dashboard</button>
-  <button onclick="showForm('reports')">View Reports</button>
-  <button onclick="showForm('nfcStatus')">Scan NFC Status</button>
+  <button onclick="showCheckout(); vibrate()">Checkout Headphones</button>
+  <button onclick="showReturn(); vibrate()">Return Headphone</button>
+  <button onclick="showDashboard(); vibrate()">View Dashboard</button>
+  <button onclick="showReports(); vibrate()">View Reports</button>
+  <button onclick="scanNFCStatus(); vibrate()">Scan NFC Status</button>
 
   <div id="checkout" class="form">
     <h2>Checkout Headphones</h2>
-    <button id="scanCheckout" onclick="scanNFC('checkout')">Scan NFC Tag</button>
-    <input id="headphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('checkout')">
-    <button onclick="addHeadphone('headphoneId', 'headphoneIdsList', 'checked_out')">Add Headphone ID</button>
+    <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
+    <input id="headphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('checkout'); vibrate()">
+    <button onclick="addHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="headphoneIdsList"></ul>
     <input id="name" placeholder="Full Name">
     <input id="email" placeholder="Email">
@@ -62,25 +121,38 @@ PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or aud
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="card-container"></div>
     <canvas id="signaturePad" width="250" height="120"></canvas>
-    <button id="clearSignature" onclick="clearSignature('signaturePad')">Clear Signature</button>
-    <button id="checkoutButton" onclick="checkout('checkout')">Complete Checkout</button>
+    <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
+    <button id="checkoutButton" onclick="checkout(); vibrate()">Complete Checkout</button>
   </div>
 
   <div id="return" class="form">
     <h2>Return Headphones</h2>
-    <button id="scanReturn" onclick="scanNFC('return')">Scan NFC Tag</button>
-    <input id="returnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('return')">
-    <button onclick="addHeadphone('returnId', 'returnHeadphoneIdsList', 'checked_out')">Add Headphone ID</button>
+    <button id="scanReturn" onclick="scanNFC('return'); vibrate()">Scan NFC Tag</button>
+    <input id="returnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('return'); vibrate()">
+    <button onclick="addReturnHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="returnHeadphoneIdsList"></ul>
-    <button onclick="returnHeadphones()">Return All</button>
+    <button onclick="returnHeadphones(); vibrate()">Return All</button>
   </div>
 
   <div id="dashboard" class="form">
     <h2>Dashboard</h2>
-    <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="updateDashboard()">
-    <input id="dateFilter" type="date" onchange="updateDashboard()">
+    <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
+    <input id="dateFilter" type="date" onchange="filterByDate()">
     <table id="headphoneTable">
-      <thead><tr><th>Actions</th><th>Customer</th><th>Status</th><th>Preauth Status</th><th>Email</th><th>Phone</th><th>ID</th><th>Entry Method</th><th>Group ID</th><th>Delete</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Actions</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Preauth Status</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>ID</th>
+          <th>Entry Method</th>
+          <th>Group ID</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
       <tbody id="headphoneList"></tbody>
     </table>
   </div>
@@ -109,47 +181,72 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
   <div id="checkoutDialog" class="dialog">
     <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphones</div>
-    <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout')">Scan NFC Tag</button>
-    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('dialogCheckout')">
-    <button onclick="addHeadphone('dialogHeadphoneId', 'dialogHeadphoneIdsList', 'checked_out')">Add Headphone ID</button>
+    <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
+    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('dialogCheckout'); vibrate()">
+    <button onclick="addDialogHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="dialogHeadphoneIdsList"></ul>
     <input id="dialogName" placeholder="Full Name">
     <input id="dialogEmail" placeholder="Email">
     <input id="dialogPhone" placeholder="Phone Number">
-    <textarea id="dialogAgreement" readonly rows="10"></textarea>
+    <textarea id="dialogAgreement" readonly rows="10">RENTAL AGREEMENT AND COLLATERAL TERMS
+
+By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
+I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
+LIABILITY RELEASE: I hereby release, waive, discharge, and agree not to sue SE2 Silent Disco DBA and SE2 Events Inc., its officers, employees, agents, or affiliates ("Released Parties") from any and all liability, claims, demands, actions, or causes of action arising out of or related to any loss, damage, or injury, including death, that may be sustained by me or my property while using the headphones or attending the event, whether caused by the negligence of the Released Parties or otherwise. I assume full responsibility for any risk of bodily injury, death, or property damage arising from my use of the headphones and participation in the event.
+MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission to use my email address and phone number provided herein for marketing purposes, including but not limited to sending promotional offers, event updates, and newsletters. I understand I may opt out of these communications at any time by following the unsubscribe instructions provided in such messages.
+PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
+This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
     <div id="dialogCardContainer"></div>
     <canvas id="dialogSignaturePad" width="250" height="120"></canvas>
-    <button onclick="clearSignature('dialogSignaturePad')">Clear Signature</button>
-    <button id="dialogCheckoutButton" onclick="checkout('checkoutDialog')">Complete Checkout</button>
-    <button onclick="closeDialog('checkout')">Cancel</button>
+    <button onclick="clearDialogSignature(); vibrate()">Clear Signature</button>
+    <button id="dialogCheckoutButton" onclick="submitCheckoutDialog(); vibrate()">Complete Checkout</button>
+    <button onclick="closeDialog('checkout'); vibrate()">Cancel</button>
   </div>
 
   <div id="returnDialog" class="dialog">
     <div id="returnDialogHeader" class="dialog-header">Return Headphones</div>
-    <button id="dialogScanReturn" onclick="scanNFC('dialogReturn')">Scan NFC Tag</button>
-    <input id="dialogReturnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('dialogReturn')">
-    <button onclick="addHeadphone('dialogReturnId', 'dialogReturnHeadphoneIdsList', 'checked_out')">Add Headphone ID</button>
+    <button id="dialogScanReturn" onclick="scanNFC('dialogReturn'); vibrate()">Scan NFC Tag</button>
+    <input id="dialogReturnId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="showManualReturnDialog('dialogReturn'); vibrate()">
+    <button onclick="addDialogReturnHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="dialogReturnHeadphoneIdsList"></ul>
-    <button onclick="submitReturnDialog()">Return All</button>
-    <button onclick="closeDialog('return')">Cancel</button>
+    <button onclick="submitReturnDialog(); vibrate()">Return All</button>
+    <button onclick="closeDialog('return'); vibrate()">Cancel</button>
   </div>
 
   <div id="manualReturnDialog" class="dialog">
     <div id="manualReturnDialogHeader" class="dialog-header">Select Headphones to Return</div>
     <input id="manualReturnSearch" type="text" placeholder="Search headphones..." onkeyup="filterManualReturnList()">
     <table id="manualReturnTable">
-      <thead><tr><th>Select</th><th>ID</th><th>Customer</th><th>Group ID</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Group ID</th>
+        </tr>
+      </thead>
       <tbody id="manualReturnList"></tbody>
     </table>
-    <button onclick="submitManualReturn()">Return Selected</button>
-    <button onclick="closeDialog('manualReturn')">Cancel</button>
+    <button onclick="submitManualReturn(); vibrate()">Return Selected</button>
+    <button onclick="closeDialog('manualReturn'); vibrate()">Cancel</button>
   </div>
 
-  <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null)"></div>
-  <div id="loadingOverlay" class="loading-overlay"><div class="spinner"></div></div>
+  <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null); vibrate()"></div>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+  </div>
 
   <script>
     const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
+    let headphones = {};
+    let signatureData = null;
+    let dialogSignatureData = null;
+    let payments;
+    let cardElement;
+    let dialogCardElement;
+    let db;
+    let headphonesCollection;
+
     const firebaseConfig = {
       apiKey: "AIzaSyAjHcOfj2LkeRkFi_RKAd9umJ80a8ujBPM",
       authDomain: "silentdiscotracker.firebaseapp.com",
@@ -158,35 +255,30 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       messagingSenderId: "527385130136",
       appId: "1:527385130136:web:2eb9c37ede5a942a1ccced"
     };
-    let headphones = {}, payments, cardElement, dialogCardElement, db, headphonesCollection;
-    let signatureData = {};
 
-    // Utilities
-    const $ = id => document.getElementById(id);
-    const vibrate = () => 'vibrate' in navigator && navigator.vibrate(100);
-    const showLoading = () => { $('loadingOverlay').style.display = 'flex'; $('checkoutButton').disabled = true; document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = true); };
-    const hideLoading = () => { $('loadingOverlay').style.display = 'none'; $('checkoutButton').disabled = false; document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = false); };
-    const toggleForms = active => {
-      ['checkout', 'return', 'dashboard', 'nfcStatus', 'reports'].forEach(id => $(id).style.display = id === active ? 'flex' : 'none');
-      ['checkoutDialog', 'returnDialog', 'manualReturnDialog', 'dialogOverlay'].forEach(id => $(id).style.display = 'none');
-    };
-    const getListIds = listId => Array.from($(listId).children).map(li => li.dataset.id || li.textContent.split(' ')[0]);
-    const headphoneIdRegex = /^HP\d{7}$/;
-
-    // Firebase
-    async function initFirebase() {
-      await new Promise(resolve => {
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        const maxAttempts = 100;
         let attempts = 0;
-        const check = setInterval(() => {
-          if (typeof firebase !== 'undefined' && firebase.firestore) {
-            clearInterval(check);
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            headphonesCollection = db.collection('headphones');
-            resolve();
-          } else if (++attempts > 100) {
-            clearInterval(check);
-            alert('Firebase failed to load.');
+        console.log('Waiting for Firebase SDK to load...');
+        const checkFirebase = setInterval(() => {
+          attempts++;
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore) {
+            clearInterval(checkFirebase);
+            try {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+              headphonesCollection = db.collection('headphones');
+              console.log('Firebase initialized successfully');
+              resolve();
+            } catch (error) {
+              console.error('Firebase initialization failed:', error);
+              reject(error);
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkFirebase);
+            console.error('Firebase SDK failed to load');
+            alert('Firebase failed to load. Proceeding without database.');
             resolve();
           }
         }, 100);
@@ -194,500 +286,1347 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function loadHeadphones() {
-      if (!db) return headphones;
+      if (!db || !headphonesCollection) {
+        console.warn('Firebase not initialized, using local data');
+        return headphones;
+      }
       try {
         const snapshot = await headphonesCollection.get();
-        headphones = Object.fromEntries(snapshot.docs.map(doc => [doc.id, doc.data()]));
+        headphones = {};
+        snapshot.forEach(doc => {
+          headphones[doc.id] = doc.data();
+        });
         return headphones;
       } catch (error) {
-        alert('Failed to load data: ' + error.message);
+        console.error('Error loading headphones:', error);
+        alert('Failed to load data.');
         return headphones;
       }
     }
 
     async function saveHeadphone(id, data) {
-      headphones[id] = data;
-      if (db) await headphonesCollection.doc(id).set(data).catch(err => { throw new Error('Save failed: ' + err.message); });
+      if (!db || !headphonesCollection) {
+        headphones[id] = data;
+        return;
+      }
+      try {
+        await headphonesCollection.doc(id).set(data);
+        headphones[id] = data;
+      } catch (error) {
+        console.error('Error saving headphone:', error);
+        alert('Failed to save data.');
+        throw error;
+      }
     }
 
     async function updateHeadphone(id, data) {
-      headphones[id] = { ...headphones[id], ...data };
-      if (db) await headphonesCollection.doc(id).update(data).catch(err => { throw new Error('Update failed: ' + err.message); });
+      if (!db || !headphonesCollection) {
+        headphones[id] = { ...headphones[id], ...data };
+        return;
+      }
+      try {
+        await headphonesCollection.doc(id).update(data);
+        headphones[id] = { ...headphones[id], ...data };
+      } catch (error) {
+        console.error('Error updating headphone:', error);
+        alert('Failed to update data.');
+        throw error;
+      }
     }
 
     async function deleteHeadphone(id) {
-      if (confirm(`Delete headphone ${id}?`)) {
+      if (!db || !headphonesCollection) {
         delete headphones[id];
-        if (db) await headphonesCollection.doc(id).delete();
-        alert(`Headphone ${id} deleted!`);
         updateDashboard();
+        return;
+      }
+      try {
+        const confirmDelete = confirm(`Are you sure you want to delete the record for headphone ${id}?`);
+        if (confirmDelete) {
+          await headphonesCollection.doc(id).delete();
+          delete headphones[id];
+          alert(`Headphone ${id} deleted!`);
+          updateDashboard();
+        }
+      } catch (error) {
+        console.error('Error deleting headphone:', error);
+        alert('Failed to delete headphone.');
       }
     }
 
-    // Square
-    async function initSquare(containerId = 'card-container') {
-      if (!window.Square) return alert('Square SDK not loaded.');
-      payments = payments || window.Square.payments(squareAppId);
-      const container = $(containerId);
-      container.innerHTML = '';
-      const card = await payments.card();
-      await card.attach(`#${containerId}`);
-      return containerId === 'card-container' ? (cardElement = card) : (dialogCardElement = card);
+    async function initializeSquare() {
+      if (!window.Square) {
+        console.error('Square SDK not loaded');
+        return;
+      }
+      if (!payments) {
+        payments = window.Square.payments(squareAppId);
+      }
+      const cardContainer = document.getElementById('card-container');
+      cardContainer.innerHTML = '';
+      cardElement = await payments.card();
+      await cardElement.attach('#card-container');
+      return cardElement;
     }
 
-    // Initialization
     window.onload = async () => {
       try {
-        await initFirebase();
-        await initSquare();
+        await waitForFirebase();
+        await initializeSquare();
         await loadHeadphones();
-        ['checkoutDialog', 'returnDialog', 'manualReturnDialog'].forEach(id => makeDraggable(id, `${id}Header`));
-        $('dialogAgreement').value = $('agreement').value;
+        makeDraggable('checkoutDialog', 'checkoutDialogHeader');
+        makeDraggable('returnDialog', 'returnDialogHeader');
+        makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
       } catch (error) {
-        alert('Failed to start app: ' + error.message);
+        console.error('Error during initialization:', error);
+        alert('Failed to start app.');
       }
     };
 
-    // Form Handlers
-    function showForm(id) {
-      toggleForms(id);
-      vibrate();
-      if (id === 'checkout') initCheckout();
-      else if (id === 'return') $('returnHeadphoneIdsList').innerHTML = '';
-      else if (id === 'dashboard') updateDashboard();
-      else if (id === 'reports') initReports();
-      else if (id === 'nfcStatus') scanNFCStatus();
+    function vibrate() {
+      if ('vibrate' in navigator) navigator.vibrate(100);
     }
 
-    async function initCheckout() {
-      initSignaturePad('signaturePad');
-      await initSquare();
-      $('headphoneIdsList').innerHTML = '';
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('checkoutButton').disabled = true;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = true);
     }
 
-    function initReports() {
-      ['reportType', 'reportStartDate', 'reportEndDate', 'reportSearch'].forEach(id => $(id).value = '');
-      $('reportOutput').innerHTML = '<p>Select a report type to view details.</p>';
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('checkoutButton').disabled = false;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = false);
     }
 
-    // NFC and Manual Entry
-    async function scanNFC(context) {
-      const button = $(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
-      const input = $(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
-      button.disabled = true;
-
-      if (!('NDEFReader' in window)) {
-        alert('NFC not supported.');
-        manualEntry(context);
-        button.disabled = false;
+    function addHeadphoneId() {
+      const id = document.getElementById('headphoneId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
         return;
       }
+      if (headphones[id] && headphones[id].status === 'checked_out') {
+        alert(`Headphone ${id} is already checked out!`);
+        return;
+      }
+      const list = document.getElementById('headphoneIdsList');
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      list.appendChild(li);
+      document.getElementById('headphoneId').value = '';
+    }
 
-      const ndef = new NDEFReader();
-      try {
-        await ndef.scan();
-        const controller = new AbortController();
-        ndef.onreading = event => {
-          let id = event.serialNumber;
-          if (!headphoneIdRegex.test(id)) {
-            id = prompt('Invalid NFC ID. Enter a valid headphone ID (e.g., HP0000001):');
-            if (!id || !headphoneIdRegex.test(id)) {
-              alert('Invalid ID format.');
-              controller.abort();
-              button.disabled = false;
-              return;
+    function addDialogHeadphoneId() {
+      const id = document.getElementById('dialogHeadphoneId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (headphones[id] && headphones[id].status === 'checked_out') {
+        alert(`Headphone ${id} is already checked out!`);
+        return;
+      }
+      const list = document.getElementById('dialogHeadphoneIdsList');
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      list.appendChild(li);
+      document.getElementById('dialogHeadphoneId').value = '';
+    }
+
+    function addReturnHeadphoneId() {
+      const id = document.getElementById('returnId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (!headphones[id] || headphones[id].status !== 'checked_out') {
+        alert(`Headphone ${id} is not checked out!`);
+        return;
+      }
+      const list = document.getElementById('returnHeadphoneIdsList');
+      const existingIds = getReturnHeadphoneIds();
+      if (existingIds.includes(id)) {
+        alert(`Headphone ${id} is already in the return list!`);
+        return;
+      }
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      li.dataset.id = id;
+      list.appendChild(li);
+      document.getElementById('returnId').value = '';
+    }
+
+    function addDialogReturnHeadphoneId() {
+      const id = document.getElementById('dialogReturnId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (!headphones[id] || headphones[id].status !== 'checked_out') {
+        alert(`Headphone ${id} is not checked out!`);
+        return;
+      }
+      const list = document.getElementById('dialogReturnHeadphoneIdsList');
+      const existingIds = getDialogReturnHeadphoneIds();
+      if (existingIds.includes(id)) {
+        alert(`Headphone ${id} is already in the return list!`);
+        return;
+      }
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      li.dataset.id = id;
+      list.appendChild(li);
+      document.getElementById('dialogReturnId').value = '';
+    }
+
+    function removeHeadphoneId(button, id) {
+      button.parentElement.remove();
+    }
+
+    function getHeadphoneIds(listId) {
+      const list = document.getElementById(listId);
+      return Array.from(list.children).map(li => li.textContent.split(' ')[0]);
+    }
+
+    function getReturnHeadphoneIds() {
+      const list = document.getElementById('returnHeadphoneIdsList');
+      return Array.from(list.children).map(li => li.dataset.id);
+    }
+
+    function getDialogReturnHeadphoneIds() {
+      const list = document.getElementById('dialogReturnHeadphoneIdsList');
+      return Array.from(list.children).map(li => li.dataset.id);
+    }
+
+    function generateGroupId() {
+      const groupRegex = /^GROUP_\d{7}$/;
+      const existingGroups = Object.values(headphones)
+        .filter(hp => hp.groupId && groupRegex.test(hp.groupId))
+        .map(hp => parseInt(hp.groupId.replace('GROUP_', ''), 10));
+      let nextNum = 1;
+      if (existingGroups.length > 0) {
+        nextNum = Math.max(...existingGroups) + 1;
+      }
+      return `GROUP_${String(nextNum).padStart(7, '0')}`;
+    }
+
+    async function showCheckout() {
+      toggleForms('checkout');
+      initSignaturePad('signaturePad');
+      await initializeSquare();
+      document.getElementById('headphoneIdsList').innerHTML = '';
+    }
+
+    function showReturn() { 
+      toggleForms('return'); 
+      document.getElementById('returnHeadphoneIdsList').innerHTML = '';
+    }
+
+    async function showDashboard() {
+      toggleForms('dashboard');
+      await loadHeadphones();
+      updateDashboard();
+    }
+
+    async function showReports() {
+      toggleForms('reports');
+      await loadHeadphones();
+      document.getElementById('reportType').value = '';
+      document.getElementById('reportStartDate').value = '';
+      document.getElementById('reportEndDate').value = '';
+      document.getElementById('reportSearch').value = '';
+      document.getElementById('reportOutput').innerHTML = '<p>Select a report type to view details.</p>';
+    }
+
+    async function scanNFCStatus() {
+      toggleForms('nfcStatus');
+      const resultElement = document.getElementById('nfcStatusResult');
+      resultElement.textContent = 'Scanning...';
+
+      if ('NDEFReader' in window) {
+        const ndef = new NDEFReader();
+        try {
+          await ndef.scan();
+          const controller = new AbortController();
+          ndef.onreading = event => {
+            const id = event.serialNumber || prompt('Enter headphone ID manually:');
+            if (id && headphones[id]) {
+              const hp = headphones[id];
+              resultElement.innerHTML = `
+                <strong>ID:</strong> ${id}<br>
+                <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br>
+                <strong>Customer:</strong> ${hp.customer.name}<br>
+                <strong>Email:</strong> ${hp.customer.email}<br>
+                <strong>Phone:</strong> ${hp.customer.phone}<br>
+                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
+                <strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br>
+                <strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br>
+                <strong>Group ID:</strong> ${hp.groupId || 'Single'}
+              `;
+            } else {
+              resultElement.textContent = `Headphone ${id} not found.`;
             }
-            input.dataset.entryMethod = 'NFC-Manual';
+            controller.abort();
+          };
+          ndef.onreadingerror = () => {
+            resultElement.textContent = 'NFC scan failed. Try again.';
+            controller.abort();
+          };
+          setTimeout(() => {
+            controller.abort();
+            if (resultElement.textContent === 'Scanning...') {
+              resultElement.textContent = 'Scan timed out.';
+            }
+          }, 5000);
+          await new Promise((resolve) => {
+            controller.signal.addEventListener('abort', resolve);
+          });
+        } catch (error) {
+          resultElement.textContent = `Error: ${error.message}`;
+        }
+      } else {
+        resultElement.textContent = 'NFC not supported.';
+      }
+    }
+
+    function toggleForms(active) {
+      ['checkout', 'return', 'dashboard', 'nfcStatus', 'reports'].forEach(id => {
+        document.getElementById(id).style.display = id === active ? 'flex' : 'none';
+      });
+      document.getElementById('checkoutDialog').style.display = 'none';
+      document.getElementById('returnDialog').style.display = 'none';
+      document.getElementById('manualReturnDialog').style.display = 'none';
+      document.getElementById('dialogOverlay').style.display = 'none';
+    }
+
+    async function scanNFC(context) {
+      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
+      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
+      const headphoneIdRegex = /^HP\d{7}$/; // Expected format: HP followed by 7 digits
+      button.disabled = true;
+
+      if ('NDEFReader' in window) {
+        const ndef = new NDEFReader();
+        try {
+          await ndef.scan();
+          const controller = new AbortController();
+          ndef.onreading = event => {
+            let id = event.serialNumber; // Get the NFC tag's serial number
+            // Check if the scanned ID matches the expected headphone ID format
+            if (id && headphoneIdRegex.test(id)) {
+              input.value = id;
+              input.dataset.entryMethod = 'NFC';
+              alert(`Scanned headphone: ${id}`);
+            } else {
+              // If the scanned ID isn't in the right format, prompt for manual entry
+              id = prompt('Scanned NFC tag doesn\'t match expected format (HP followed by 7 digits). Please enter a valid headphone ID (e.g., HP0000001):');
+              if (id && headphoneIdRegex.test(id)) {
+                input.value = id;
+                input.dataset.entryMethod = 'NFC-Manual';
+                alert(`Accepted headphone: ${id}`);
+              } else if (id) {
+                alert('Invalid ID format. Please use HP followed by 7 digits (e.g., HP0000001).');
+                controller.abort();
+                button.disabled = false;
+                return;
+              } else {
+                controller.abort();
+                button.disabled = false;
+                return;
+              }
+            }
+            controller.abort();
+            button.disabled = false;
+            if (context === 'return') addReturnHeadphoneId();
+            else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
+          };
+          ndef.onreadingerror = () => {
+            alert('No NFC tag detected. Try again or enter manually.');
+            if (context === 'return' || context === 'dialogReturn') {
+              showManualReturnDialog(context);
+            } else {
+              manualEntry(context);
+            }
+            controller.abort();
+            button.disabled = false;
+          };
+          setTimeout(() => {
+            controller.abort();
+            if (!button.disabled) return;
+            alert('Scan timed out. Try again or enter manually.');
+            if (context === 'return' || context === 'dialogReturn') {
+              showManualReturnDialog(context);
+            } else {
+              manualEntry(context);
+            }
+            button.disabled = false;
+          }, 5000);
+          await new Promise((resolve) => {
+            controller.signal.addEventListener('abort', resolve);
+          });
+        } catch (error) {
+          alert(`NFC error: ${error.message}. Enter ID manually.`);
+          if (context === 'return' || context === 'dialogReturn') {
+            showManualReturnDialog(context);
           } else {
-            input.dataset.entryMethod = 'NFC';
+            manualEntry(context);
           }
-          input.value = id;
-          alert(`Scanned headphone: ${id}`);
-          if (context.includes('return')) addHeadphone(input.id, context === 'return' ? 'returnHeadphoneIdsList' : 'dialogReturnHeadphoneIdsList', 'checked_out');
-          controller.abort();
           button.disabled = false;
-        };
-        ndef.onreadingerror = () => {
-          alert('NFC scan failed.');
-          context.includes('return') ? showManualReturnDialog(context) : manualEntry(context);
-          controller.abort();
-          button.disabled = false;
-        };
-        setTimeout(() => {
-          controller.abort();
-          if (!button.disabled) return;
-          alert('Scan timed out.');
-          context.includes('return') ? showManualReturnDialog(context) : manualEntry(context);
-          button.disabled = false;
-        }, 5000);
-        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-      } catch (error) {
-        alert(`NFC error: ${error.message}`);
+        }
+      } else {
+        alert('NFC not supported. Enter ID manually.');
+        if (context === 'return' || context === 'dialogReturn') {
+          showManualReturnDialog(context);
+        } else {
+          manualEntry(context);
+        }
         button.disabled = false;
       }
     }
 
     function manualEntry(context) {
-      const input = $(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
-      const button = $(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
-      const listId = context.includes('checkout') ? (context === 'checkout' ? 'headphoneIdsList' : 'dialogHeadphoneIdsList') : null;
-      const checkoutIds = listId ? getListIds(listId) : [];
-      const allIds = [...Object.keys(headphones).filter(id => headphoneIdRegex.test(id)), ...checkoutIds];
-      const nextNum = allIds.length ? Math.max(...allIds.map(id => parseInt(id.slice(2)))) + 1 : 1;
+      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
+      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
+      const regex = /^HP\d{7}$/;
+
+      const existingIds = Object.keys(headphones).filter(id => regex.test(id));
+      const listId = context === 'checkout' ? 'headphoneIdsList' : context === 'dialogCheckout' ? 'dialogHeadphoneIdsList' : null;
+      const checkoutIds = listId ? getHeadphoneIds(listId) : [];
+      const allIds = [...new Set([...existingIds, ...checkoutIds])];
+      
+      let nextNum = 1;
+      if (allIds.length > 0) {
+        const numbers = allIds.map(id => parseInt(id.replace('HP', ''), 10));
+        nextNum = Math.max(...numbers) + 1;
+      }
       const suggestedId = `HP${String(nextNum).padStart(7, '0')}`;
 
       let id;
       do {
-        id = prompt(`Enter headphone ID (e.g., HP0000001). Suggested: ${suggestedId}`, suggestedId);
-        if (!id) return button.disabled = false;
-        if (!headphoneIdRegex.test(id)) alert('Invalid ID format. Use HP followed by 7 digits.');
-        else if (listId && checkoutIds.includes(id)) alert(`Headphone ${id} already in checkout list.`);
-      } while (!headphoneIdRegex.test(id) || (listId && checkoutIds.includes(id)));
+        id = prompt(`Enter headphone ID (e.g., HP0000001).\nSuggested ID: ${suggestedId}.`, suggestedId);
+        if (id === null) {
+          button.disabled = false;
+          return;
+        }
+        if (!regex.test(id)) {
+          alert('Invalid ID format. Use HP followed by 7 digits (e.g., HP0000001).');
+        } else if ((context === 'checkout' || context === 'dialogCheckout') && checkoutIds.includes(id)) {
+          alert(`Headphone ${id} is already in the checkout list.`);
+          id = null;
+        }
+      } while (!regex.test(id) || (context === 'checkout' || context === 'dialogCheckout') && checkoutIds.includes(id));
 
       input.value = id;
       input.dataset.entryMethod = 'Manual';
       button.disabled = false;
-      if (context === 'return') addHeadphone('returnId', 'returnHeadphoneIdsList', 'checked_out');
-      else if (context === 'dialogReturn') addHeadphone('dialogReturnId', 'dialogReturnHeadphoneIdsList', 'checked_out');
+      if (context === 'return') addReturnHeadphoneId();
+      else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
     }
 
-    // Headphone Management
-    function addHeadphone(inputId, listId, statusCheck) {
-      const id = $(inputId).value.trim();
-      if (!id) return alert('Please enter a headphone ID.');
-      if (statusCheck && (!headphones[id] || headphones[id].status !== statusCheck)) return alert(`Headphone ${id} is not checked out!`);
-      if (!statusCheck && headphones[id]?.status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
-      if (getListIds(listId).includes(id)) return alert(`Headphone ${id} already in list!`);
-      const li = document.createElement('li');
-      li.dataset.id = id;
-      li.innerHTML = `${id} <button class="remove-btn" onclick="this.parentElement.remove()">Remove</button>`;
-      $(listId).appendChild(li);
-      $(inputId).value = '';
+    function showManualReturnDialog(context) {
+      const dialog = document.getElementById('manualReturnDialog');
+      const overlay = document.getElementById('dialogOverlay');
+      const list = document.getElementById('manualReturnList');
+      const checkedOut = Object.entries(headphones).filter(([_, hp]) => hp.status === 'checked_out');
+
+      dialog.style.display = 'flex';
+      overlay.style.display = 'block';
+      list.innerHTML = '';
+
+      checkedOut.forEach(([id, hp]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><input type="checkbox" name="returnHeadphone" value="${id}"></td>
+          <td>${id}</td>
+          <td>${hp.customer.name}</td>
+          <td>${hp.groupId || 'Single'}</td>
+        `;
+        list.appendChild(row);
+      });
+
+      document.getElementById('manualReturnSearch').value = '';
+      document.getElementById('manualReturnSearch').dataset.context = context;
     }
 
-    function generateGroupId() {
-      const maxNum = Math.max(...Object.values(headphones).filter(h => h.groupId?.match(/^GROUP_\d{7}$/)).map(h => parseInt(h.groupId.slice(6))) || [0]) + 1;
-      return `GROUP_${String(maxNum).padStart(7, '0')}`;
+    function filterManualReturnList() {
+      const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
+      const list = document.getElementById('manualReturnList');
+      const rows = list.getElementsByTagName('tr');
+
+      Array.from(rows).forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
     }
 
-    // Checkout and Return
-    async function checkout(formId) {
-      const prefix = formId === 'checkout' ? '' : 'dialog';
-      const headphoneIds = getListIds(`${prefix}HeadphoneIdsList`);
-      const [name, email, phone] = [$(`${prefix}Name`).value, $(`${prefix}Email`).value, $(`${prefix}Phone`).value];
+    async function submitManualReturn() {
+      const list = document.getElementById('manualReturnList');
+      const selected = Array.from(list.querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
+      const context = document.getElementById('manualReturnSearch').dataset.context;
+
+      if (selected.length === 0) {
+        alert('Please select at least one headphone to return!');
+        return;
+      }
+
+      const groupIds = selected.map(id => headphones[id].groupId || 'Single');
+      const uniqueGroups = [...new Set(groupIds)];
+      if (uniqueGroups.length > 1) {
+        alert('All selected headphones must belong to the same group. Please select headphones with the same Group ID or individual Single entries.');
+        return;
+      }
+
+      try {
+        for (const id of selected) {
+          const updatedData = {
+            status: 'returned',
+            pre_auth: null
+          };
+          await updateHeadphone(id, updatedData);
+        }
+        alert(`Headphone(s) ${selected.join(', ')} returned successfully!`);
+        closeDialog('manualReturn');
+        if (context === 'dialogReturn') {
+          closeDialog('return');
+        } else {
+          showDashboard();
+        }
+      } catch (error) {
+        alert('Failed to return headphones: ' + error.message);
+      }
+    }
+
+    function initSignaturePad(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000';
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
+
+      function startDrawing(e) {
+        drawing = true;
+        ctx.beginPath();
+        const { x, y } = getPosition(e);
+        ctx.moveTo(x, y);
+        e.preventDefault();
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        const { x, y } = getPosition(e);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        e.preventDefault();
+      }
+
+      function stopDrawing() {
+        if (drawing) {
+          drawing = false;
+          if (canvasId === 'signaturePad') {
+            signatureData = canvas.toDataURL();
+          } else {
+            dialogSignatureData = canvas.toDataURL();
+          }
+        }
+      }
+
+      function getPosition(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return {
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top
+        };
+      }
+    }
+
+    function clearSignature() {
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      signatureData = null;
+    }
+
+    function clearDialogSignature() {
+      const canvas = document.getElementById('dialogSignaturePad');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dialogSignatureData = null;
+    }
+
+    async function checkout() {
+      const headphoneIds = getHeadphoneIds('headphoneIdsList');
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
       const date = new Date().toISOString().split('T')[0];
-      const card = formId === 'checkout' ? cardElement : dialogCardElement;
-      const sigData = signatureData[prefix + 'SignaturePad'];
 
-      if (!headphoneIds.length || !name || !email || !phone || !sigData || !card) {
-        return alert('Complete all fields, add headphones, sign, and enter card details.');
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) {
+        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
+        return;
       }
 
       showLoading();
       const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
-      const agreementText = $(`${prefix}Agreement`).value.replace('[Customer Name]', name).replace('[Date]', date).replace('[Headphone IDs]', headphoneIds.join(', '));
+      const headphoneIdsText = headphoneIds.join(', ');
+      const agreementText = document.getElementById('agreement').value
+        .replace('[Customer Name]', name)
+        .replace('[Date]', date)
+        .replace('[Headphone IDs]', headphoneIdsText);
 
       try {
-        const { status, token } = await card.tokenize();
-        if (status !== 'OK') throw new Error('Card tokenization failed.');
-        const preauth = await fetch('/.netlify/functions/preauthorize', {
+        const result = await cardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
+        const paymentToken = result.token;
+
+        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceId: token, amount: headphoneIds.length * 10000, currency: 'USD', locationId: 'LQ7MAQD7N37E5' })
-        }).then(res => res.json());
-        if (preauth.error) throw new Error(preauth.error);
+          body: JSON.stringify({
+            sourceId: paymentToken,
+            amount: headphoneIds.length * 10000,
+            currency: 'USD',
+            locationId: 'LQ7MAQD7N37E5'
+          })
+        });
+
+        const preauthResult = await preauthResponse.json();
+        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        const preauthId = preauthResult.paymentId;
 
         for (const id of headphoneIds) {
-          if (headphones[id]?.status === 'checked_out') continue;
-          const data = {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out! Skipping.`);
+            continue;
+          }
+          const entryMethod = document.getElementById('headphoneId').dataset.entryMethod || 'Manual';
+          const headphoneData = {
             status: 'checked_out',
             customer: { name, email, phone },
-            agreement: { text: agreementText, signature: sigData, amount: 100, date, timestamp: Date.now() },
-            pre_auth: { pre_auth_id: preauth.paymentId, amount: headphoneIds.length * 100 },
-            entryMethod: $(prefix + 'HeadphoneId').dataset.entryMethod || 'Manual',
-            ...(groupId && { groupId })
+            agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 },
+            entryMethod: entryMethod
           };
-          await saveHeadphone(id, data);
+          if (groupId) headphoneData.groupId = groupId;
+          await saveHeadphone(id, headphoneData);
         }
 
-        const emailRes = await fetch('/.netlify/functions/send-email', {
+        const emailResponse = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, agreement: agreementText, signature: sigData, preauthId: preauth.paymentId })
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            agreement: agreementText,
+            signature: signatureData,
+            preauthId: preauthId
+          })
         });
-        if (!emailRes.ok) throw new Error('Email failed');
 
-        alert(`Headphones ${headphoneIds.join(', ')} checked out! Emailed to ${email}.`);
-        clearForm(formId);
-        formId === 'checkout' ? showForm('dashboard') : closeDialog('checkout');
+        if (emailResponse.ok) {
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+          clearForm('checkout');
+          showDashboard();
+        } else {
+          throw new Error('Email failed');
+        }
       } catch (error) {
+        console.error('Checkout error:', error.message);
         alert('Checkout failed: ' + error.message);
       } finally {
         hideLoading();
       }
     }
 
-    async function returnHeadphones(ids = getListIds('returnHeadphoneIdsList'), isDialog = false) {
-      if (!ids.length) return alert('Add at least one headphone to return.');
-      const groupIds = ids.map(id => headphones[id]?.groupId || 'Single');
-      const uniqueGroups = [...new Set(groupIds.filter(Boolean))];
+    async function returnHeadphones() {
+      const headphoneIds = getReturnHeadphoneIds();
+      if (!headphoneIds.length) {
+        alert('Please scan or add at least one headphone to return!');
+        return;
+      }
+
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
+      const uniqueGroups = [...new Set(groupIds.filter(id => id !== undefined))];
 
       if (uniqueGroups.length > 1) {
-        const mismatched = ids.filter(id => headphones[id]?.groupId !== uniqueGroups[0] && groupIds.includes(headphones[id].groupId));
-        alert(`All headphones must be from the same group. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ')}.`);
-        const list = $(isDialog ? 'dialogReturnHeadphoneIdsList' : 'returnHeadphoneIdsList');
-        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
+        const mismatched = headphoneIds.filter(id => headphones[id] && headphones[id].groupId !== uniqueGroups[0] && groupIds.includes(headphones[id].groupId));
+        const mismatchText = mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ');
+        alert(`All headphones must belong to the same group. Mismatched headphones: ${mismatchText}. Please remove them before submitting.`);
+        const list = document.getElementById('returnHeadphoneIdsList');
+        Array.from(list.children).forEach(li => {
+          if (mismatched.includes(li.dataset.id)) {
+            li.style.backgroundColor = '#ffcccc';
+          } else {
+            li.style.backgroundColor = '';
+          }
+        });
         return;
       }
 
       try {
-        for (const id of ids) {
-          if (!headphones[id] || headphones[id].status !== 'checked_out') continue;
-          await updateHeadphone(id, { status: 'returned', pre_auth: null });
+        for (const id of headphoneIds) {
+          if (!headphones[id] || headphones[id].status !== 'checked_out') {
+            alert(`Headphone ${id} is not checked out! Skipping.`);
+            continue;
+          }
+          const updatedData = {
+            status: 'returned',
+            pre_auth: null
+          };
+          await updateHeadphone(id, updatedData);
         }
-        alert(`Headphone(s) ${ids.join(', ')} returned!`);
+        alert(`Headphone(s) ${headphoneIds.join(', ')} returned!`);
         clearForm('return');
-        isDialog ? closeDialog('return') : showForm('dashboard');
+        showDashboard();
       } catch (error) {
-        alert('Return failed: ' + error.message);
+        alert('Failed to return headphones: ' + error.message);
+      }
+    }
+
+    async function showCheckoutDialog(id) {
+      document.getElementById('dialogHeadphoneId').value = id;
+      document.getElementById('dialogName').value = '';
+      document.getElementById('dialogEmail').value = '';
+      document.getElementById('dialogPhone').value = '';
+      clearDialogSignature();
+      document.getElementById('checkoutDialog').style.display = 'flex';
+      document.getElementById('dialogOverlay').style.display = 'block';
+      initSignaturePad('dialogSignaturePad');
+      await initDialogCard();
+      document.getElementById('dialogHeadphoneIdsList').innerHTML = '';
+      if (id) addDialogHeadphoneId();
+    }
+
+    async function initDialogCard() {
+      if (!window.Square) {
+        console.error('Square SDK not loaded');
+        return;
+      }
+      if (!payments) {
+        payments = window.Square.payments(squareAppId);
+      }
+      const dialogCardContainer = document.getElementById('dialogCardContainer');
+      dialogCardContainer.innerHTML = '';
+      dialogCardElement = await payments.card();
+      await dialogCardElement.attach('#dialogCardContainer');
+    }
+
+    function showReturnDialog(id) {
+      document.getElementById('dialogReturnId').value = id;
+      document.getElementById('returnDialog').style.display = 'flex';
+      document.getElementById('dialogOverlay').style.display = 'block';
+      document.getElementById('dialogReturnHeadphoneIdsList').innerHTML = '';
+      if (id) addDialogReturnHeadphoneId();
+    }
+
+    function closeDialog(type) {
+      if (type === 'checkout') {
+        document.getElementById('checkoutDialog').style.display = 'none';
+      } else if (type === 'return') {
+        document.getElementById('returnDialog').style.display = 'none';
+      } else if (type === 'manualReturn') {
+        document.getElementById('manualReturnDialog').style.display = 'none';
+      }
+      document.getElementById('dialogOverlay').style.display = 'none';
+      if (type !== 'manualReturn') showDashboard();
+    }
+
+    async function submitCheckoutDialog() {
+      const headphoneIds = getHeadphoneIds('dialogHeadphoneIdsList');
+      const name = document.getElementById('dialogName').value;
+      const email = document.getElementById('dialogEmail').value;
+      const phone = document.getElementById('dialogPhone').value;
+      const date = new Date().toISOString().split('T')[0];
+
+      if (!headphoneIds.length || !name || !email || !phone || !dialogSignatureData || !dialogCardElement) {
+        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
+        return;
+      }
+
+      const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
+      const headphoneIdsText = headphoneIds.join(', ');
+      const agreementText = document.getElementById('dialogAgreement').value
+        .replace('[Customer Name]', name)
+        .replace('[Date]', date)
+        .replace('[Headphone IDs]', headphoneIdsText);
+
+      try {
+        const result = await dialogCardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
+        const paymentToken = result.token;
+
+        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: paymentToken,
+            amount: headphoneIds.length * 10000,
+            currency: 'USD',
+            locationId: 'LQ7MAQD7N37E5'
+          })
+        });
+
+        const preauthResult = await preauthResponse.json();
+        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        const preauthId = preauthResult.paymentId;
+
+        for (const id of headphoneIds) {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out! Skipping.`);
+            continue;
+          }
+          const entryMethod = document.getElementById('dialogHeadphoneId').dataset.entryMethod || 'Manual';
+          const headphoneData = {
+            status: 'checked_out',
+            customer: { name, email, phone },
+            agreement: { text: agreementText, signature: dialogSignatureData, amount: 100, date: date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 },
+            entryMethod: entryMethod
+          };
+          if (groupId) headphoneData.groupId = groupId;
+          await saveHeadphone(id, headphoneData);
+        }
+
+        const emailResponse = await fetch('/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            agreement: agreementText,
+            signature: dialogSignatureData,
+            preauthId: preauthId
+          })
+        });
+
+        if (emailResponse.ok) {
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+          closeDialog('checkout');
+        } else {
+          throw new Error('Email failed');
+        }
+      } catch (error) {
+        console.error('Checkout error:', error.message);
+        alert('Checkout failed: ' + error.message);
       }
     }
 
     async function submitReturnDialog() {
-      returnHeadphones(getListIds('dialogReturnHeadphoneIdsList'), true);
-    }
+      const headphoneIds = getDialogReturnHeadphoneIds();
+      if (!headphoneIds.length) {
+        alert('Please scan or add at least one headphone to return!');
+        return;
+      }
 
-    // Dashboard and Reports
-    function updateDashboard() {
-      const tbody = $('headphoneList');
-      const search = $('searchInput').value.toLowerCase();
-      const date = $('dateFilter').value;
-      const now = Date.now();
-      const twelveHours = 12 * 60 * 60 * 1000;
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
+      const uniqueGroups = [...new Set(groupIds.filter(id => id !== undefined))];
 
-      tbody.innerHTML = Object.entries(headphones)
-        .sort(([aId, a], [bId, b]) => ((a.groupId || 'ZZZZZZ') === (b.groupId || 'ZZZZZZ') ? aId.localeCompare(bId) : (a.groupId || 'ZZZZZZ').localeCompare(b.groupId || 'ZZZZZZ')))
-        .map(([id, hp]) => {
-          const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
-          const overdue = hp.status === 'checked_out' && (now - (hp.agreement?.timestamp || now) > twelveHours);
-          const rowData = [hp.customer?.name || 'N/A', statusText, hp.pre_auth ? 'Hold' : 'Released', hp.customer?.email || 'N/A', hp.customer?.phone || 'N/A', id, hp.entryMethod || 'N/A', hp.agreement?.date || 'N/A', hp.groupId || 'Single'];
-          if (!rowData.some(d => d.toLowerCase().includes(search)) || (date && hp.agreement?.date !== date)) return '';
-          return `<tr>
-            <td>${hp.status !== 'checked_out' ? `<button class="checkout-btn" onclick="showCheckoutDialog('${id}')">Check Out</button>` : ''}${hp.status === 'checked_out' ? `<button class="checkin-btn" onclick="showReturnDialog('${id}')">Check In</button>` : ''}${overdue && hp.pre_auth ? `<button class="charge-btn" onclick="dashboardCharge('${id}')">Charge</button>` : ''}</td>
-            <td>${rowData[0]}</td><td>${rowData[1]}</td><td>${rowData[2]}</td><td>${rowData[3]}</td><td>${rowData[4]}</td><td>${id}</td><td>${rowData[6]}</td><td>${rowData[8]}</td>
-            <td><button class="delete-btn" onclick="deleteHeadphone('${id}')">Delete</button></td>
-          </tr>`;
-        }).join('');
+      if (uniqueGroups.length > 1) {
+        const mismatched = headphoneIds.filter(id => headphones[id] && headphones[id].groupId !== uniqueGroups[0] && groupIds.includes(headphones[id].groupId));
+        const mismatchText = mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ');
+        alert(`All headphones must belong to the same group. Mismatched headphones: ${mismatchText}. Please remove them before submitting.`);
+        const list = document.getElementById('dialogReturnHeadphoneIdsList');
+        Array.from(list.children).forEach(li => {
+          if (mismatched.includes(li.dataset.id)) {
+            li.style.backgroundColor = '#ffcccc';
+          } else {
+            li.style.backgroundColor = '';
+          }
+        });
+        return;
+      }
+
+      try {
+        for (const id of headphoneIds) {
+          if (!headphones[id] || headphones[id].status !== 'checked_out') {
+            alert(`Headphone ${id} is not checked out! Skipping.`);
+            continue;
+          }
+          const updatedData = {
+            status: 'returned',
+            pre_auth: null
+          };
+          await updateHeadphone(id, updatedData);
+        }
+        alert(`Headphone(s) ${headphoneIds.join(', ')} returned!`);
+        closeDialog('return');
+      } catch (error) {
+        alert('Failed to return headphones: ' + error.message);
+      }
     }
 
     async function dashboardCharge(id) {
-      const hp = headphones[id];
-      if (!hp || hp.status !== 'checked_out' || !hp.pre_auth) return alert(`Cannot charge ${id}: Not checked out or no preauth.`);
-      if (!confirm(`Charge ${hp.customer.name} $100 for ${id}?`)) return;
-      showLoading();
-      try {
-        const res = await fetch('/.netlify/functions/capture-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: hp.pre_auth.pre_auth_id, amount: 10000 })
-        }).then(r => r.json());
-        if (res.error) throw new Error(res.error);
-        await updateHeadphone(id, { status: 'charged', pre_auth: null });
-        alert(`Headphone ${id} charged!`);
-        updateDashboard();
-      } catch (error) {
-        alert(`Charge failed: ${error.message}`);
-      } finally {
-        hideLoading();
+      if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
+        const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
+        if (confirmCharge) {
+          showLoading();
+          try {
+            const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: headphones[id].pre_auth.pre_auth_id,
+                amount: 10000
+              })
+            });
+            const chargeResult = await chargeResponse.json();
+            if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
+            
+            const updatedData = {
+              status: 'charged',
+              pre_auth: null
+            };
+            await updateHeadphone(id, updatedData);
+            
+            alert(`Headphone ${id} charged successfully!`);
+            updateDashboard();
+          } catch (error) {
+            alert(`Charge failed for ${id}: ${error.message}`);
+          } finally {
+            hideLoading();
+          }
+        }
+      } else {
+        alert(`Cannot charge for ${id}: Not checked out or no preauthorization.`);
+      }
+    }
+
+    function updateDashboard() {
+      const tbody = document.getElementById('headphoneList');
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const dateFilter = document.getElementById('dateFilter').value;
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({
+        id,
+        ...hp
+      }));
+
+      headphoneArray.sort((a, b) => {
+        const groupA = a.groupId || 'ZZZZZZ';
+        const groupB = b.groupId || 'ZZZZZZ';
+        if (groupA === groupB) {
+          return a.id.localeCompare(b.id);
+        }
+        return groupA.localeCompare(groupB);
+      });
+
+      tbody.innerHTML = '';
+      headphoneArray.forEach(hp => {
+        const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
+        const checkoutTime = hp.agreement?.timestamp || now;
+        const overdue = hp.status === 'checked_out' && (now - checkoutTime > twelveHours);
+        const rowData = [
+          hp.customer?.name || 'N/A',
+          statusText,
+          hp.pre_auth ? 'Hold' : 'Released',
+          hp.customer?.email || 'N/A',
+          hp.customer?.phone || 'N/A',
+          hp.id,
+          hp.entryMethod || 'N/A',
+          hp.agreement?.date || 'N/A',
+          hp.groupId || 'Single'
+        ];
+        if (
+          rowData.some(data => data.toLowerCase().includes(searchTerm)) &&
+          (!dateFilter || hp.agreement?.date === dateFilter)
+        ) {
+          const row = document.createElement('tr');
+          let actionsHtml = '';
+          if (hp.status !== 'checked_out') {
+            actionsHtml += `<button class="checkout-btn" onclick="showCheckoutDialog('${hp.id}')">Check Out</button>`;
+          }
+          if (hp.status === 'checked_out') {
+            actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${hp.id}')">Check In</button>`;
+          }
+          if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
+            actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
+          }
+          row.innerHTML = `
+            <td>${actionsHtml}</td>
+            <td>${hp.customer?.name || 'N/A'}</td>
+            <td>${statusText}</td>
+            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
+            <td>${hp.customer?.email || 'N/A'}</td>
+            <td>${hp.customer?.phone || 'N/A'}</td>
+            <td>${hp.id}</td>
+            <td>${hp.entryMethod || 'N/A'}</td>
+            <td>${hp.groupId || 'Single'}</td>
+            <td><button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button></td>
+          `;
+          tbody.appendChild(row);
+        }
+      });
+    }
+
+    function searchHeadphones() {
+      updateDashboard();
+    }
+
+    function filterByDate() {
+      updateDashboard();
+    }
+
+    function clearForm(formId) {
+      document.getElementById(formId).querySelectorAll('input').forEach(input => input.value = '');
+      if (formId === 'checkout') {
+        document.getElementById('card-container').innerHTML = '';
+        document.getElementById('headphoneIdsList').innerHTML = '';
+        initializeSquare();
+      } else if (formId === 'return') {
+        document.getElementById('returnHeadphoneIdsList').innerHTML = '';
       }
     }
 
     function generateReport() {
-      const type = $('reportType').value;
-      const start = $('reportStartDate').value;
-      const end = $('reportEndDate').value || start;
-      const search = $('reportSearch').value.toLowerCase();
-      const output = $('reportOutput');
-      if (!type) return output.innerHTML = '<p>Select a report type.</p>';
+      const reportType = document.getElementById('reportType').value;
+      const startDate = document.getElementById('reportStartDate').value;
+      const endDate = document.getElementById('reportEndDate').value || startDate;
+      const searchTerm = document.getElementById('reportSearch').value.toLowerCase();
+      const output = document.getElementById('reportOutput');
+      output.innerHTML = '';
 
+      if (!reportType) {
+        output.innerHTML = '<p>Select a report type to view details.</p>';
+        return;
+      }
+
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
-      let data = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
-      if (start) {
-        const s = new Date(start).setHours(0, 0, 0, 0);
-        const e = new Date(end).setHours(23, 59, 59, 999);
-        data = data.filter(hp => new Date(hp.agreement?.date).getTime() >= s && new Date(hp.agreement?.date).getTime() <= e);
-      }
-      if (search) data = data.filter(hp => Object.values(hp).some(v => String(v).toLowerCase().includes(search)));
 
-      const reportTemplates = {
-        allData: () => `<h3>All Data (${data.length})</h3><p>Date Range: ${start || 'All'} to ${end || 'All'}</p><table><thead><tr><th>ID</th><th>Status</th><th>Customer</th><th>Email</th><th>Phone</th><th>Date</th><th>Preauth</th><th>Entry</th><th>Group</th></tr></thead><tbody>${data.map(hp => `<tr><td>${hp.id}</td><td>${hp.status}</td><td>${hp.customer?.name || 'N/A'}</td><td>${hp.customer?.email || 'N/A'}</td><td>${hp.customer?.phone || 'N/A'}</td><td>${hp.agreement?.date || 'N/A'}</td><td>${hp.pre_auth ? 'Hold' : 'Released'}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody></table>`,
-        checkedOut: () => `<h3>Checked Out (${data.length})</h3><table><thead><tr><th>ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Date</th><th>Entry</th><th>Group</th></tr></thead><tbody>${data.filter(hp => hp.status === 'checked_out').map(hp => `<tr><td>${hp.id}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody></table>`,
-        overdue: () => `<h3>Overdue (${data.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours)).length})</h3><table><thead><tr><th>ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Date</th><th>Days Overdue</th><th>Entry</th><th>Group</th></tr></thead><tbody>${data.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours)).map(hp => `<tr><td>${hp.id}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24))}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody></table>`,
-        revenue: () => {
-          const charged = data.filter(hp => hp.status === 'charged');
-          return `<h3>Revenue Summary</h3><p>Total: $${(charged.length * 100).toFixed(2)}</p><table><thead><tr><th>ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Date</th><th>Amount</th><th>Entry</th><th>Group</th></tr></thead><tbody>${charged.map(hp => `<tr><td>${hp.id}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>$100.00</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody></table>`;
-        },
-        customerActivity: () => {
+      let filteredArray = headphoneArray;
+      if (startDate) {
+        const start = new Date(startDate).setHours(0, 0, 0, 0);
+        const end = new Date(endDate).setHours(23, 59, 59, 999);
+        filteredArray = headphoneArray.filter(hp => {
+          const hpDate = new Date(hp.agreement?.date).setHours(0, 0, 0, 0);
+          return hpDate >= start && hpDate <= end;
+        });
+      }
+
+      let finalArray = filteredArray;
+      if (searchTerm) {
+        finalArray = filteredArray.filter(hp => {
+          const rowData = [
+            hp.id,
+            hp.status,
+            hp.customer?.name || '',
+            hp.customer?.email || '',
+            hp.customer?.phone || '',
+            hp.agreement?.date || '',
+            hp.pre_auth ? 'Hold' : 'Released',
+            hp.entryMethod || 'N/A',
+            hp.groupId || 'Single'
+          ];
+          return rowData.some(data => data.toLowerCase().includes(searchTerm));
+        });
+      }
+
+      switch (reportType) {
+        case 'allData':
+          output.innerHTML = `
+            <h3>All Data (${finalArray.length} Headphones)</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Preauth Status</th>
+                  <th>Entry Method</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${finalArray.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}</td>
+                    <td>${hp.customer?.name || 'N/A'}</td>
+                    <td>${hp.customer?.email || 'N/A'}</td>
+                    <td>${hp.customer?.phone || 'N/A'}</td>
+                    <td>${hp.agreement?.date || 'N/A'}</td>
+                    <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
+                    <td>${hp.entryMethod || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'checkedOut':
+          const checkedOut = finalArray.filter(hp => hp.status === 'checked_out');
+          output.innerHTML = `
+            <h3>Currently Checked Out Headphones (${checkedOut.length})</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Entry Method</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${checkedOut.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.customer.name}</td>
+                    <td>${hp.customer.email}</td>
+                    <td>${hp.customer.phone}</td>
+                    <td>${hp.agreement.date}</td>
+                    <td>${hp.entryMethod || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'overdue':
+          const overdue = finalArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
+          output.innerHTML = `
+            <h3>Overdue Headphones (${overdue.length})</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Checkout Date</th>
+                  <th>Days Overdue</th>
+                  <th>Entry Method</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${overdue.map(hp => {
+                  const daysOverdue = Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24));
+                  return `
+                    <tr>
+                      <td>${hp.id}</td>
+                      <td>${hp.customer.name}</td>
+                      <td>${hp.customer.email}</td>
+                      <td>${hp.customer.phone}</td>
+                      <td>${hp.agreement.date}</td>
+                      <td>${daysOverdue}</td>
+                      <td>${hp.entryMethod || 'N/A'}</td>
+                      <td>${hp.groupId || 'Single'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'revenue':
+          const charged = finalArray.filter(hp => hp.status === 'charged');
+          const totalRevenue = charged.length * 100;
+          output.innerHTML = `
+            <h3>Revenue Summary</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Charge Date</th>
+                  <th>Amount</th>
+                  <th>Entry Method</th>
+                  <th>Group ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${charged.map(hp => `
+                  <tr>
+                    <td>${hp.id}</td>
+                    <td>${hp.customer.name}</td>
+                    <td>${hp.customer.email}</td>
+                    <td>${hp.customer.phone}</td>
+                    <td>${hp.agreement.date}</td>
+                    <td>$100.00</td>
+                    <td>${hp.entryMethod || 'N/A'}</td>
+                    <td>${hp.groupId || 'Single'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'customerActivity':
           const customers = {};
-          data.forEach(hp => {
-            const key = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
-            customers[key] = customers[key] || { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, ids: [] };
-            customers[key].checkouts++;
-            customers[key].ids.push(hp.id);
+          finalArray.forEach(hp => {
+            const customerKey = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[customerKey]) {
+              customers[customerKey] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            }
+            customers[customerKey].checkouts++;
+            customers[customerKey].headphones.push(hp.id);
           });
-          return `<h3>Customer Activity</h3><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Checkouts</th><th>IDs</th></tr></thead><tbody>${Object.values(customers).map(c => `<tr><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.checkouts}</td><td>${c.ids.join(', ')}</td></tr>`).join('')}</tbody></table>`;
-        },
-        groupSummary: () => {
+          output.innerHTML = `
+            <h3>Customer Activity</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Total Checkouts</th>
+                  <th>Headphone IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.values(customers).map(c => `
+                  <tr>
+                    <td>${c.name}</td>
+                    <td>${c.email}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.checkouts}</td>
+                    <td>${c.headphones.join(', ')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
+
+        case 'groupSummary':
           const groups = {};
-          data.forEach(hp => {
+          finalArray.forEach(hp => {
             if (hp.groupId) {
-              groups[hp.groupId] = groups[hp.groupId] || { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
+              if (!groups[hp.groupId]) {
+                groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
+              }
               groups[hp.groupId].ids.push(hp.id);
-              groups[hp.groupId][hp.status]++;
               groups[hp.groupId].total++;
+              if (hp.status === 'checked_out') groups[hp.groupId].checkedOut++;
+              if (hp.status === 'returned') groups[hp.groupId].returned++;
+              if (hp.status === 'charged') groups[hp.groupId].charged++;
             }
           });
-          return `<h3>Group Summary</h3><table><thead><tr><th>Group ID</th><th>Customer</th><th>Email</th><th>Total</th><th>Checked Out</th><th>Returned</th><th>Charged</th><th>IDs</th></tr></thead><tbody>${Object.entries(groups).map(([id, g]) => `<tr><td>${id}</td><td>${g.customer.name}</td><td>${g.customer.email}</td><td>${g.total}</td><td>${g.checkedOut}</td><td>${g.returned}</td><td>${g.charged}</td><td>${g.ids.join(', ')}</td></tr>`).join('')}</tbody></table>`;
-        }
-      };
-      output.innerHTML = reportTemplates[type] ? reportTemplates[type]() : '<p>Invalid report type.</p>';
-    }
+          output.innerHTML = `
+            <h3>Group Checkout Summary</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Group ID</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Total Headphones</th>
+                  <th>Checked Out</th>
+                  <th>Returned</th>
+                  <th>Charged</th>
+                  <th>Headphone IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(groups).map(([groupId, g]) => `
+                  <tr>
+                    <td>${groupId}</td>
+                    <td>${g.customer.name}</td>
+                    <td>${g.customer.email}</td>
+                    <td>${g.total}</td>
+                    <td>${g.checkedOut}</td>
+                    <td>${g.returned}</td>
+                    <td>${g.charged}</td>
+                    <td>${g.ids.join(', ')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          break;
 
-    // NFC Status
-    async function scanNFCStatus() {
-      const result = $('nfcStatusResult');
-      result.textContent = 'Scanning...';
-      if (!('NDEFReader' in window)) return result.textContent = 'NFC not supported.';
-      const ndef = new NDEFReader();
-      try {
-        await ndef.scan();
-        const controller = new AbortController();
-        ndef.onreading = event => {
-          const id = event.serialNumber || prompt('Enter headphone ID:');
-          if (id && headphones[id]) {
-            const hp = headphones[id];
-            result.innerHTML = `ID: ${id}<br>Status: ${hp.status}<br>Customer: ${hp.customer.name}<br>Email: ${hp.customer.email}<br>Phone: ${hp.customer.phone}<br>Preauth: ${hp.pre_auth ? 'Hold' : 'Released'}<br>Entry: ${hp.entryMethod || 'N/A'}<br>Date: ${hp.agreement?.date || 'N/A'}<br>Group: ${hp.groupId || 'Single'}`;
-          } else {
-            result.textContent = `Headphone ${id} not found.`;
-          }
-          controller.abort();
-        };
-        ndef.onreadingerror = () => result.textContent = 'NFC scan failed.';
-        setTimeout(() => controller.abort() || (result.textContent = 'Scan timed out.'), 5000);
-        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-      } catch (error) {
-        result.textContent = `Error: ${error.message}`;
+        default:
+          output.innerHTML = '<p>Invalid report type selected.</p>';
       }
     }
 
-    // Dialogs
-    async function showCheckoutDialog(id) {
-      ['dialogHeadphoneId', 'dialogName', 'dialogEmail', 'dialogPhone'].forEach(i => $(i).value = i === 'dialogHeadphoneId' ? id : '');
-      $('dialogHeadphoneIdsList').innerHTML = '';
-      if (id) addHeadphone('dialogHeadphoneId', 'dialogHeadphoneIdsList', 'checked_out');
-      initSignaturePad('dialogSignaturePad');
-      await initSquare('dialogCardContainer');
-      $('checkoutDialog').style.display = 'flex';
-      $('dialogOverlay').style.display = 'block';
-    }
-
-    function showReturnDialog(id) {
-      $('dialogReturnId').value = id;
-      $('dialogReturnHeadphoneIdsList').innerHTML = '';
-      if (id) addHeadphone('dialogReturnId', 'dialogReturnHeadphoneIdsList', 'checked_out');
-      $('returnDialog').style.display = 'flex';
-      $('dialogOverlay').style.display = 'block';
-    }
-
-    function showManualReturnDialog(context) {
-      const list = $('manualReturnList');
-      list.innerHTML = Object.entries(headphones)
-        .filter(([_, hp]) => hp.status === 'checked_out')
-        .map(([id, hp]) => `<tr><td><input type="checkbox" name="returnHeadphone" value="${id}"></td><td>${id}</td><td>${hp.customer.name}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('');
-      $('manualReturnSearch').dataset.context = context;
-      $('manualReturnDialog').style.display = 'flex';
-      $('dialogOverlay').style.display = 'block';
-    }
-
-    function filterManualReturnList() {
-      const search = $('manualReturnSearch').value.toLowerCase();
-      Array.from($('manualReturnList').getElementsByTagName('tr')).forEach(row => row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none');
-    }
-
-    async function submitManualReturn() {
-      const selected = Array.from($('manualReturnList').querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
-      if (!selected.length) return alert('Select at least one headphone.');
-      const groupIds = selected.map(id => headphones[id].groupId || 'Single');
-      if ([...new Set(groupIds)].length > 1) return alert('All headphones must be from the same group.');
-      for (const id of selected) await updateHeadphone(id, { status: 'returned', pre_auth: null });
-      alert(`Headphone(s) ${selected.join(', ')} returned!`);
-      closeDialog('manualReturn');
-      $('manualReturnSearch').dataset.context === 'dialogReturn' ? closeDialog('return') : showForm('dashboard');
-    }
-
-    function closeDialog(type) {
-      if (type) $(`${type}Dialog`).style.display = 'none';
-      $('dialogOverlay').style.display = 'none';
-      if (type !== 'manualReturn') showForm('dashboard');
-    }
-
-    // Signature
-    function initSignaturePad(canvasId) {
-      const canvas = $(canvasId), ctx = canvas.getContext('2d');
-      let drawing = false;
-      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
-      const getPos = e => {
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches ? e.touches[0] : e;
-        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-      };
-      canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); const { x, y } = getPos(e); ctx.moveTo(x, y); e.preventDefault(); });
-      canvas.addEventListener('mousemove', e => { if (!drawing) return; const { x, y } = getPos(e); ctx.lineTo(x, y); ctx.stroke(); e.preventDefault(); });
-      canvas.addEventListener('mouseup', () => { if (drawing) { drawing = false; signatureData[canvasId] = canvas.toDataURL(); } });
-      canvas.addEventListener('touchstart', e => { drawing = true; ctx.beginPath(); const { x, y } = getPos(e); ctx.moveTo(x, y); e.preventDefault(); });
-      canvas.addEventListener('touchmove', e => { if (!drawing) return; const { x, y } = getPos(e); ctx.lineTo(x, y); ctx.stroke(); e.preventDefault(); });
-      canvas.addEventListener('touchend', () => { if (drawing) { drawing = false; signatureData[canvasId] = canvas.toDataURL(); } });
-    }
-
-    function clearSignature(canvasId) {
-      const canvas = $(canvasId);
-      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-      delete signatureData[canvasId];
-    }
-
-    function clearForm(formId) {
-      $(formId).querySelectorAll('input').forEach(input => input.value = '');
-      if (formId === 'checkout') { $('card-container').innerHTML = ''; $('headphoneIdsList').innerHTML = ''; initSquare(); }
-      else if (formId === 'return') $('returnHeadphoneIdsList').innerHTML = '';
-    }
-
-    // Draggable Dialogs
     function makeDraggable(dialogId, headerId) {
-      const dialog = $(dialogId), header = $(headerId);
-      let isDragging = false, currentX = dialog.offsetLeft, currentY = dialog.offsetTop, initialX, initialY;
-      const start = e => {
-        isDragging = true;
-        initialX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
-        initialY = (e.touches ? e.touches[0].clientY : e.clientY) - currentY;
-        header.style.cursor = 'grabbing';
-      };
-      const drag = e => {
-        if (!isDragging) return;
-        e.preventDefault();
-        currentX = (e.touches ? e.touches[0].clientX : e.clientX) - initialX;
-        currentY = (e.touches ? e.touches[0].clientY : e.clientY) - initialY;
-        dialog.style.left = `${currentX}px`;
-        dialog.style.top = `${currentY}px`;
-        dialog.style.transform = 'none';
-      };
-      const stop = () => { isDragging = false; header.style.cursor = 'move'; };
-      header.addEventListener('mousedown', start);
-      header.addEventListener('touchstart', start);
+      const dialog = document.getElementById(dialogId);
+      const header = document.getElementById(headerId);
+      let isDragging = false;
+      let currentX;
+      let currentY;
+      let initialX;
+      let initialY;
+
+      header.addEventListener('mousedown', startDragging);
       document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDragging);
+      header.addEventListener('touchstart', startDragging);
       document.addEventListener('touchmove', drag);
-      document.addEventListener('mouseup', stop);
-      document.addEventListener('touchend', stop);
+      document.addEventListener('touchend', stopDragging);
+
+      function startDragging(e) {
+        isDragging = true;
+        if (e.type === 'mousedown') {
+          initialX = e.clientX - currentX;
+          initialY = e.clientY - currentY;
+        } else {
+          initialX = e.touches[0].clientX - currentX;
+          initialY = e.touches[0].clientY - currentY;
+        }
+        header.style.cursor = 'grabbing';
+      }
+
+      function drag(e) {
+        if (isDragging) {
+          e.preventDefault();
+          let x, y;
+          if (e.type === 'mousemove') {
+            x = e.clientX - initialX;
+            y = e.clientY - initialY;
+          } else {
+            x = e.touches[0].clientX - initialX;
+            y = e.touches[0].clientY - initialY;
+          }
+          currentX = x;
+          currentY = y;
+          dialog.style.left = `${x}px`;
+          dialog.style.top = `${y}px`;
+          dialog.style.transform = 'none';
+        }
+      }
+
+      function stopDragging() {
+        isDragging = false;
+        header.style.cursor = 'move';
+      }
+
+      currentX = dialog.offsetLeft;
+      currentY = dialog.offsetTop;
     }
   </script>
 </body>
