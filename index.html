@@ -330,7 +330,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function addHeadphoneId() {
       const id = document.getElementById('headphoneId').value.trim();
-      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (!id) return alert('Please enter a headphone ID!');
       const currentIds = getHeadphoneIds('headphoneIdsList');
       if (currentIds.includes(id)) return alert(`Headphone ID ${id} is already in your checkout list!`);
       if (headphones[id] && headphones[id].status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
@@ -472,13 +472,24 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         ndef.onreading = event => {
           const nfcId = event.serialNumber;
           const id = generateUniqueHeadphoneId();
-          input.value = id;
+          const currentIds = getHeadphoneIds('headphoneIdsList');
+          if (currentIds.includes(id)) {
+            alert(`Headphone ID ${id} is already in your checkout list!`);
+          } else if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out!`);
+          } else {
+            const list = document.getElementById('headphoneIdsList');
+            const li = document.createElement('li');
+            li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
+            list.appendChild(li);
+            checkoutListIds.add(id);
+            alert(`Scanned headphone: ${id} with NFC ID: ${nfcId} added to checkout list.`);
+          }
+          input.value = ''; // Clear input after scan
           input.dataset.nfcId = nfcId;
           input.dataset.entryMethod = 'NFC';
-          alert(`Scanned headphone: ${id} with NFC ID: ${nfcId}`);
           controller.abort();
           button.disabled = false;
-          addHeadphoneId();
         };
         ndef.onreadingerror = () => {
           alert('No NFC tag detected. Try again or enter manually.');
@@ -499,6 +510,33 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         manualEntry('checkout');
         button.disabled = false;
       }
+    }
+
+    function manualEntry(context) {
+      const input = document.getElementById('headphoneId');
+      const button = document.getElementById('scanCheckout');
+      const regex = /^HP\d{7}$/;
+      const suggestedId = generateUniqueHeadphoneId();
+      const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
+      if (!userId || !regex.test(userId)) {
+        alert('Invalid ID format. Use HP followed by 7 digits.');
+        button.disabled = false;
+        return;
+      }
+      if (headphones[userId] && headphones[userId].status === 'checked_out') {
+        alert(`ID ${userId} is already checked out!`);
+        button.disabled = false;
+        return;
+      }
+      if (checkoutListIds.has(userId)) {
+        alert(`ID ${userId} is already in your checkout list!`);
+        button.disabled = false;
+        return;
+      }
+      input.value = userId;
+      input.dataset.entryMethod = 'Manual';
+      button.disabled = false;
+      // Note: Do NOT call addHeadphoneId() here; user must click the button
     }
 
     async function scanNFCForDashboard() {
@@ -621,33 +659,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         alert(`NFC scan failed: ${error.message}. Please manually select headphones to return.`);
         button.disabled = false;
       }
-    }
-
-    function manualEntry(context) {
-      const input = document.getElementById('headphoneId');
-      const button = document.getElementById('scanCheckout');
-      const regex = /^HP\d{7}$/;
-      const suggestedId = generateUniqueHeadphoneId();
-      const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
-      if (!userId || !regex.test(userId)) {
-        alert('Invalid ID format. Use HP followed by 7 digits.');
-        button.disabled = false;
-        return;
-      }
-      if (headphones[userId] && headphones[userId].status === 'checked_out') {
-        alert(`ID ${userId} is already checked out!`);
-        button.disabled = false;
-        return;
-      }
-      if (checkoutListIds.has(userId)) {
-        alert(`ID ${userId} is already in your checkout list!`);
-        button.disabled = false;
-        return;
-      }
-      input.value = userId;
-      input.dataset.entryMethod = 'Manual';
-      button.disabled = false;
-      addHeadphoneId();
     }
 
     function showManualReturnDialog() {
