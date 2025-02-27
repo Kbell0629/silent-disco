@@ -104,6 +104,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <input id="dateFilter" type="date" onchange="filterByDate()">
       <div class="dashboard-actions">
         <button onclick="showReturnDialogForSelected();vibrate()">Return Selected</button>
+        <button id="scanDashboardNFC" onclick="scanNFCForDashboard();vibrate()">Scan NFC</button>
       </div>
       <div class="dashboard-table-wrapper">
         <table id="headphoneTable">
@@ -533,6 +534,58 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       } catch (error) {
         alert(`NFC error: ${error.message}. Enter ID manually.`);
         context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+        button.disabled = false;
+      }
+    }
+
+    async function scanNFCForDashboard() {
+      const button = document.getElementById('scanDashboardNFC');
+      button.disabled = true;
+      if (!('NDEFReader' in window)) {
+        alert('NFC not supported. Please manually select headphones to return.');
+        button.disabled = false;
+        return;
+      }
+      const ndef = new NDEFReader();
+      try {
+        await ndef.scan();
+        alert('Scan your NFC tags. Press OK to start, and scan as many tags as needed. The scan will time out after 10 seconds of inactivity.');
+        const controller = new AbortController();
+        let scannedIds = new Set();
+        ndef.onreading = event => {
+          const nfcId = event.serialNumber;
+          const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId === nfcId && hp.status === 'checked_out');
+          if (matchingHeadphone) {
+            const [id] = matchingHeadphone;
+            const checkbox = document.querySelector(`input[name="checkinHeadphone"][value="${id}"]`);
+            if (checkbox) {
+              checkbox.checked = true;
+              scannedIds.add(id);
+              alert(`Headphone ${id} selected for return.`);
+            } else {
+              alert(`Headphone with NFC ID ${nfcId} (ID: ${id}) is checked out but not in the current dashboard view. Adjust filters or search to include it.`);
+            }
+          } else {
+            alert(`No checked-out headphone found with NFC ID ${nfcId} in the system.`);
+          }
+        };
+        ndef.onreadingerror = () => {
+          alert('NFC scan failed. Try again or manually select headphones.');
+          controller.abort();
+          button.disabled = false;
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (scannedIds.size === 0) {
+            alert('NFC scan timed out with no tags detected. Please manually select the headphones to return.');
+          } else {
+            alert(`NFC scan complete. ${scannedIds.size} headphone(s) selected. Click "Return Selected" to proceed.`);
+          }
+          button.disabled = false;
+        }, 10000); // 10-second timeout
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        alert(`NFC error: ${error.message}. Please manually select headphones to return.`);
         button.disabled = false;
       }
     }
