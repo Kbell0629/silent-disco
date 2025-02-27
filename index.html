@@ -224,7 +224,7 @@
 <body>
   <div class="container">
     <header>
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWBhKlwtFnBvx5elx7r_rqfffG3tFbfcg3OA&s" alt="SE2 Silent Disco Logo">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbniqSWBhKlwtFnBvx5elx7r_rqfffG3tFbfcg3OA&s" alt="SE2 Silent Disco Logo">
       <h1>SE2 Silent Disco Tracker</h1>
     </header>
     <div class="button-group">
@@ -406,7 +406,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         usedHeadphoneIds = new Set();
         snapshot.forEach(doc => {
           headphones[doc.id] = doc.data();
-          usedHeadphoneIds.add(doc.id);
+          if (headphones[doc.id].status === 'checked_out') {
+            usedHeadphoneIds.add(doc.id); // Only add IDs that are actually checked out
+          }
         });
         return headphones;
       } catch (error) {
@@ -420,10 +422,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       try {
         if (db && headphonesCollection) await headphonesCollection.doc(id).set(data);
         headphones[id] = data;
-        usedHeadphoneIds.add(id);
+        if (data.status === 'checked_out') {
+          usedHeadphoneIds.add(id); // Add to usedHeadphoneIds only on successful save
+        }
       } catch (error) {
         console.error('Error saving headphone:', error);
-        alert('Failed to save data.');
         throw error;
       }
     }
@@ -432,6 +435,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       try {
         if (db && headphonesCollection) await headphonesCollection.doc(id).update(data);
         headphones[id] = { ...headphones[id], ...data };
+        if (data.status === 'returned' || data.status === 'charged') {
+          usedHeadphoneIds.delete(id); // Remove from usedHeadphoneIds if returned or charged
+        }
       } catch (error) {
         console.error('Error updating headphone:', error);
         alert('Failed to update data.');
@@ -501,14 +507,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const currentIds = getHeadphoneIds('headphoneIdsList');
       if (currentIds.includes(id)) return alert(`Headphone ID ${id} is already in your checkout list!`);
       
-      if (usedHeadphoneIds.has(id)) return alert(`Headphone ID ${id} is already used or checked out!`);
       if (headphones[id] && headphones[id].status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
-      
+
       const list = document.getElementById('headphoneIdsList');
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
       list.appendChild(li);
-      usedHeadphoneIds.add(id); // Add to usedHeadphoneIds immediately
       document.getElementById('headphoneId').value = '';
     }
 
@@ -542,7 +546,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function removeHeadphoneId(button, id) {
       button.parentElement.remove();
-      usedHeadphoneIds.delete(id); // Remove from usedHeadphoneIds when removed from the list
     }
 
     function getHeadphoneIds(listId) {
@@ -737,8 +740,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           button.disabled = false;
           return;
         }
-        if (usedHeadphoneIds.has(userId)) {
-          alert(`ID ${userId} is already used or checked out!`);
+        if (headphones[userId] && headphones[userId].status === 'checked_out') {
+          alert(`ID ${userId} is already checked out!`);
           button.disabled = false;
           return;
         }
@@ -897,11 +900,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         return alert('Please complete all fields and sign the agreement!');
       }
       const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
-      const headphoneIdsText = headphoneIds.join(', ');
-      const agreementText = document.getElementById('agreement').value
-        .replace('[Customer Name]', name)
-        .replace('[Date]', date)
-        .replace('[Headphone IDs]', headphoneIdsText);
+      let successfullyCheckedOutIds = [];
 
       try {
         const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
@@ -919,8 +918,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const preauthId = preauthResult.paymentId;
 
         for (const id of headphoneIds) {
-          if (usedHeadphoneIds.has(id)) {
-            alert(`Headphone ID ${id} already used! Skipping.`);
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ID ${id} is already checked out! Skipping.`);
             continue;
           }
           const entryMethod = document.getElementById('headphoneId').dataset.entryMethod || 'Manual';
@@ -928,22 +927,32 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           const headphoneData = {
             status: 'checked_out',
             customer: { name, email, phone },
-            agreement: { text: agreementText, signature: signatureData, amount: 100, date, timestamp: Date.now() },
+            agreement: { text: document.getElementById('agreement').value.replace('[Customer Name]', name).replace('[Date]', date).replace('[Headphone IDs]', headphoneIds.join(', ')), signature: signatureData, amount: 100, date, timestamp: Date.now() },
             pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 },
             entryMethod,
             nfcId: nfcId || null
           };
           if (groupId) headphoneData.groupId = groupId;
           await saveHeadphone(id, headphoneData);
+          successfullyCheckedOutIds.push(id);
         }
 
-        const emailResponse = await fetch('/.netlify/functions/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, agreement: agreementText, signature: signatureData, preauthId })
-        });
-        if (!emailResponse.ok) throw new Error('Email failed');
-        alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+        if (successfullyCheckedOutIds.length > 0) {
+          const headphoneIdsText = successfullyCheckedOutIds.join(', ');
+          const agreementText = document.getElementById('agreement').value
+            .replace('[Customer Name]', name)
+            .replace('[Date]', date)
+            .replace('[Headphone IDs]', headphoneIdsText);
+          const emailResponse = await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, agreement: agreementText, signature: signatureData, preauthId })
+          });
+          if (!emailResponse.ok) throw new Error('Email failed');
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+        } else {
+          alert('No headphones were checked out due to existing usage.');
+        }
         clearForm('checkout');
         showDashboard();
       } catch (error) {
@@ -1184,7 +1193,6 @@ The SE2 Silent Disco Team
       if (formId === 'checkout') {
         document.getElementById('card-container').innerHTML = '';
         document.getElementById('headphoneIdsList').innerHTML = '';
-        usedHeadphoneIds.clear(); // Clear usedHeadphoneIds when resetting checkout form
         initializeSquare();
       } else if (formId === 'return') document.getElementById('returnHeadphoneIdsList').innerHTML = '';
     }
