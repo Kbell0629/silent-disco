@@ -30,7 +30,7 @@
     #paymentOptions{display:flex;flex-direction:column;align-items:center;gap:10px;}
     #paymentOptions p{color:#EDEDED;font-size:14px;}
     table{width:100%;border-collapse:collapse;background:#2A2A2A;border-radius:8px;overflow:hidden;}
-    th,td{padding:12px;text-align:left;font-size:14px;border-bottom:1px solid #3A3A3A;}
+    th,td{padding:8px;text-align:left;font-size:12px;border-bottom:1px solid #3A3A3A;} /* Reduced padding and font size */
     th{background:#6B48FF;font-weight:600;position:sticky;top:0;z-index:10;}
     td{color:#EDEDED;}
     .checkin-btn{background:#28A745;}
@@ -45,10 +45,21 @@
     .dialog-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:999;display:none;}
     .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:2000;}
     .spinner{border:8px solid #EDEDED;border-top:8px solid #6B48FF;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;}
-    .dashboard-table-wrapper, .return-table-wrapper{max-height:400px;overflow-y:auto;overflow-x:auto;width:100%;}
+    .dashboard-table-wrapper, .return-table-wrapper{max-height:500px;overflow-y:auto;overflow-x:auto;width:100%;} /* Increased height for more visibility */
     .dashboard-actions, .return-actions{margin:20px 0;display:flex;gap:10px;justify-content:center;}
+    #reportOutput table{max-width:100%;overflow-x:auto;display:block;} /* Ensure reports table scrolls */
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-    @media (max-width:768px){header img{height:40px;}header h1{font-size:22px;}.button-group{gap:15px;}button{width:95%;font-size:16px;padding:12px 20px;}.form{padding:15px;}input,textarea,select{width:100%;}table{font-size:12px;}th,td{padding:8px;}.dashboard-table-wrapper, .return-table-wrapper{max-height:300px;}}
+    @media (max-width:768px){
+      header img{height:40px;}
+      header h1{font-size:22px;}
+      .button-group{gap:15px;}
+      button{width:95%;font-size:16px;padding:12px 20px;}
+      .form{padding:15px;}
+      input,textarea,select{width:100%;}
+      table{font-size:10px;}
+      th,td{padding:6px;}
+      .dashboard-table-wrapper, .return-table-wrapper{max-height:300px;}
+    }
   </style>
 </head>
 <body>
@@ -412,10 +423,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       try {
         await ndef.scan();
         const controller = new AbortController();
+        let scannedCount = 0;
+        let lastScanTime = Date.now();
+
         ndef.onreading = event => {
-          const id = event.serialNumber || prompt('Enter headphone ID manually:');
-          if (id && headphones[id]) {
-            const hp = headphones[id];
+          const nfcId = event.serialNumber.toLowerCase();
+          const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId);
+          if (matchingHeadphone) {
+            const [id, hp] = matchingHeadphone;
             resultElement.innerHTML = `
               <strong>ID:</strong> ${id}<br>
               <strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br>
@@ -428,19 +443,24 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               <strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br>
               <strong>Group ID:</strong> ${hp.groupId || 'Single'}
             `;
-          } else {
-            resultElement.textContent = `Headphone ${id} not found.`;
+            scannedCount++;
           }
-          controller.abort();
+          lastScanTime = Date.now();
         };
+
         ndef.onreadingerror = () => {
           resultElement.textContent = 'NFC scan failed. Try again.';
-          controller.abort();
         };
-        setTimeout(() => {
-          controller.abort();
-          if (resultElement.textContent === 'Scanning...') resultElement.textContent = 'Scan timed out.';
-        }, 5000);
+
+        const timeoutCheck = setInterval(() => {
+          if (Date.now() - lastScanTime >= 10000) {
+            controller.abort();
+            clearInterval(timeoutCheck);
+            if (scannedCount === 0) resultElement.textContent = 'Scan timed out. No tags detected.';
+            else resultElement.innerHTML += '<br>Scanning complete.';
+          }
+        }, 500);
+
         await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
       } catch (error) {
         resultElement.textContent = `Error: ${error.message}`;
@@ -468,9 +488,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const ndef = new NDEFReader();
       try {
         await ndef.scan();
+        alert('Scanning NFC tags... Scan each headphone to add. Scanning stops after 10 seconds of no activity.');
         const controller = new AbortController();
+        let scannedCount = 0;
+        let lastScanTime = Date.now();
+
         ndef.onreading = event => {
-          const nfcId = event.serialNumber;
+          const nfcId = event.serialNumber.toLowerCase();
           const id = generateUniqueHeadphoneId();
           const currentIds = getHeadphoneIds('headphoneIdsList');
           if (currentIds.includes(id)) {
@@ -483,30 +507,36 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
             list.appendChild(li);
             checkoutListIds.add(id);
-            alert(`Scanned headphone: ${id} with NFC ID: ${nfcId} added to checkout list.`);
+            scannedCount++;
+            alert(`Headphone ${id} with NFC ID ${nfcId} added to checkout list.`);
           }
-          input.value = ''; // Clear input after scan
+          input.value = '';
           input.dataset.nfcId = nfcId;
           input.dataset.entryMethod = 'NFC';
-          controller.abort();
-          button.disabled = false;
+          lastScanTime = Date.now();
         };
+
         ndef.onreadingerror = () => {
-          alert('No NFC tag detected. Try again or enter manually.');
-          manualEntry('checkout');
-          controller.abort();
-          button.disabled = false;
+          alert('Error reading NFC tag. Try again or enter manually.');
         };
-        setTimeout(() => {
-          controller.abort();
-          if (!button.disabled) return;
-          alert('Scan timed out. Try again or enter manually.');
-          manualEntry('checkout');
-          button.disabled = false;
-        }, 5000);
+
+        const timeoutCheck = setInterval(() => {
+          if (Date.now() - lastScanTime >= 10000) {
+            controller.abort();
+            clearInterval(timeoutCheck);
+            if (scannedCount === 0) {
+              alert('NFC scan timed out with no tags added. Enter manually if needed.');
+              manualEntry('checkout');
+            } else {
+              alert(`NFC scan complete. ${scannedCount} headphone(s) added.`);
+            }
+            button.disabled = false;
+          }
+        }, 500);
+
         await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
       } catch (error) {
-        alert(`NFC error: ${error.message}. Enter ID manually.`);
+        alert(`NFC scan failed: ${error.message}. Enter ID manually.`);
         manualEntry('checkout');
         button.disabled = false;
       }
@@ -536,7 +566,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       input.value = userId;
       input.dataset.entryMethod = 'Manual';
       button.disabled = false;
-      // Note: Do NOT call addHeadphoneId() here; user must click the button
     }
 
     async function scanNFCForDashboard() {
@@ -550,7 +579,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const ndef = new NDEFReader();
       try {
         await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone you want to return. Scanning will stop after 10 seconds of no activity.');
+        alert('Scanning NFC tags... Scan each headphone to return. Scanning stops after 10 seconds of no activity.');
         const controller = new AbortController();
         let scannedCount = 0;
         let lastScanTime = Date.now();
@@ -570,8 +599,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             } else {
               alert(`Headphone ${id} with NFC ID ${nfcId} is checked out but not in the current dashboard view. Adjust filters or search to include it.`);
             }
-          } else {
-            alert(`No checked-out headphone found with NFC ID ${nfcId} in the system.`);
           }
           lastScanTime = Date.now();
         };
@@ -611,7 +638,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const ndef = new NDEFReader();
       try {
         await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone you want to return. Scanning will stop after 10 seconds of no activity.');
+        alert('Scanning NFC tags... Scan each headphone to return. Scanning stops after 10 seconds of no activity.');
         const controller = new AbortController();
         let scannedCount = 0;
         let lastScanTime = Date.now();
@@ -631,8 +658,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             } else {
               alert(`Headphone ${id} with NFC ID ${nfcId} is checked out but not in the current view. Adjust search to include it.`);
             }
-          } else {
-            alert(`No checked-out headphone found with NFC ID ${nfcId} in the system.`);
           }
           lastScanTime = Date.now();
         };
@@ -1340,8 +1365,4 @@ The SE2 Silent Disco Team
       document.addEventListener('mouseup', stopDragging);
       header.addEventListener('touchstart', startDragging);
       document.addEventListener('touchmove', drag);
-      document.addEventListener('touchend', stopDragging);
-    }
-  </script>
-</body>
-</html>
+      document.addEventListener('touchend',
