@@ -8,32 +8,184 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
-    button:disabled { background-color: #cccccc; cursor: not-allowed; }
-    .form { display: none; flex-direction: column; gap: 10px; max-width: 90%; margin: 20px auto; }
-    input, textarea, select { padding: 8px; font-size: 14px; }
-    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch { padding: 10px; width: 80%; max-width: 300px; margin-bottom: 10px; }
-    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 10px auto; }
-    #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
-    #card-container { margin: 10px auto; min-height: 50px; }
-    table { width: 100%; border-collapse: collapse; table-layout: auto; }
-    th, td { border: 1px solid #ddd; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
-    th { background-color: #f2f2f2; }
-    .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
-    .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
-    .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
-    .delete-btn { background-color: #808080; padding: 4px; margin: 1px; font-size: 12px; color: white; }
-    #dashboard, #reports, #manualReturnDialog table { overflow-x: auto; }
-    .dialog { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border: 2px solid #000; z-index: 1000; display: none; flex-direction: column; gap: 12px; max-width: 95%; max-height: 90vh; overflow-y: auto; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
-    .dialog-header { background: #007bff; color: white; padding: 8px; cursor: move; font-size: 18px; text-align: center; border-radius: 5px 5px 0 0; }
-    .dialog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999; display: none; }
-    #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
-    #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
-    .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
-    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); display: none; justify-content: center; align-items: center; z-index: 2000; }
-    .spinner { border: 8px solid #f3f3f3; border-top: 8px solid #007bff; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      margin: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 90%;
+      margin: 20px auto;
+    }
+    input, textarea, select {
+      padding: 8px;
+      font-size: 14px;
+    }
+    #searchInput, #dateFilter, #reportType, #reportStartDate, #reportEndDate, #reportSearch, #manualReturnSearch {
+      padding: 10px;
+      width: 80%;
+      max-width: 300px;
+      margin-bottom: 10px;
+    }
+    #signaturePad {
+      border: 2px solid #000;
+      background: #f0f0f0;
+      width: 250px;
+      height: 120px;
+      margin: 10px auto;
+    }
+    #clearSignature {
+      font-size: 14px;
+      padding: 10px;
+      background: #ff4444;
+    }
+    #card-container {
+      margin: 10px auto;
+      min-height: 50px;
+    }
+    #paymentOptions p {
+      margin: 5px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 5px;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .checkin-btn {
+      background-color: #28a745;
+      padding: 4px;
+      margin: 1px;
+      font-size: 12px;
+    }
+    .checkout-btn {
+      background-color: #dc3545;
+      padding: 4px;
+      margin: 1px;
+      font-size: 12px;
+    }
+    .charge-btn {
+      background-color: #ffc107;
+      padding: 4px;
+      margin: 1px;
+      font-size: 12px;
+    }
+    .delete-btn {
+      background-color: #808080;
+      padding: 4px;
+      margin: 1px;
+      font-size: 12px;
+      color: white;
+    }
+    #dashboard, #reports, #manualReturnDialog table {
+      overflow-x: auto;
+    }
+    .dialog {
+      position: absolute;
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 20px;
+      border: 2px solid #000;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .dialog-header {
+      background: #007bff;
+      color: white;
+      padding: 8px;
+      cursor: move;
+      font-size: 18px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      display: none;
+    }
+    #headphoneIdsList, #dialogHeadphoneIdsList, #returnHeadphoneIdsList {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0;
+    }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li, #returnHeadphoneIdsList li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px;
+      border-bottom: 1px solid #ddd;
+    }
+    .remove-btn {
+      background-color: #dc3545;
+      padding: 5px;
+      font-size: 12px;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #007bff;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -61,7 +213,11 @@ LIABILITY RELEASE: I hereby release, waive, discharge, and agree not to sue SE2 
 MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission to use my email address and phone number provided herein for marketing purposes, including but not limited to sending promotional offers, event updates, and newsletters. I understand I may opt out of these communications at any time by following the unsubscribe instructions provided in such messages.
 PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
 This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
-    <div id="card-container"></div>
+    <div id="paymentOptions">
+      <button id="tapToPay" onclick="tapToPayCheckout(); vibrate()">Tap to Pay with Card/Device</button>
+      <p>OR</p>
+      <div id="card-container"></div>
+    </div>
     <canvas id="signaturePad" width="250" height="120"></canvas>
     <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
     <button id="checkoutButton" onclick="checkout(); vibrate()">Complete Checkout</button>
@@ -177,27 +333,25 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         firebaseConfig = config.firebaseConfig;
       } catch (error) {
         console.error('Failed to fetch config:', error);
-        alert('Failed to load configuration. Please try again later.');
+        alert('Failed to load configuration.');
       }
     }
 
     async function waitForFirebase() {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const maxAttempts = 100;
         let attempts = 0;
         const checkFirebase = setInterval(() => {
-          attempts++;
-          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore) {
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore || attempts >= maxAttempts) {
             clearInterval(checkFirebase);
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            headphonesCollection = db.collection('headphones');
-            resolve();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkFirebase);
-            alert('Firebase failed to load. Proceeding without database.');
+            if (firebase.app) {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+              headphonesCollection = db.collection('headphones');
+            }
             resolve();
           }
+          attempts++;
         }, 100);
       });
     }
@@ -221,13 +375,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function saveHeadphone(id, data) {
-      if (!db || !headphonesCollection) {
-        headphones[id] = data;
-        usedHeadphoneIds.add(id);
-        return;
-      }
       try {
-        await headphonesCollection.doc(id).set(data);
+        if (db && headphonesCollection) await headphonesCollection.doc(id).set(data);
         headphones[id] = data;
         usedHeadphoneIds.add(id);
       } catch (error) {
@@ -238,12 +387,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function updateHeadphone(id, data) {
-      if (!db || !headphonesCollection) {
-        headphones[id] = { ...headphones[id], ...data };
-        return;
-      }
       try {
-        await headphonesCollection.doc(id).update(data);
+        if (db && headphonesCollection) await headphonesCollection.doc(id).update(data);
         headphones[id] = { ...headphones[id], ...data };
       } catch (error) {
         console.error('Error updating headphone:', error);
@@ -253,15 +398,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     }
 
     async function deleteHeadphone(id) {
-      if (!db || !headphonesCollection) {
-        delete headphones[id];
-        usedHeadphoneIds.delete(id);
-        updateDashboard();
-        return;
-      }
       try {
-        if (confirm(`Are you sure you want to delete the record for headphone ${id}?`)) {
-          await headphonesCollection.doc(id).delete();
+        if (confirm(`Are you sure you want to delete headphone ${id}?`)) {
+          if (db && headphonesCollection) await headphonesCollection.doc(id).delete();
           delete headphones[id];
           usedHeadphoneIds.delete(id);
           alert(`Headphone ${id} deleted!`);
@@ -292,7 +431,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         makeDraggable('returnDialog', 'returnDialogHeader');
         makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
       } catch (error) {
-        console.error('Error during initialization:', error);
+        console.error('Initialization error:', error);
         alert('Failed to start app.');
       }
     };
@@ -315,18 +454,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function addHeadphoneId() {
       const id = document.getElementById('headphoneId').value.trim();
-      if (!id) {
-        alert('Please scan or enter a headphone ID first!');
-        return;
-      }
-      if (usedHeadphoneIds.has(id)) {
-        alert(`Headphone ID ${id} has already been used! Please use a new ID.`);
-        return;
-      }
-      if (headphones[id] && headphones[id].status === 'checked_out') {
-        alert(`Headphone ${id} is already checked out!`);
-        return;
-      }
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (usedHeadphoneIds.has(id)) return alert(`Headphone ID ${id} already used!`);
+      if (headphones[id] && headphones[id].status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
       const list = document.getElementById('headphoneIdsList');
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
@@ -336,20 +466,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function addReturnHeadphoneId() {
       const id = document.getElementById('returnId').value.trim();
-      if (!id) {
-        alert('Please scan or enter a headphone ID first!');
-        return;
-      }
-      if (!headphones[id] || headphones[id].status !== 'checked_out') {
-        alert(`Headphone ${id} is not checked out!`);
-        return;
-      }
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (!headphones[id] || headphones[id].status !== 'checked_out') return alert(`Headphone ${id} is not checked out!`);
       const list = document.getElementById('returnHeadphoneIdsList');
       const existingIds = getReturnHeadphoneIds();
-      if (existingIds.includes(id)) {
-        alert(`Headphone ${id} is already in the return list!`);
-        return;
-      }
+      if (existingIds.includes(id)) return alert(`Headphone ${id} already in return list!`);
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
       li.dataset.id = id;
@@ -359,20 +480,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function addDialogReturnHeadphoneId() {
       const id = document.getElementById('dialogReturnId').value.trim();
-      if (!id) {
-        alert('Please scan or enter a headphone ID first!');
-        return;
-      }
-      if (!headphones[id] || headphones[id].status !== 'checked_out') {
-        alert(`Headphone ${id} is not checked out!`);
-        return;
-      }
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (!headphones[id] || headphones[id].status !== 'checked_out') return alert(`Headphone ${id} is not checked out!`);
       const list = document.getElementById('dialogReturnHeadphoneIdsList');
       const existingIds = getDialogReturnHeadphoneIds();
-      if (existingIds.includes(id)) {
-        alert(`Headphone ${id} is already in the return list!`);
-        return;
-      }
+      if (existingIds.includes(id)) return alert(`Headphone ${id} already in return list!`);
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
       li.dataset.id = id;
@@ -380,23 +492,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('dialogReturnId').value = '';
     }
 
-    function removeHeadphoneId(button, id) {
+    function removeHeadphoneId(button, _id) {
       button.parentElement.remove();
     }
 
     function getHeadphoneIds(listId) {
-      const list = document.getElementById(listId);
-      return Array.from(list.children).map(li => li.textContent.split(' ')[0]);
+      return Array.from(document.getElementById(listId).children).map(li => li.textContent.split(' ')[0]);
     }
 
     function getReturnHeadphoneIds() {
-      const list = document.getElementById('returnHeadphoneIdsList');
-      return Array.from(list.children).map(li => li.dataset.id);
+      return Array.from(document.getElementById('returnHeadphoneIdsList').children).map(li => li.dataset.id);
     }
 
     function getDialogReturnHeadphoneIds() {
-      const list = document.getElementById('dialogReturnHeadphoneIdsList');
-      return Array.from(list.children).map(li => li.dataset.id);
+      return Array.from(document.getElementById('dialogReturnHeadphoneIdsList').children).map(li => li.dataset.id);
     }
 
     function generateGroupId() {
@@ -405,7 +514,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         .filter(hp => hp.groupId && groupRegex.test(hp.groupId))
         .map(hp => parseInt(hp.groupId.replace('GROUP_', ''), 10));
       let nextNum = 1;
-      if (existingGroups.length > 0) nextNum = Math.max(...existingGroups) + 1;
+      if (existingGroups.length) nextNum = Math.max(...existingGroups) + 1;
       return `GROUP_${String(nextNum).padStart(7, '0')}`;
     }
 
@@ -413,10 +522,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const regex = /^HP\d{7}$/;
       const existingIds = Array.from(usedHeadphoneIds).filter(id => regex.test(id));
       let nextNum = 1;
-      if (existingIds.length > 0) {
-        const numbers = existingIds.map(id => parseInt(id.replace('HP', ''), 10));
-        nextNum = Math.max(...numbers) + 1;
-      }
+      if (existingIds.length) nextNum = Math.max(...existingIds.map(id => parseInt(id.replace('HP', ''), 10))) + 1;
       return `HP${String(nextNum).padStart(7, '0')}`;
     }
 
@@ -427,8 +533,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('headphoneIdsList').innerHTML = '';
     }
 
-    function showReturn() { 
-      toggleForms('return'); 
+    function showReturn() {
+      toggleForms('return');
       document.getElementById('returnHeadphoneIdsList').innerHTML = '';
     }
 
@@ -452,46 +558,46 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
       resultElement.textContent = 'Scanning...';
-      if ('NDEFReader' in window) {
-        const ndef = new NDEFReader();
-        try {
-          await ndef.scan();
-          const controller = new AbortController();
-          ndef.onreading = event => {
-            const id = event.serialNumber || prompt('Enter headphone ID manually:');
-            if (id && headphones[id]) {
-              const hp = headphones[id];
-              resultElement.innerHTML = `
-                <strong>ID:</strong> ${id}<br>
-                <strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br>
-                <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br>
-                <strong>Customer:</strong> ${hp.customer.name}<br>
-                <strong>Email:</strong> ${hp.customer.email}<br>
-                <strong>Phone:</strong> ${hp.customer.phone}<br>
-                <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
-                <strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br>
-                <strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br>
-                <strong>Group ID:</strong> ${hp.groupId || 'Single'}
-              `;
-            } else {
-              resultElement.textContent = `Headphone ${id} not found.`;
-            }
-            controller.abort();
-          };
-          ndef.onreadingerror = () => {
-            resultElement.textContent = 'NFC scan failed. Try again.';
-            controller.abort();
-          };
-          setTimeout(() => {
-            controller.abort();
-            if (resultElement.textContent === 'Scanning...') resultElement.textContent = 'Scan timed out.';
-          }, 5000);
-          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-        } catch (error) {
-          resultElement.textContent = `Error: ${error.message}`;
-        }
-      } else {
+      if (!('NDEFReader' in window)) {
         resultElement.textContent = 'NFC not supported.';
+        return;
+      }
+      const ndef = new NDEFReader();
+      try {
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = event => {
+          const id = event.serialNumber || prompt('Enter headphone ID manually:');
+          if (id && headphones[id]) {
+            const hp = headphones[id];
+            resultElement.innerHTML = `
+              <strong>ID:</strong> ${id}<br>
+              <strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br>
+              <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br>
+              <strong>Customer:</strong> ${hp.customer.name}<br>
+              <strong>Email:</strong> ${hp.customer.email}<br>
+              <strong>Phone:</strong> ${hp.customer.phone}<br>
+              <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
+              <strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br>
+              <strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br>
+              <strong>Group ID:</strong> ${hp.groupId || 'Single'}
+            `;
+          } else {
+            resultElement.textContent = `Headphone ${id} not found.`;
+          }
+          controller.abort();
+        };
+        ndef.onreadingerror = () => {
+          resultElement.textContent = 'NFC scan failed. Try again.';
+          controller.abort();
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (resultElement.textContent === 'Scanning...') resultElement.textContent = 'Scan timed out.';
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
       }
     }
 
@@ -510,61 +616,58 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const headphoneIdRegex = /^HP\d{7}$/;
       button.disabled = true;
 
-      if ('NDEFReader' in window) {
-        const ndef = new NDEFReader();
-        try {
-          await ndef.scan();
-          const controller = new AbortController();
-          ndef.onreading = event => {
-            const nfcId = event.serialNumber;
-            let id;
-            if (context === 'checkout') {
-              id = generateUniqueHeadphoneId();
-              input.dataset.nfcId = nfcId;
-            } else {
-              id = prompt('Please enter the headphone ID associated with this NFC tag (e.g., HP0000001):');
-              if (!id || !headphoneIdRegex.test(id)) {
-                alert('Invalid ID format. Please use HP followed by 7 digits (e.g., HP0000001).');
-                controller.abort();
-                button.disabled = false;
-                return;
-              }
-            }
-            input.value = id;
-            input.dataset.entryMethod = 'NFC';
-            alert(`Scanned headphone: ${id} with NFC ID: ${nfcId}`);
-            controller.abort();
-            button.disabled = false;
-            if (context === 'return') addReturnHeadphoneId();
-            else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
-            else if (context === 'checkout') addHeadphoneId();
-          };
-          ndef.onreadingerror = () => {
-            alert('No NFC tag detected. Try again or enter manually.');
-            if (context === 'return' || context === 'dialogReturn') showManualReturnDialog(context);
-            else manualEntry(context);
-            controller.abort();
-            button.disabled = false;
-          };
-          setTimeout(() => {
-            controller.abort();
-            if (!button.disabled) return;
-            alert('Scan timed out. Try again or enter manually.');
-            if (context === 'return' || context === 'dialogReturn') showManualReturnDialog(context);
-            else manualEntry(context);
-            button.disabled = false;
-          }, 5000);
-          await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
-        } catch (error) {
-          alert(`NFC error: ${error.message}. Enter ID manually.`);
-          if (context === 'return' || context === 'dialogReturn') showManualReturnDialog(context);
-          else manualEntry(context);
-          button.disabled = false;
-        }
-      } else {
+      if (!('NDEFReader' in window)) {
         alert('NFC not supported. Enter ID manually.');
-        if (context === 'return' || context === 'dialogReturn') showManualReturnDialog(context);
-        else manualEntry(context);
+        context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+        button.disabled = false;
+        return;
+      }
+
+      const ndef = new NDEFReader();
+      try {
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = event => {
+          const nfcId = event.serialNumber;
+          let id;
+          if (context === 'checkout') {
+            id = generateUniqueHeadphoneId();
+            input.dataset.nfcId = nfcId;
+          } else {
+            id = prompt('Enter headphone ID for this NFC tag (e.g., HP0000001):');
+            if (!id || !headphoneIdRegex.test(id)) {
+              alert('Invalid ID format. Use HP followed by 7 digits.');
+              controller.abort();
+              button.disabled = false;
+              return;
+            }
+          }
+          input.value = id;
+          input.dataset.entryMethod = 'NFC';
+          alert(`Scanned headphone: ${id} with NFC ID: ${nfcId}`);
+          controller.abort();
+          button.disabled = false;
+          if (context === 'return') addReturnHeadphoneId();
+          else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
+          else addHeadphoneId();
+        };
+        ndef.onreadingerror = () => {
+          alert('No NFC tag detected. Try again or enter manually.');
+          context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+          controller.abort();
+          button.disabled = false;
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (!button.disabled) return;
+          alert('Scan timed out. Try again or enter manually.');
+          context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+          button.disabled = false;
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        alert(`NFC error: ${error.message}. Enter ID manually.`);
+        context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
         button.disabled = false;
       }
     }
@@ -578,12 +681,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         id = generateUniqueHeadphoneId();
         const userId = prompt(`Enter headphone ID (suggested: ${id}):`, id);
         if (userId && regex.test(userId) && !usedHeadphoneIds.has(userId)) id = userId;
-        else if (usedHeadphoneIds.has(userId)) alert(`Headphone ID ${userId} already used! Using ${id} instead.`);
-        else if (userId && !regex.test(userId)) alert('Invalid format! Using suggested ID instead.');
+        else if (usedHeadphoneIds.has(userId)) alert(`ID ${userId} already used! Using ${id}.`);
+        else if (userId && !regex.test(userId)) alert('Invalid format! Using suggested ID.');
       } else {
         id = prompt('Enter headphone ID (e.g., HP0000001):');
         if (!id || !regex.test(id)) {
-          alert('Invalid ID format. Use HP followed by 7 digits (e.g., HP0000001).');
+          alert('Invalid ID format. Use HP followed by 7 digits.');
           button.disabled = false;
           return;
         }
@@ -593,7 +696,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       button.disabled = false;
       if (context === 'return') addReturnHeadphoneId();
       else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
-      else if (context === 'checkout') addHeadphoneId();
+      else addHeadphoneId();
     }
 
     function showManualReturnDialog(context) {
@@ -606,12 +709,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       list.innerHTML = '';
       checkedOut.forEach(([id, hp]) => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-          <td><input type="checkbox" name="returnHeadphone" value="${id}"></td>
-          <td>${id}</td>
-          <td>${hp.customer.name}</td>
-          <td>${hp.groupId || 'Single'}</td>
-        `;
+        row.innerHTML = `<td><input type="checkbox" name="returnHeadphone" value="${id}"></td><td>${id}</td><td>${hp.customer.name}</td><td>${hp.groupId || 'Single'}</td>`;
         list.appendChild(row);
       });
       document.getElementById('manualReturnSearch').value = '';
@@ -620,32 +718,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     function filterManualReturnList() {
       const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
-      const list = document.getElementById('manualReturnList');
-      const rows = list.getElementsByTagName('tr');
+      const rows = document.getElementById('manualReturnList').getElementsByTagName('tr');
       Array.from(rows).forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+        row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
       });
     }
 
     async function submitManualReturn() {
-      const list = document.getElementById('manualReturnList');
-      const selected = Array.from(list.querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
+      const selected = Array.from(document.getElementById('manualReturnList').querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
       const context = document.getElementById('manualReturnSearch').dataset.context;
-      if (selected.length === 0) {
-        alert('Please select at least one headphone to return!');
-        return;
-      }
+      if (!selected.length) return alert('Please select at least one headphone!');
       const groupIds = selected.map(id => headphones[id].groupId || 'Single');
-      const uniqueGroups = [...new Set(groupIds)];
-      if (uniqueGroups.length > 1) {
-        alert('All selected headphones must belong to the same group.');
-        return;
-      }
+      if (new Set(groupIds).size > 1) return alert('All selected headphones must belong to the same group.');
       try {
-        for (const id of selected) {
-          await updateHeadphone(id, { status: 'returned', pre_auth: null });
-        }
+        for (const id of selected) await updateHeadphone(id, { status: 'returned', pre_auth: null });
         const message = await sendReturnEmail(selected);
         alert(message);
         closeDialog('manualReturn');
@@ -663,12 +749,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#000';
-      canvas.addEventListener('mousedown', startDrawing);
-      canvas.addEventListener('mousemove', draw);
-      canvas.addEventListener('mouseup', stopDrawing);
-      canvas.addEventListener('touchstart', startDrawing);
-      canvas.addEventListener('touchmove', draw);
-      canvas.addEventListener('touchend', stopDrawing);
 
       function startDrawing(e) {
         drawing = true;
@@ -698,6 +778,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const touch = e.touches ? e.touches[0] : e;
         return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
       }
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
     }
 
     function clearSignature() {
@@ -707,17 +794,48 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       signatureData = null;
     }
 
-    async function checkout() {
+    async function tapToPayCheckout() {
+      if (!('NDEFReader' in window)) return alert('NFC not supported. Use manual entry.');
+      const ndef = new NDEFReader();
+      try {
+        showLoading();
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = async event => {
+          const nfcId = event.serialNumber;
+          const paymentToken = `token_${nfcId}_${Date.now()}`; // Placeholder; integrate with Square NFC API
+          await processPayment(paymentToken);
+          controller.abort();
+        };
+        ndef.onreadingerror = () => {
+          alert('Failed to read payment card. Try again or use manual entry.');
+          controller.abort();
+          hideLoading();
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (!controller.signal.aborted) {
+            alert('Payment scan timed out.');
+            hideLoading();
+          }
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        alert(`NFC error: ${error.message}. Use manual entry.`);
+        hideLoading();
+      }
+    }
+
+    async function processPayment(paymentToken) {
       const headphoneIds = getHeadphoneIds('headphoneIdsList');
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
       const date = new Date().toISOString().split('T')[0];
-      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) {
-        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
-        return;
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData) {
+        hideLoading();
+        return alert('Please complete all fields and sign the agreement!');
       }
-      showLoading();
       const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
       const headphoneIdsText = headphoneIds.join(', ');
       const agreementText = document.getElementById('agreement').value
@@ -726,9 +844,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         .replace('[Headphone IDs]', headphoneIdsText);
 
       try {
-        const result = await cardElement.tokenize();
-        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
-        const paymentToken = result.token;
         const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -745,7 +860,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
         for (const id of headphoneIds) {
           if (usedHeadphoneIds.has(id)) {
-            alert(`Headphone ID ${id} has already been used! Skipping.`);
+            alert(`Headphone ID ${id} already used! Skipping.`);
             continue;
           }
           const entryMethod = document.getElementById('headphoneId').dataset.entryMethod || 'Manual';
@@ -767,11 +882,32 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, agreement: agreementText, signature: signatureData, preauthId })
         });
-        if (emailResponse.ok) {
-          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
-          clearForm('checkout');
-          showDashboard();
-        } else throw new Error('Email failed');
+        if (!emailResponse.ok) throw new Error('Email failed');
+        alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+        clearForm('checkout');
+        showDashboard();
+      } catch (error) {
+        console.error('Payment error:', error.message);
+        alert('Payment failed: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function checkout() {
+      const headphoneIds = getHeadphoneIds('headphoneIdsList');
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const date = new Date().toISOString().split('T')[0];
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) {
+        return alert('Please complete all fields, enter card details, and sign!');
+      }
+      showLoading();
+      try {
+        const result = await cardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
+        await processPayment(result.token);
       } catch (error) {
         console.error('Checkout error:', error.message);
         alert('Checkout failed: ' + error.message);
@@ -806,45 +942,37 @@ The SE2 Silent Disco Team
       if (!emailResponse.ok) {
         const errorText = await emailResponse.text();
         console.error('Failed to send return email:', errorText);
-        return `Headphone(s) ${returnedIds.join(', ')} returned successfully, but email notification failed: ${errorText}`;
+        return `Headphone(s) ${returnedIds.join(', ')} returned, but email failed: ${errorText}`;
       }
-      console.log('Return email sent successfully to:', customer.email);
-      return `Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email || 'the customer'}.`;
+      return `Headphone(s) ${returnedIds.join(', ')} returned! Confirmation emailed to ${customer.email || 'customer'}.`;
     }
 
     async function returnHeadphones() {
       const headphoneIds = getReturnHeadphoneIds();
-      if (!headphoneIds.length) {
-        alert('Please scan or add at least one headphone to return!');
-        return;
-      }
+      if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
       const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
-      const uniqueGroups = [...new Set(groupIds.filter(id => id !== undefined))];
+      const uniqueGroups = [...new Set(groupIds)];
       if (uniqueGroups.length > 1) {
         const mismatched = headphoneIds.filter(id => headphones[id] && headphones[id].groupId !== uniqueGroups[0] && groupIds.includes(headphones[id].groupId));
-        const mismatchText = mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ');
-        alert(`All headphones must belong to the same group. Mismatched: ${mismatchText}.`);
+        alert(`All headphones must be in the same group. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ')}.`);
         const list = document.getElementById('returnHeadphoneIdsList');
-        Array.from(list.children).forEach(li => {
-          if (mismatched.includes(li.dataset.id)) li.style.backgroundColor = '#ffcccc';
-          else li.style.backgroundColor = '';
-        });
+        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
         return;
       }
       try {
         let returnedIds = [];
         for (const id of headphoneIds) {
           if (!headphones[id] || headphones[id].status !== 'checked_out') {
-            alert(`Headphone ${id} is not checked out! Skipping.`);
+            alert(`Headphone ${id} not checked out! Skipping.`);
             continue;
           }
           await updateHeadphone(id, { status: 'returned', pre_auth: null });
           returnedIds.push(id);
         }
-        if (returnedIds.length > 0) {
+        if (returnedIds.length) {
           const message = await sendReturnEmail(returnedIds);
           alert(message);
-        } else alert('No headphones were returned.');
+        } else alert('No headphones returned.');
         clearForm('return');
         showDashboard();
       } catch (error) {
@@ -870,37 +998,30 @@ The SE2 Silent Disco Team
 
     async function submitReturnDialog() {
       const headphoneIds = getDialogReturnHeadphoneIds();
-      if (!headphoneIds.length) {
-        alert('Please scan or add at least one headphone to return!');
-        return;
-      }
+      if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
       const groupIds = headphoneIds.map(id => headphones[id]?.groupId || 'Single');
-      const uniqueGroups = [...new Set(groupIds.filter(id => id !== undefined))];
+      const uniqueGroups = [...new Set(groupIds)];
       if (uniqueGroups.length > 1) {
         const mismatched = headphoneIds.filter(id => headphones[id] && headphones[id].groupId !== uniqueGroups[0] && groupIds.includes(headphones[id].groupId));
-        const mismatchText = mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ');
-        alert(`All headphones must belong to the same group. Mismatched: ${mismatchText}.`);
+        alert(`All headphones must be in the same group. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id].groupId || 'Single'})`).join(', ')}.`);
         const list = document.getElementById('dialogReturnHeadphoneIdsList');
-        Array.from(list.children).forEach(li => {
-          if (mismatched.includes(li.dataset.id)) li.style.backgroundColor = '#ffcccc';
-          else li.style.backgroundColor = '';
-        });
+        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
         return;
       }
       try {
         let returnedIds = [];
         for (const id of headphoneIds) {
           if (!headphones[id] || headphones[id].status !== 'checked_out') {
-            alert(`Headphone ${id} is not checked out! Skipping.`);
+            alert(`Headphone ${id} not checked out! Skipping.`);
             continue;
           }
           await updateHeadphone(id, { status: 'returned', pre_auth: null });
           returnedIds.push(id);
         }
-        if (returnedIds.length > 0) {
+        if (returnedIds.length) {
           const message = await sendReturnEmail(returnedIds);
           alert(message);
-        } else alert('No headphones were returned.');
+        } else alert('No headphones returned.');
         closeDialog('return');
       } catch (error) {
         console.error('Return error:', error.message);
@@ -909,37 +1030,31 @@ The SE2 Silent Disco Team
     }
 
     async function dashboardCharge(id) {
-      if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
-        const groupId = headphones[id].groupId;
-        let chargeAmount, headphoneCount;
-        if (groupId) {
-          headphoneCount = Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length;
-          chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount);
-        } else {
-          headphoneCount = 1;
-          chargeAmount = headphones[id].pre_auth.amount * 100;
-        }
-        const chargeAmountDollars = (chargeAmount / 100).toFixed(2);
-        if (confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $${chargeAmountDollars}.`)) {
-          showLoading();
-          try {
-            const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: headphones[id].pre_auth.pre_auth_id, amount: chargeAmount })
-            });
-            const chargeResult = await chargeResponse.json();
-            if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
-            await updateHeadphone(id, { status: 'charged', pre_auth: null });
-            alert(`Headphone ${id} charged successfully for $${chargeAmountDollars}!`);
-            updateDashboard();
-          } catch (error) {
-            alert(`Charge failed for ${id}: ${error.message}`);
-          } finally {
-            hideLoading();
-          }
-        }
-      } else alert(`Cannot charge for ${id}: Not checked out or no preauthorization.`);
+      if (!headphones[id] || headphones[id].status !== 'checked_out' || !headphones[id].pre_auth) {
+        return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);
+      }
+      const groupId = headphones[id].groupId;
+      const headphoneCount = groupId ? Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length : 1;
+      const chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount);
+      const chargeAmountDollars = (chargeAmount / 100).toFixed(2);
+      if (!confirm(`Charge ${headphones[id].customer.name} $${chargeAmountDollars} for ${id}?`)) return;
+      showLoading();
+      try {
+        const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: headphones[id].pre_auth.pre_auth_id, amount: chargeAmount })
+        });
+        const chargeResult = await chargeResponse.json();
+        if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
+        await updateHeadphone(id, { status: 'charged', pre_auth: null });
+        alert(`Headphone ${id} charged for $${chargeAmountDollars}!`);
+        updateDashboard();
+      } catch (error) {
+        alert(`Charge failed for ${id}: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
     }
 
     function updateDashboard() {
@@ -948,29 +1063,13 @@ The SE2 Silent Disco Team
       const dateFilter = document.getElementById('dateFilter').value;
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
-      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
-      headphoneArray.sort((a, b) => {
-        const groupA = a.groupId || 'ZZZZZZ';
-        const groupB = b.groupId || 'ZZZZZZ';
-        return groupA === groupB ? a.id.localeCompare(b.id) : groupA.localeCompare(groupB);
-      });
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }))
+        .sort((a, b) => (a.groupId || 'ZZZZZZ') === (b.groupId || 'ZZZZZZ') ? a.id.localeCompare(b.id) : (a.groupId || 'ZZZZZZ').localeCompare(b.groupId || 'ZZZZZZ'));
       tbody.innerHTML = '';
       headphoneArray.forEach(hp => {
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
-        const checkoutTime = hp.agreement?.timestamp || now;
-        const overdue = hp.status === 'checked_out' && (now - checkoutTime > twelveHours);
-        const rowData = [
-          hp.customer?.name || 'N/A',
-          statusText,
-          hp.pre_auth ? 'Hold' : 'Released',
-          hp.customer?.email || 'N/A',
-          hp.customer?.phone || 'N/A',
-          hp.id,
-          hp.nfcId || 'N/A',
-          hp.entryMethod || 'N/A',
-          hp.agreement?.date || 'N/A',
-          hp.groupId || 'Single'
-        ];
+        const overdue = hp.status === 'checked_out' && (now - (hp.agreement?.timestamp || now) > twelveHours);
+        const rowData = [hp.customer?.name || 'N/A', statusText, hp.pre_auth ? 'Hold' : 'Released', hp.customer?.email || 'N/A', hp.customer?.phone || 'N/A', hp.id, hp.nfcId || 'N/A', hp.entryMethod || 'N/A', hp.agreement?.date || 'N/A', hp.groupId || 'Single'];
         if (rowData.some(data => data.toLowerCase().includes(searchTerm)) && (!dateFilter || hp.agreement?.date === dateFilter)) {
           const row = document.createElement('tr');
           let actionsHtml = '';
@@ -1037,8 +1136,8 @@ The SE2 Silent Disco Team
       let finalArray = filteredArray;
       if (searchTerm) {
         finalArray = filteredArray.filter(hp => {
-          const rowData = [hp.id, hp.nfcId || '', hp.status, hp.customer?.name || '', hp.customer?.email || '', hp.customer?.phone || '', hp.agreement?.date || '', hp.pre_auth ? 'Hold' : 'Released', hp.entryMethod || 'N/A', hp.groupId || 'Single'];
-          return rowData.some(data => data.toLowerCase().includes(searchTerm));
+          return [hp.id, hp.nfcId || '', hp.status, hp.customer?.name || '', hp.customer?.email || '', hp.customer?.phone || '', hp.agreement?.date || '', hp.pre_auth ? 'Hold' : 'Released', hp.entryMethod || 'N/A', hp.groupId || 'Single']
+            .some(data => data.toLowerCase().includes(searchTerm));
         });
       }
       switch (reportType) {
@@ -1047,71 +1146,19 @@ The SE2 Silent Disco Team
             <h3>All Data (${finalArray.length} Headphones)</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>NFC ID</th>
-                  <th>Status</th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Checkout Date</th>
-                  <th>Preauth Status</th>
-                  <th>Entry Method</th>
-                  <th>Group ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${finalArray.map(hp => `
-                  <tr>
-                    <td>${hp.id}</td>
-                    <td>${hp.nfcId || 'N/A'}</td>
-                    <td>${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}</td>
-                    <td>${hp.customer?.name || 'N/A'}</td>
-                    <td>${hp.customer?.email || 'N/A'}</td>
-                    <td>${hp.customer?.phone || 'N/A'}</td>
-                    <td>${hp.agreement?.date || 'N/A'}</td>
-                    <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
-                    <td>${hp.entryMethod || 'N/A'}</td>
-                    <td>${hp.groupId || 'Single'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Status</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Preauth Status</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${finalArray.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}</td><td>${hp.customer?.name || 'N/A'}</td><td>${hp.customer?.email || 'N/A'}</td><td>${hp.customer?.phone || 'N/A'}</td><td>${hp.agreement?.date || 'N/A'}</td><td>${hp.pre_auth ? 'Hold' : 'Released'}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
         case 'checkedOut':
           const checkedOut = finalArray.filter(hp => hp.status === 'checked_out');
           output.innerHTML = `
-            <h3>Currently Checked Out Headphones (${checkedOut.length})</h3>
+            <h3>Currently Checked Out (${checkedOut.length})</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>NFC ID</th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Checkout Date</th>
-                  <th>Entry Method</th>
-                  <th>Group ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${checkedOut.map(hp => `
-                  <tr>
-                    <td>${hp.id}</td>
-                    <td>${hp.nfcId || 'N/A'}</td>
-                    <td>${hp.customer.name}</td>
-                    <td>${hp.customer.email}</td>
-                    <td>${hp.customer.phone}</td>
-                    <td>${hp.agreement.date}</td>
-                    <td>${hp.entryMethod || 'N/A'}</td>
-                    <td>${hp.groupId || 'Single'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${checkedOut.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
@@ -1121,111 +1168,37 @@ The SE2 Silent Disco Team
             <h3>Overdue Headphones (${overdue.length})</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>NFC ID</th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Checkout Date</th>
-                  <th>Days Overdue</th>
-                  <th>Entry Method</th>
-                  <th>Group ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${overdue.map(hp => {
-                  const daysOverdue = Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24));
-                  return `
-                    <tr>
-                      <td>${hp.id}</td>
-                      <td>${hp.nfcId || 'N/A'}</td>
-                      <td>${hp.customer.name}</td>
-                      <td>${hp.customer.email}</td>
-                      <td>${hp.customer.phone}</td>
-                      <td>${hp.agreement.date}</td>
-                      <td>${daysOverdue}</td>
-                      <td>${hp.entryMethod || 'N/A'}</td>
-                      <td>${hp.groupId || 'Single'}</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Days Overdue</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${overdue.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24))}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
         case 'revenue':
           const charged = finalArray.filter(hp => hp.status === 'charged');
-          const totalRevenue = charged.length * 100;
           output.innerHTML = `
             <h3>Revenue Summary</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
-            <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
+            <p>Total Revenue: $${(charged.length * 100).toFixed(2)}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>NFC ID</th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Charge Date</th>
-                  <th>Amount</th>
-                  <th>Entry Method</th>
-                  <th>Group ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${charged.map(hp => `
-                  <tr>
-                    <td>${hp.id}</td>
-                    <td>${hp.nfcId || 'N/A'}</td>
-                    <td>${hp.customer.name}</td>
-                    <td>${hp.customer.email}</td>
-                    <td>${hp.customer.phone}</td>
-                    <td>${hp.agreement.date}</td>
-                    <td>$100.00</td>
-                    <td>${hp.entryMethod || 'N/A'}</td>
-                    <td>${hp.groupId || 'Single'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Charge Date</th><th>Amount</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${charged.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>$100.00</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
         case 'customerActivity':
           const customers = {};
           finalArray.forEach(hp => {
-            const customerKey = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
-            if (!customers[customerKey]) customers[customerKey] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
-            customers[customerKey].checkouts++;
-            customers[customerKey].headphones.push(hp.id);
+            const key = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[key]) customers[key] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            customers[key].checkouts++;
+            customers[key].headphones.push(hp.id);
           });
           output.innerHTML = `
             <h3>Customer Activity</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Total Checkouts</th>
-                  <th>Headphone IDs</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${Object.values(customers).map(c => `
-                  <tr>
-                    <td>${c.name}</td>
-                    <td>${c.email}</td>
-                    <td>${c.phone}</td>
-                    <td>${c.checkouts}</td>
-                    <td>${c.headphones.join(', ')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Total Checkouts</th><th>Headphone IDs</th></tr></thead>
+              <tbody>${Object.values(customers).map(c => `<tr><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.checkouts}</td><td>${c.headphones.join(', ')}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
@@ -1245,32 +1218,8 @@ The SE2 Silent Disco Team
             <h3>Group Checkout Summary</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>Group ID</th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Total Headphones</th>
-                  <th>Checked Out</th>
-                  <th>Returned</th>
-                  <th>Charged</th>
-                  <th>Headphone IDs</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${Object.entries(groups).map(([groupId, g]) => `
-                  <tr>
-                    <td>${groupId}</td>
-                    <td>${g.customer.name}</td>
-                    <td>${g.customer.email}</td>
-                    <td>${g.total}</td>
-                    <td>${g.checkedOut}</td>
-                    <td>${g.returned}</td>
-                    <td>${g.charged}</td>
-                    <td>${g.ids.join(', ')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>Group ID</th><th>Customer</th><th>Email</th><th>Total Headphones</th><th>Checked Out</th><th>Returned</th><th>Charged</th><th>Headphone IDs</th></tr></thead>
+              <tbody>${Object.entries(groups).map(([id, g]) => `<tr><td>${id}</td><td>${g.customer.name}</td><td>${g.customer.email}</td><td>${g.total}</td><td>${g.checkedOut}</td><td>${g.returned}</td><td>${g.charged}</td><td>${g.ids.join(', ')}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
@@ -1288,83 +1237,58 @@ The SE2 Silent Disco Team
             <h3>NFC Usage Statistics</h3>
             <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
             <table>
-              <thead>
-                <tr>
-                  <th>NFC ID</th>
-                  <th>Total Uses</th>
-                  <th>Headphone IDs</th>
-                  <th>Dates Used</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${Object.entries(nfcStats).map(([nfcId, stats]) => `
-                  <tr>
-                    <td>${nfcId}</td>
-                    <td>${stats.uses}</td>
-                    <td>${stats.headphoneIds.join(', ')}</td>
-                    <td>${stats.dates.join(', ')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>NFC ID</th><th>Total Uses</th><th>Headphone IDs</th><th>Dates Used</th></tr></thead>
+              <tbody>${Object.entries(nfcStats).map(([id, stats]) => `<tr><td>${id}</td><td>${stats.uses}</td><td>${stats.headphoneIds.join(', ')}</td><td>${stats.dates.join(', ')}</td></tr>`).join('')}</tbody>
             </table>
           `;
           break;
         default:
-          output.innerHTML = '<p>Invalid report type selected.</p>';
+          output.innerHTML = '<p>Invalid report type.</p>';
       }
     }
 
     function exportReport() {
       const reportType = document.getElementById('reportType').value;
-      if (!reportType) {
-        alert('Please select a report type first!');
-        return;
-      }
+      if (!reportType) return alert('Select a report type first!');
       const startDate = document.getElementById('reportStartDate').value;
       const endDate = document.getElementById('reportEndDate').value || startDate;
-      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
-      let filteredArray = headphoneArray;
+      let filteredArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
       if (startDate) {
         const start = new Date(startDate).setHours(0, 0, 0, 0);
         const end = new Date(endDate).setHours(23, 59, 59, 999);
-        filteredArray = headphoneArray.filter(hp => {
+        filteredArray = filteredArray.filter(hp => {
           const hpDate = new Date(hp.agreement?.date).setHours(0, 0, 0, 0);
           return hpDate >= start && hpDate <= end;
         });
       }
-      let csvContent = '';
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
+      let csvContent = '';
       switch (reportType) {
         case 'allData':
           csvContent = '"ID","NFC ID","Status","Customer","Email","Phone","Checkout Date","Preauth Status","Entry Method","Group ID"\n' +
             filteredArray.map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}","${hp.customer?.name || 'N/A'}","${hp.customer?.email || 'N/A'}","${hp.customer?.phone || 'N/A'}","${hp.agreement?.date || 'N/A'}","${hp.pre_auth ? 'Hold' : 'Released'}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
           break;
         case 'checkedOut':
-          const checkedOut = filteredArray.filter(hp => hp.status === 'checked_out');
           csvContent = '"ID","NFC ID","Customer","Email","Phone","Checkout Date","Entry Method","Group ID"\n' +
-            checkedOut.map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+            filteredArray.filter(hp => hp.status === 'checked_out').map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
           break;
         case 'overdue':
-          const overdue = filteredArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
           csvContent = '"ID","NFC ID","Customer","Email","Phone","Checkout Date","Days Overdue","Entry Method","Group ID"\n' +
-            overdue.map(hp => {
-              const daysOverdue = Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24));
-              return `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${daysOverdue}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`;
-            }).join('\n');
+            filteredArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours))
+              .map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24))}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
           break;
         case 'revenue':
-          const charged = filteredArray.filter(hp => hp.status === 'charged');
           csvContent = '"ID","NFC ID","Customer","Email","Phone","Charge Date","Amount","Entry Method","Group ID"\n' +
-            charged.map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","$100.00","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+            filteredArray.filter(hp => hp.status === 'charged').map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","$100.00","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
           break;
         case 'customerActivity':
           const customers = {};
           filteredArray.forEach(hp => {
-            const customerKey = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
-            if (!customers[customerKey]) customers[customerKey] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
-            customers[customerKey].checkouts++;
-            customers[customerKey].headphones.push(hp.id);
+            const key = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[key]) customers[key] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            customers[key].checkouts++;
+            customers[key].headphones.push(hp.id);
           });
           csvContent = '"Name","Email","Phone","Total Checkouts","Headphone IDs"\n' +
             Object.values(customers).map(c => `"${c.name}","${c.email}","${c.phone}","${c.checkouts}","${c.headphones.join(', ')}"`).join('\n');
@@ -1382,7 +1306,7 @@ The SE2 Silent Disco Team
             }
           });
           csvContent = '"Group ID","Customer","Email","Total Headphones","Checked Out","Returned","Charged","Headphone IDs"\n' +
-            Object.entries(groups).map(([groupId, g]) => `"${groupId}","${g.customer.name}","${g.customer.email}","${g.total}","${g.checkedOut}","${g.returned}","${g.charged}","${g.ids.join(', ')}"`).join('\n');
+            Object.entries(groups).map(([id, g]) => `"${id}","${g.customer.name}","${g.customer.email}","${g.total}","${g.checkedOut}","${g.returned}","${g.charged}","${g.ids.join(', ')}"`).join('\n');
           break;
         case 'nfcUsage':
           const nfcStats = {};
@@ -1395,14 +1319,13 @@ The SE2 Silent Disco Team
             }
           });
           csvContent = '"NFC ID","Total Uses","Headphone IDs","Dates Used"\n' +
-            Object.entries(nfcStats).map(([nfcId, stats]) => `"${nfcId}","${stats.uses}","${stats.headphoneIds.join(', ')}","${stats.dates.join(', ')}"`).join('\n');
+            Object.entries(nfcStats).map(([id, stats]) => `"${id}","${stats.uses}","${stats.headphoneIds.join(', ')}","${stats.dates.join(', ')}"`).join('\n');
           break;
       }
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${reportType}_report_${startDate || 'all'}_${endDate || 'all'}.csv`);
+      link.href = URL.createObjectURL(blob);
+      link.download = `${reportType}_report_${startDate || 'all'}_${endDate || 'all'}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1412,43 +1335,25 @@ The SE2 Silent Disco Team
       const dialog = document.getElementById(dialogId);
       const header = document.getElementById(headerId);
       let isDragging = false;
-      let currentX, currentY, initialX, initialY;
-      header.addEventListener('mousedown', startDragging);
-      document.addEventListener('mousemove', drag);
-      document.addEventListener('mouseup', stopDragging);
-      header.addEventListener('touchstart', startDragging);
-      document.addEventListener('touchmove', drag);
-      document.addEventListener('touchend', stopDragging);
+      let currentX = dialog.offsetLeft;
+      let currentY = dialog.offsetTop;
+      let initialX, initialY;
 
       function startDragging(e) {
         isDragging = true;
-        if (e.type === 'mousedown') {
-          initialX = e.clientX - currentX;
-          initialY = e.clientY - currentY;
-        } else {
-          initialX = e.touches[0].clientX - currentX;
-          initialY = e.touches[0].clientY - currentY;
-        }
+        initialX = (e.type === 'mousedown' ? e.clientX : e.touches[0].clientX) - currentX;
+        initialY = (e.type === 'mousedown' ? e.clientY : e.touches[0].clientY) - currentY;
         header.style.cursor = 'grabbing';
       }
 
       function drag(e) {
-        if (isDragging) {
-          e.preventDefault();
-          let x, y;
-          if (e.type === 'mousemove') {
-            x = e.clientX - initialX;
-            y = e.clientY - initialY;
-          } else {
-            x = e.touches[0].clientX - initialX;
-            y = e.touches[0].clientY - initialY;
-          }
-          currentX = x;
-          currentY = y;
-          dialog.style.left = `${x}px`;
-          dialog.style.top = `${y}px`;
-          dialog.style.transform = 'none';
-        }
+        if (!isDragging) return;
+        e.preventDefault();
+        currentX = (e.type === 'mousemove' ? e.clientX : e.touches[0].clientX) - initialX;
+        currentY = (e.type === 'mousemove' ? e.clientY : e.touches[0].clientY) - initialY;
+        dialog.style.left = `${currentX}px`;
+        dialog.style.top = `${currentY}px`;
+        dialog.style.transform = 'none';
       }
 
       function stopDragging() {
@@ -1456,8 +1361,12 @@ The SE2 Silent Disco Team
         header.style.cursor = 'move';
       }
 
-      currentX = dialog.offsetLeft;
-      currentY = dialog.offsetTop;
+      header.addEventListener('mousedown', startDragging);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDragging);
+      header.addEventListener('touchstart', startDragging);
+      document.addEventListener('touchmove', drag);
+      document.addEventListener('touchend', stopDragging);
     }
   </script>
 </body>
