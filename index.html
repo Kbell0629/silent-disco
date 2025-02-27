@@ -116,7 +116,7 @@
       font-size: 14px;
       border-bottom: 1px solid #3A3A3A;
     }
-    th { background: #6B48FF; font-weight: 600; }
+    th { background: #6B48FF; font-weight: 600; position: sticky; top: 0; z-index: 10; }
     td { color: #EDEDED; }
     .checkin-btn { background: #28A745; }
     .charge-btn { background: #FFC107; color: #1A1A1A; }
@@ -193,6 +193,12 @@
       height: 60px;
       animation: spin 1s linear infinite;
     }
+    .dashboard-table-wrapper {
+      max-height: 400px; /* Adjust height as needed */
+      overflow-y: auto;
+      overflow-x: auto;
+      width: 100%;
+    }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @media (max-width: 768px) {
       header img { height: 40px; }
@@ -203,6 +209,7 @@
       input, textarea, select { width: 100%; }
       table { font-size: 12px; }
       th, td { padding: 8px; }
+      .dashboard-table-wrapper { max-height: 300px; }
     }
   </style>
 </head>
@@ -260,24 +267,26 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <h2>Dashboard</h2>
       <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
       <input id="dateFilter" type="date" onchange="filterByDate()">
-      <table id="headphoneTable">
-        <thead>
-          <tr>
-            <th>Actions</th>
-            <th>Customer</th>
-            <th>Status</th>
-            <th>Preauth Status</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>ID</th>
-            <th>NFC ID</th>
-            <th>Entry Method</th>
-            <th>Group ID</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody id="headphoneList"></tbody>
-      </table>
+      <div class="dashboard-table-wrapper">
+        <table id="headphoneTable">
+          <thead>
+            <tr>
+              <th>Actions</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Preauth Status</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>ID</th>
+              <th>NFC ID</th>
+              <th>Entry Method</th>
+              <th>Group ID</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody id="headphoneList"></tbody>
+        </table>
+      </div>
     </div>
 
     <div id="reports" class="form">
@@ -1088,13 +1097,36 @@ The SE2 Silent Disco Team
       const dateFilter = document.getElementById('dateFilter').value;
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
-      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }))
-        .sort((a, b) => (a.groupId || 'ZZZZZZ') === (b.groupId || 'ZZZZZZ') ? a.id.localeCompare(b.id) : (a.groupId || 'ZZZZZZ').localeCompare(b.groupId || 'ZZZZZZ'));
+
+      // Split headphones into checked_out and checked_in
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
+      const checkedOut = headphoneArray.filter(hp => hp.status === 'checked_out');
+      const checkedIn = headphoneArray.filter(hp => hp.status !== 'checked_out');
+
+      // Sort checked_out by customer name
+      checkedOut.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
+      // Sort checked_in by customer name
+      checkedIn.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
+
+      // Combine arrays with checked_out on top
+      const sortedArray = [...checkedOut, ...checkedIn];
+
       tbody.innerHTML = '';
-      headphoneArray.forEach(hp => {
+      sortedArray.forEach(hp => {
         const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
         const overdue = hp.status === 'checked_out' && (now - (hp.agreement?.timestamp || now) > twelveHours);
-        const rowData = [hp.customer?.name || 'N/A', statusText, hp.pre_auth ? 'Hold' : 'Released', hp.customer?.email || 'N/A', hp.customer?.phone || 'N/A', hp.id, hp.nfcId || 'N/A', hp.entryMethod || 'N/A', hp.agreement?.date || 'N/A', hp.groupId || 'Single'];
+        const rowData = [
+          hp.customer?.name || 'N/A',
+          statusText,
+          hp.pre_auth ? 'Hold' : 'Released',
+          hp.customer?.email || 'N/A',
+          hp.customer?.phone || 'N/A',
+          hp.id,
+          hp.nfcId || 'N/A',
+          hp.entryMethod || 'N/A',
+          hp.agreement?.date || 'N/A',
+          hp.groupId || 'Single'
+        ];
         if (rowData.some(data => data.toLowerCase().includes(searchTerm)) && (!dateFilter || hp.agreement?.date === dateFilter)) {
           const row = document.createElement('tr');
           let actionsHtml = '';
