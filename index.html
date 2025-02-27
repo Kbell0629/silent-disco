@@ -25,6 +25,7 @@
     .checkin-btn { background-color: #28a745; padding: 4px; margin: 1px; font-size: 12px; }
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
+    .delete-btn { background-color: #ff4444; padding: 4px; margin: 1px; font-size: 12px; }
     #dashboard, #reports { overflow-x: auto; }
     .dialog { 
       position: absolute; 
@@ -320,6 +321,27 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         console.error('Error updating headphone:', error);
         alert('Failed to update Firebase: ' + error.message);
         throw error;
+      }
+    }
+
+    async function deleteHeadphone(id) {
+      if (!db || !headphonesCollection) {
+        console.warn('Firebase not initialized, deleting locally only');
+        delete headphones[id];
+        updateDashboard();
+        return;
+      }
+      try {
+        const confirmDelete = confirm(`Are you sure you want to delete the record for headphone ${id}? This action cannot be undone.`);
+        if (confirmDelete) {
+          await headphonesCollection.doc(id).delete();
+          delete headphones[id];
+          alert(`Headphone ${id} record deleted successfully!`);
+          updateDashboard();
+        }
+      } catch (error) {
+        console.error('Error deleting headphone:', error);
+        alert('Failed to delete headphone: ' + error.message);
       }
     }
 
@@ -1011,6 +1033,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           if (hp.status === 'checked_out' && hp.pre_auth && overdue) {
             actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
           }
+          actionsHtml += `<button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button>`;
           row.innerHTML = `
             <td>${actionsHtml}</td>
             <td>${hp.customer?.name || 'N/A'}</td>
