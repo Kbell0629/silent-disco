@@ -48,6 +48,8 @@
     .dashboard-table-wrapper, .return-table-wrapper{max-height:500px;overflow-y:auto;overflow-x:auto;width:100%;}
     .dashboard-actions, .return-actions{margin:20px 0;display:flex;gap:10px;justify-content:center;}
     #reportOutput table{max-width:100%;overflow-x:auto;display:block;}
+    #cancelScanBtn{background:#DC3545;margin-top:10px;display:none;}
+    #cancelScanBtn:hover{background:#B02A37;}
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
     @media (max-width:768px){
       header img{height:40px;}
@@ -175,6 +177,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     <div id="nfcStatus" class="form">
       <h2>NFC Status</h2>
       <p id="nfcStatusResult">Scan an NFC tag to see headphone status.</p>
+      <button id="cancelScanBtn" onclick="cancelNFCScan();vibrate()">Cancel Scan</button>
     </div>
     <div id="manualReturnDialog" class="dialog">
       <div id="manualReturnDialogHeader" class="dialog-header">Select Headphones to Return</div>
@@ -210,7 +213,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         db,
         headphonesCollection,
         squareLocationId,
-        firebaseConfig;
+        firebaseConfig,
+        activeNFCController = null;
 
     async function fetchConfig() {
       try {
@@ -387,18 +391,21 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       await initializeSquare();
       document.getElementById('headphoneIdsList').innerHTML = '';
       checkoutListIds.clear();
+      document.getElementById('cancelScanBtn').style.display = 'none';
     }
 
     async function showReturn() {
       toggleForms('return');
       await loadHeadphones();
       updateReturnTable();
+      document.getElementById('cancelScanBtn').style.display = 'none';
     }
 
     async function showDashboard() {
       toggleForms('dashboard');
       await loadHeadphones();
       updateDashboard();
+      document.getElementById('cancelScanBtn').style.display = 'none';
     }
 
     async function showReports() {
@@ -409,19 +416,24 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       document.getElementById('reportEndDate').value = '';
       document.getElementById('reportSearch').value = '';
       document.getElementById('reportOutput').innerHTML = '<p>Select a report type to view details.</p>';
+      document.getElementById('cancelScanBtn').style.display = 'none';
     }
 
     async function scanNFCStatus() {
       toggleForms('nfcStatus');
       const resultElement = document.getElementById('nfcStatusResult');
-      resultElement.textContent = 'Scanning... Press back or close to stop.';
+      const cancelBtn = document.getElementById('cancelScanBtn');
+      resultElement.textContent = 'Scanning... Click "Cancel Scan" to stop.';
+      cancelBtn.style.display = 'block';
       if (!('NDEFReader' in window)) {
         resultElement.textContent = 'NFC not supported.';
+        cancelBtn.style.display = 'none';
         return;
       }
       const ndef = new NDEFReader();
+      activeNFCController = new AbortController();
       try {
-        await ndef.scan();
+        await ndef.scan({ signal: activeNFCController.signal });
         let output = '';
         ndef.onreading = event => {
           const nfcId = event.serialNumber.toLowerCase();
@@ -447,7 +459,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           resultElement.innerHTML += '<br>Error reading NFC tag. Try again.';
         };
       } catch (error) {
-        resultElement.textContent = `Error: ${error.message}`;
+        if (error.name !== 'AbortError') {
+          resultElement.textContent = `Error: ${error.message}`;
+        }
+        cancelBtn.style.display = 'none';
       }
     }
 
@@ -462,21 +477,22 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function scanNFC(context) {
       const button = document.getElementById('scanCheckout');
       const input = document.getElementById('headphoneId');
+      const cancelBtn = document.getElementById('cancelScanBtn');
       button.disabled = true;
+      cancelBtn.style.display = 'block';
       if (!('NDEFReader' in window)) {
         alert('NFC not supported. Enter ID manually.');
         manualEntry('checkout');
         button.disabled = false;
+        cancelBtn.style.display = 'none';
         return;
       }
       const ndef = new NDEFReader();
+      activeNFCController = new AbortController();
       try {
-        await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone to add. Times out in 10 seconds if no tags are detected.');
-        const controller = new AbortController();
+        await ndef.scan({ signal: activeNFCController.signal });
+        alert('Scanning NFC tags... Scan each headphone to add. Click "Cancel Scan" to stop.');
         let scannedCount = 0;
-        let lastScanTime = Date.now();
-
         ndef.onreading = event => {
           const nfcId = event.serialNumber.toLowerCase();
           const id = generateUniqueHeadphoneId();
@@ -497,33 +513,17 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           input.value = '';
           input.dataset.nfcId = nfcId;
           input.dataset.entryMethod = 'NFC';
-          lastScanTime = Date.now(); // Reset timeout on each scan
         };
-
         ndef.onreadingerror = () => {
           console.log('NFC reading error occurred.');
         };
-
-        // Timeout check: 10 seconds of inactivity
-        const timeoutCheck = setInterval(() => {
-          if (Date.now() - lastScanTime >= 10000) {
-            controller.abort();
-            clearInterval(timeoutCheck);
-            if (scannedCount === 0) {
-              alert('No NFC tags detected after 10 seconds. Please enter headphone IDs manually.');
-              manualEntry('checkout');
-            } else {
-              alert(`NFC scan complete. ${scannedCount} headphone(s) added to checkout list.`);
-            }
-            button.disabled = false;
-          }
-        }, 500);
-
-        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
       } catch (error) {
-        alert(`NFC scan failed: ${error.message}. Enter ID manually.`);
-        manualEntry('checkout');
+        if (error.name !== 'AbortError') {
+          alert(`NFC scan failed: ${error.message}. Enter ID manually.`);
+          manualEntry('checkout');
+        }
         button.disabled = false;
+        cancelBtn.style.display = 'none';
       }
     }
 
@@ -555,16 +555,20 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     async function scanNFCForDashboard() {
       const button = document.getElementById('scanDashboardNFC');
+      const cancelBtn = document.getElementById('cancelScanBtn');
       button.disabled = true;
+      cancelBtn.style.display = 'block';
       if (!('NDEFReader' in window)) {
         alert('NFC not supported. Please manually select headphones to return.');
         button.disabled = false;
+        cancelBtn.style.display = 'none';
         return;
       }
       const ndef = new NDEFReader();
+      activeNFCController = new AbortController();
       try {
-        await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone to return. Stop by navigating away.');
+        await ndef.scan({ signal: activeNFCController.signal });
+        alert('Scanning NFC tags... Scan each headphone to return. Click "Cancel Scan" to stop.');
         ndef.onreading = event => {
           const nfcId = event.serialNumber.toLowerCase();
           const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => 
@@ -585,24 +589,30 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           alert('Error reading NFC tag. Please try again or manually select headphones.');
         };
       } catch (error) {
-        alert(`NFC scan failed: ${error.message}. Please manually select headphones to return.`);
-      } finally {
+        if (error.name !== 'AbortError') {
+          alert(`NFC scan failed: ${error.message}. Please manually select headphones to return.`);
+        }
         button.disabled = false;
+        cancelBtn.style.display = 'none';
       }
     }
 
     async function scanNFCForReturn() {
       const button = document.getElementById('scanReturn');
+      const cancelBtn = document.getElementById('cancelScanBtn');
       button.disabled = true;
+      cancelBtn.style.display = 'block';
       if (!('NDEFReader' in window)) {
         alert('NFC not supported. Please manually select headphones to return.');
         button.disabled = false;
+        cancelBtn.style.display = 'none';
         return;
       }
       const ndef = new NDEFReader();
+      activeNFCController = new AbortController();
       try {
-        await ndef.scan();
-        alert('Scanning NFC tags... Scan each headphone to return. Stop by navigating away.');
+        await ndef.scan({ signal: activeNFCController.signal });
+        alert('Scanning NFC tags... Scan each headphone to return. Click "Cancel Scan" to stop.');
         ndef.onreading = event => {
           const nfcId = event.serialNumber.toLowerCase();
           const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => 
@@ -623,9 +633,24 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           alert('Error reading NFC tag. Please try again or manually select headphones.');
         };
       } catch (error) {
-        alert(`NFC scan failed: ${error.message}. Please manually select headphones to return.`);
-      } finally {
+        if (error.name !== 'AbortError') {
+          alert(`NFC scan failed: ${error.message}. Please manually select headphones to return.`);
+        }
         button.disabled = false;
+        cancelBtn.style.display = 'none';
+      }
+    }
+
+    function cancelNFCScan() {
+      if (activeNFCController) {
+        activeNFCController.abort();
+        activeNFCController = null;
+        alert('NFC scan cancelled.');
+        document.getElementById('cancelScanBtn').style.display = 'none';
+        document.getElementById('scanCheckout').disabled = false;
+        document.getElementById('scanDashboardNFC').disabled = false;
+        document.getElementById('scanReturn').disabled = false;
+        document.getElementById('nfcStatusResult').textContent = 'Scan cancelled. Scan an NFC tag to see headphone status.';
       }
     }
 
