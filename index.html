@@ -948,7 +948,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer || { name: 'Unknown', email: '' };
+          const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
           const headphoneList = returnedIds.join(', ');
           const emailBody = `
 Dear ${customer.name || 'Customer'},
@@ -968,8 +968,7 @@ Email: se2login@gmail.com
             email: customer.email || '',
             agreement: emailBody,
             signature: '',
-            preauthId: '',
-            bcc: 'se2login@gmail.com'
+            preauthId: ''
           };
           console.log('Sending return email with payload:', emailPayload);
 
@@ -1062,7 +1061,7 @@ Email: se2login@gmail.com
         }
 
         if (returnedIds.length > 0) {
-          const customer = headphones[returnedIds[0]].customer || { name: 'Unknown', email: '' };
+          const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
           const headphoneList = returnedIds.join(', ');
           const emailBody = `
 Dear ${customer.name || 'Customer'},
@@ -1082,8 +1081,7 @@ Email: se2login@gmail.com
             email: customer.email || '',
             agreement: emailBody,
             signature: '',
-            preauthId: '',
-            bcc: 'se2login@gmail.com'
+            preauthId: ''
           };
           console.log('Sending return email with payload:', emailPayload);
 
