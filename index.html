@@ -194,7 +194,7 @@
       animation: spin 1s linear infinite;
     }
     .dashboard-table-wrapper {
-      max-height: 400px; /* Adjust height as needed */
+      max-height: 400px;
       overflow-y: auto;
       overflow-x: auto;
       width: 100%;
@@ -489,8 +489,15 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     function addHeadphoneId() {
       const id = document.getElementById('headphoneId').value.trim();
       if (!id) return alert('Please scan or enter a headphone ID!');
-      if (usedHeadphoneIds.has(id)) return alert(`Headphone ID ${id} already used!`);
+      
+      // Check if ID is already in the current checkout list
+      const currentIds = getHeadphoneIds('headphoneIdsList');
+      if (currentIds.includes(id)) return alert(`Headphone ID ${id} is already in your checkout list!`);
+      
+      // Check if ID is already checked out or used
+      if (usedHeadphoneIds.has(id)) return alert(`Headphone ID ${id} is already used or checked out!`);
       if (headphones[id] && headphones[id].status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
+      
       const list = document.getElementById('headphoneIdsList');
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
@@ -556,7 +563,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const regex = /^HP\d{7}$/;
       const existingIds = Array.from(usedHeadphoneIds).filter(id => regex.test(id));
       let nextNum = 1;
-      if (existingIds.length) nextNum = Math.max(...existingIds.map(id => parseInt(id.replace('HP', ''), 10))) + 1;
+      if (existingIds.length) {
+        const maxNum = Math.max(...existingIds.map(id => parseInt(id.replace('HP', ''), 10)));
+        nextNum = maxNum + 1;
+      }
       return `HP${String(nextNum).padStart(7, '0')}`;
     }
 
@@ -714,9 +724,17 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       if (context === 'checkout') {
         id = generateUniqueHeadphoneId();
         const userId = prompt(`Enter headphone ID (suggested: ${id}):`, id);
-        if (userId && regex.test(userId) && !usedHeadphoneIds.has(userId)) id = userId;
-        else if (usedHeadphoneIds.has(userId)) alert(`ID ${userId} already used! Using ${id}.`);
-        else if (userId && !regex.test(userId)) alert('Invalid format! Using suggested ID.');
+        if (!userId || !regex.test(userId)) {
+          alert('Invalid ID format. Use HP followed by 7 digits.');
+          button.disabled = false;
+          return;
+        }
+        if (usedHeadphoneIds.has(userId)) {
+          alert(`ID ${userId} is already used or checked out!`);
+          button.disabled = false;
+          return;
+        }
+        id = userId;
       } else {
         id = prompt('Enter headphone ID (e.g., HP0000001):');
         if (!id || !regex.test(id)) {
@@ -1098,17 +1116,13 @@ The SE2 Silent Disco Team
       const now = Date.now();
       const twelveHours = 12 * 60 * 60 * 1000;
 
-      // Split headphones into checked_out and checked_in
       const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
       const checkedOut = headphoneArray.filter(hp => hp.status === 'checked_out');
       const checkedIn = headphoneArray.filter(hp => hp.status !== 'checked_out');
 
-      // Sort checked_out by customer name
       checkedOut.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
-      // Sort checked_in by customer name
       checkedIn.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
 
-      // Combine arrays with checked_out on top
       const sortedArray = [...checkedOut, ...checkedIn];
 
       tbody.innerHTML = '';
