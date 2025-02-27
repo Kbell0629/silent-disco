@@ -377,7 +377,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     window.onload = async () => {
       try {
-        await fetchConfig(); // Fetch config first
+        await fetchConfig();
         await waitForFirebase();
         await initializeSquare();
         await loadHeadphones();
@@ -609,7 +609,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function scanNFC(context) {
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
-      const headphoneIdRegex = /^HP\d{7}$/; // Expected format: HP followed by 7 digits
+      const headphoneIdRegex = /^HP\d{7}$/;
       button.disabled = true;
 
       if ('NDEFReader' in window) {
@@ -618,14 +618,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
           await ndef.scan();
           const controller = new AbortController();
           ndef.onreading = event => {
-            let id = event.serialNumber; // Get the NFC tag's serial number
-            // Check if the scanned ID matches the expected headphone ID format
+            let id = event.serialNumber;
             if (id && headphoneIdRegex.test(id)) {
               input.value = id;
               input.dataset.entryMethod = 'NFC';
               alert(`Scanned headphone: ${id}`);
             } else {
-              // If the scanned ID isn't in the right format, prompt for manual entry
               id = prompt('Scanned NFC tag doesn\'t match expected format (HP followed by 7 digits). Please enter a valid headphone ID (e.g., HP0000001):');
               if (id && headphoneIdRegex.test(id)) {
                 input.value = id;
@@ -902,7 +900,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             sourceId: paymentToken,
             amount: headphoneIds.length * 10000,
             currency: 'USD',
-            locationId: squareLocationId // Use fetched value
+            locationId: squareLocationId
           })
         });
 
@@ -1078,7 +1076,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             sourceId: paymentToken,
             amount: headphoneIds.length * 10000,
             currency: 'USD',
-            locationId: squareLocationId // Use fetched value
+            locationId: squareLocationId
           })
         });
 
@@ -1173,7 +1171,23 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
     async function dashboardCharge(id) {
       if (headphones[id] && headphones[id].status === 'checked_out' && headphones[id].pre_auth) {
-        const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $100.`);
+        const groupId = headphones[id].groupId;
+        let chargeAmount;
+        let headphoneCount;
+
+        if (groupId) {
+          // Count headphones in the same group
+          headphoneCount = Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length;
+          chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount); // Convert to cents
+        } else {
+          // Single headphone
+          headphoneCount = 1;
+          chargeAmount = headphones[id].pre_auth.amount * 100; // Convert to cents
+        }
+
+        const chargeAmountDollars = (chargeAmount / 100).toFixed(2);
+        const confirmCharge = confirm(`Are you sure ${headphones[id].customer.name} did not return headphone ${id}? This will charge their card $${chargeAmountDollars}.`);
+        
         if (confirmCharge) {
           showLoading();
           try {
@@ -1182,7 +1196,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 paymentId: headphones[id].pre_auth.pre_auth_id,
-                amount: 10000
+                amount: chargeAmount // Dynamic amount in cents
               })
             });
             const chargeResult = await chargeResponse.json();
@@ -1194,7 +1208,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             };
             await updateHeadphone(id, updatedData);
             
-            alert(`Headphone ${id} charged successfully!`);
+            alert(`Headphone ${id} charged successfully for $${chargeAmountDollars}!`);
             updateDashboard();
           } catch (error) {
             alert(`Charge failed for ${id}: ${error.message}`);
