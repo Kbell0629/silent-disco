@@ -321,8 +321,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const input = $(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
       const listId = context === 'checkout' ? 'headphoneIdsList' : context === 'dialogCheckout' ? 'dialogHeadphoneIdsList' : null;
       const existingIds = listId ? getListIds(listId) : [];
-      const nextNum = Math.max(...Object.keys(headphones).filter(id => headphoneIdRegex.test(id)).map(id => parseInt(id.slice(2))) || [0]) + 1;
-      const suggestedId = `HP${String(nextNum).padStart(7, '0')}`;
+      let suggestedId;
+
+      if (context === 'checkout' || context === 'dialogCheckout') {
+        // For checkout, suggest the next sequential ID
+        const allIds = Object.keys(headphones).filter(id => headphoneIdRegex.test(id)).map(id => parseInt(id.slice(2)));
+        const maxNum = allIds.length ? Math.max(...allIds) : 0;
+        const nextNum = maxNum + 1;
+        suggestedId = `HP${String(nextNum).padStart(7, '0')}`;
+      } else {
+        // For return, suggest HP0000001 as a fallback (since it’s just for lookup)
+        suggestedId = 'HP0000001';
+      }
 
       let id;
       do {
@@ -330,7 +340,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         if (!id) return;
         if (!headphoneIdRegex.test(id)) alert('Invalid ID format. Use HP followed by 7 digits.');
         else if (listId && existingIds.includes(id)) alert(`Headphone ${id} already in list.`);
-      } while (!headphoneIdRegex.test(id) || (listId && existingIds.includes(id)));
+        else if ((context === 'checkout' || context === 'dialogCheckout') && headphones[id]) alert(`Headphone ${id} already exists. Choose a new ID.`);
+      } while (!headphoneIdRegex.test(id) || (listId && existingIds.includes(id)) || ((context === 'checkout' || context === 'dialogCheckout') && headphones[id]));
 
       input.value = id;
       input.dataset.entryMethod = 'Manual';
