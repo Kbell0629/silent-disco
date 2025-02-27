@@ -12,14 +12,14 @@
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Poppins',sans-serif;background:#1A1A1A;color:#FFF;padding:20px;line-height:1.6;}
     .container{max-width:1200px;margin:0 auto;}
-    header{display:flex;align-items:center;justify-content:center;padding:20px 0;background:rgba(107,72,255,0.1);border-radius:10px;margin-bottom:30px;}
+    header{display:flex;align-items:center;justify-content:center;padding:20px 0;background:rgba(107,72,255,.1);border-radius:10px;margin-bottom:30px;}
     header img{height:60px;margin-right:15px;}
     header h1{font-size:28px;font-weight:700;}
     .button-group{display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:30px;width:100%;}
-    button{padding:15px 30px;font-size:18px;font-weight:600;background:#6B48FF;color:#FFF;border:none;border-radius:10px;cursor:pointer;transition:background 0.3s ease,transform 0.2s ease;width:90%;max-width:600px;text-align:center;}
+    button{padding:15px 30px;font-size:18px;font-weight:600;background:#6B48FF;color:#FFF;border:none;border-radius:10px;cursor:pointer;transition:background .3s ease,transform .2s ease;width:90%;max-width:600px;text-align:center;}
     button:hover{background:#5439CC;transform:translateY(-2px);}
     button:disabled{background:#666;cursor:not-allowed;transform:none;}
-    .form{display:none;flex-direction:column;gap:20px;background:#2A2A2A;padding:25px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+    .form{display:none;flex-direction:column;gap:20px;background:#2A2A2A;padding:25px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.3);}
     .form h2{font-size:24px;font-weight:600;color:#6B48FF;}
     input,textarea,select{padding:10px;font-size:14px;background:#EDEDED;border:none;border-radius:6px;color:#1A1A1A;width:100%;max-width:400px;}
     textarea{resize:vertical;height:150px;}
@@ -40,24 +40,14 @@
     #headphoneIdsList,#dialogHeadphoneIdsList,#returnHeadphoneIdsList{list-style:none;padding:0;margin:10px 0;background:#3A3A3A;border-radius:6px;}
     #headphoneIdsList li,#dialogHeadphoneIdsList li,#returnHeadphoneIdsList li{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #4A4A4A;}
     .remove-btn{background:#DC3545;padding:6px 12px;font-size:12px;}
-    .dialog{position:fixed;top:10%;left:50%;transform:translateX(-50%);background:#2A2A2A;padding:20px;border-radius:12px;z-index:1000;display:none;flex-direction:column;gap:15px;max-width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,0.5);}
+    .dialog{position:fixed;top:10%;left:50%;transform:translateX(-50%);background:#2A2A2A;padding:20px;border-radius:12px;z-index:1000;display:none;flex-direction:column;gap:15px;max-width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,.5);}
     .dialog-header{background:#6B48FF;color:#FFF;padding:10px;font-size:20px;font-weight:600;border-radius:8px 8px 0 0;cursor:move;}
-    .dialog-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;display:none;}
-    .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;z-index:2000;}
+    .dialog-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:999;display:none;}
+    .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:2000;}
     .spinner{border:8px solid #EDEDED;border-top:8px solid #6B48FF;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;}
     .dashboard-table-wrapper{max-height:400px;overflow-y:auto;overflow-x:auto;width:100%;}
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-    @media (max-width:768px){
-      header img{height:40px;}
-      header h1{font-size:22px;}
-      .button-group{gap:15px;}
-      button{width:95%;font-size:16px;padding:12px 20px;}
-      .form{padding:15px;}
-      input,textarea,select{width:100%;}
-      table{font-size:12px;}
-      th,td{padding:8px;}
-      .dashboard-table-wrapper{max-height:300px;}
-    }
+    @media (max-width:768px){header img{height:40px;}header h1{font-size:22px;}.button-group{gap:15px;}button{width:95%;font-size:16px;padding:12px 20px;}.form{padding:15px;}input,textarea,select{width:100%;}table{font-size:12px;}th,td{padding:8px;}.dashboard-table-wrapper{max-height:300px;}}
   </style>
 </head>
 <body>
@@ -73,7 +63,6 @@
       <button onclick="showReports();vibrate()">View Reports</button>
       <button onclick="scanNFCStatus();vibrate()">Scan NFC Status</button>
     </div>
-
     <div id="checkout" class="form">
       <h2>Checkout Headphones</h2>
       <button id="scanCheckout" onclick="scanNFC('checkout');vibrate()">Scan NFC Tag</button>
@@ -100,7 +89,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <button id="clearSignature" onclick="clearSignature();vibrate()">Clear Signature</button>
       <button id="checkoutButton" onclick="checkout();vibrate()">Complete Checkout</button>
     </div>
-
     <div id="return" class="form">
       <h2>Return Headphones</h2>
       <button id="scanReturn" onclick="scanNFC('return');vibrate()">Scan NFC Tag</button>
@@ -109,7 +97,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <ul id="returnHeadphoneIdsList"></ul>
       <button onclick="returnHeadphones();vibrate()">Return All</button>
     </div>
-
     <div id="dashboard" class="form">
       <h2>Dashboard</h2>
       <input id="searchInput" type="text" placeholder="Search headphones..." onkeyup="searchHeadphones()">
@@ -135,7 +122,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         </table>
       </div>
     </div>
-
     <div id="reports" class="form">
       <h2>Reports</h2>
       <select id="reportType" onchange="generateReport()">
@@ -154,12 +140,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <button onclick="exportReport()">Export as CSV</button>
       <div id="reportOutput"></div>
     </div>
-
     <div id="nfcStatus" class="form">
       <h2>NFC Status</h2>
       <p id="nfcStatusResult">Scan an NFC tag to see headphone status.</p>
     </div>
-
     <div id="returnDialog" class="dialog">
       <div id="returnDialogHeader" class="dialog-header">Return Headphones</div>
       <button id="dialogScanReturn" onclick="scanNFC('dialogReturn');vibrate()">Scan NFC Tag</button>
@@ -169,7 +153,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <button onclick="submitReturnDialog();vibrate()">Return All</button>
       <button onclick="closeDialog('return');vibrate()">Cancel</button>
     </div>
-
     <div id="manualReturnDialog" class="dialog">
       <div id="manualReturnDialogHeader" class="dialog-header">Select Headphones to Return</div>
       <input id="manualReturnSearch" type="text" placeholder="Search headphones..." onkeyup="filterManualReturnList()">
@@ -187,7 +170,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       <button onclick="submitManualReturn();vibrate()">Return Selected</button>
       <button onclick="closeDialog('manualReturn');vibrate()">Cancel</button>
     </div>
-
     <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(null);vibrate()"></div>
     <div id="loadingOverlay" class="loading-overlay">
       <div class="spinner"></div>
@@ -195,105 +177,1100 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   </div>
 
   <script>
-    const squareAppId='sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
-    let headphones={},usedHeadphoneIds=new Set(),checkoutListIds=new Set(),signatureData=null,payments,cardElement,db,headphonesCollection,squareLocationId,firebaseConfig;
+    const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
+    let headphones = {},
+        usedHeadphoneIds = new Set(),
+        checkoutListIds = new Set(),
+        signatureData = null,
+        payments,
+        cardElement,
+        db,
+        headphonesCollection,
+        squareLocationId,
+        firebaseConfig;
 
-    async function fetchConfig(){try{const r=await fetch('/.netlify/functions/get-config');const c=await r.json();squareLocationId=c.squareLocationId;firebaseConfig=c.firebaseConfig;}catch(e){console.error('Failed to fetch config:',e);alert('Failed to load configuration.');}}
+    async function fetchConfig() {
+      try {
+        const response = await fetch('/.netlify/functions/get-config');
+        const config = await response.json();
+        squareLocationId = config.squareLocationId;
+        firebaseConfig = config.firebaseConfig;
+      } catch (error) {
+        console.error('Failed to fetch config:', error);
+        alert('Failed to load configuration.');
+      }
+    }
 
-    async function waitForFirebase(){return new Promise(r=>{const m=100;let a=0;const i=setInterval(()=>{if(typeof firebase!=='undefined'&&firebase.app&&firebase.firestore||a>=m){clearInterval(i);if(firebase.app){firebase.initializeApp(firebaseConfig);db=firebase.firestore();headphonesCollection=db.collection('headphones');}r();}a++;},100);});}
+    async function waitForFirebase() {
+      return new Promise(resolve => {
+        const maxAttempts = 100;
+        let attempts = 0;
+        const checkFirebase = setInterval(() => {
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore || attempts >= maxAttempts) {
+            clearInterval(checkFirebase);
+            if (firebase.app) {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+              headphonesCollection = db.collection('headphones');
+            }
+            resolve();
+          }
+          attempts++;
+        }, 100);
+      });
+    }
 
-    async function loadHeadphones(){if(!db||!headphonesCollection)return headphones;try{const s=await headphonesCollection.get();headphones={};usedHeadphoneIds=new Set();s.forEach(d=>{headphones[d.id]=d.data();if(headphones[d.id].status==='checked_out')usedHeadphoneIds.add(d.id);});return headphones;}catch(e){console.error('Error loading headphones:',e);alert('Failed to load data.');return headphones;}}
+    async function loadHeadphones() {
+      if (!db || !headphonesCollection) return headphones;
+      try {
+        const snapshot = await headphonesCollection.get();
+        headphones = {};
+        usedHeadphoneIds = new Set();
+        snapshot.forEach(doc => {
+          headphones[doc.id] = doc.data();
+          if (headphones[doc.id].status === 'checked_out') usedHeadphoneIds.add(doc.id);
+        });
+        return headphones;
+      } catch (error) {
+        console.error('Error loading headphones:', error);
+        alert('Failed to load data.');
+        return headphones;
+      }
+    }
 
-    async function saveHeadphone(id,data){try{if(db&&headphonesCollection)await headphonesCollection.doc(id).set(data);headphones[id]=data;if(data.status==='checked_out')usedHeadphoneIds.add(id);}catch(e){console.error('Error saving headphone:',e);throw e;}}
+    async function saveHeadphone(id, data) {
+      try {
+        if (db && headphonesCollection) await headphonesCollection.doc(id).set(data);
+        headphones[id] = data;
+        if (data.status === 'checked_out') usedHeadphoneIds.add(id);
+      } catch (error) {
+        console.error('Error saving headphone:', error);
+        throw error;
+      }
+    }
 
-    async function updateHeadphone(id,data){try{if(db&&headphonesCollection)await headphonesCollection.doc(id).update(data);headphones[id]={...headphones[id],...data};if(data.status==='returned'||data.status==='charged')usedHeadphoneIds.delete(id);}catch(e){console.error('Error updating headphone:',e);alert('Failed to update data.');throw e;}}
+    async function updateHeadphone(id, data) {
+      try {
+        if (db && headphonesCollection) await headphonesCollection.doc(id).update(data);
+        headphones[id] = { ...headphones[id], ...data };
+        if (data.status === 'returned' || data.status === 'charged') usedHeadphoneIds.delete(id);
+      } catch (error) {
+        console.error('Error updating headphone:', error);
+        alert('Failed to update data.');
+        throw error;
+      }
+    }
 
-    async function deleteHeadphone(id){try{if(confirm(`Are you sure you want to delete headphone ${id}?`)){if(db&&headphonesCollection)await headphonesCollection.doc(id).delete();delete headphones[id];usedHeadphoneIds.delete(id);checkoutListIds.delete(id);alert(`Headphone ${id} deleted!`);updateDashboard();}}catch(e){console.error('Error deleting headphone:',e);alert('Failed to delete headphone.');}}
+    async function deleteHeadphone(id) {
+      try {
+        if (confirm(`Are you sure you want to delete headphone ${id}?`)) {
+          if (db && headphonesCollection) await headphonesCollection.doc(id).delete();
+          delete headphones[id];
+          usedHeadphoneIds.delete(id);
+          checkoutListIds.delete(id);
+          alert(`Headphone ${id} deleted!`);
+          updateDashboard();
+        }
+      } catch (error) {
+        console.error('Error deleting headphone:', error);
+        alert('Failed to delete headphone.');
+      }
+    }
 
-    async function initializeSquare(){if(!window.Square)return;if(!payments)payments=window.Square.payments(squareAppId);const c=document.getElementById('card-container');c.innerHTML='';cardElement=await payments.card();await cardElement.attach('#card-container');return cardElement;}
+    async function initializeSquare() {
+      if (!window.Square) return;
+      if (!payments) payments = window.Square.payments(squareAppId);
+      const cardContainer = document.getElementById('card-container');
+      cardContainer.innerHTML = '';
+      cardElement = await payments.card();
+      await cardElement.attach('#card-container');
+      return cardElement;
+    }
 
-    window.onload=async()=>{try{await fetchConfig();await waitForFirebase();await initializeSquare();await loadHeadphones();makeDraggable('returnDialog','returnDialogHeader');makeDraggable('manualReturnDialog','manualReturnDialogHeader');}catch(e){console.error('Initialization error:',e);alert('Failed to start app.');}};
+    window.onload = async () => {
+      try {
+        await fetchConfig();
+        await waitForFirebase();
+        await initializeSquare();
+        await loadHeadphones();
+        makeDraggable('returnDialog', 'returnDialogHeader');
+        makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
+      } catch (error) {
+        console.error('Initialization error:', error);
+        alert('Failed to start app.');
+      }
+    };
 
-    function vibrate(){if('vibrate' in navigator)navigator.vibrate(100);}
+    function vibrate() {
+      if ('vibrate' in navigator) navigator.vibrate(100);
+    }
 
-    function showLoading(){document.getElementById('loadingOverlay').style.display='flex';document.getElementById('checkoutButton').disabled=true;document.querySelectorAll('.charge-btn').forEach(b=>b.disabled=true);}
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('checkoutButton').disabled = true;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = true);
+    }
 
-    function hideLoading(){document.getElementById('loadingOverlay').style.display='none';document.getElementById('checkoutButton').disabled=false;document.querySelectorAll('.charge-btn').forEach(b=>b.disabled=false);}
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('checkoutButton').disabled = false;
+      document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = false);
+    }
 
-    function addHeadphoneId(){const id=document.getElementById('headphoneId').value.trim();if(!id)return alert('Please scan or enter a headphone ID!');const c=getHeadphoneIds('headphoneIdsList');if(c.includes(id))return alert(`Headphone ID ${id} is already in your checkout list!`);if(headphones[id]&&headphones[id].status==='checked_out')return alert(`Headphone ${id} is already checked out!`);const l=document.getElementById('headphoneIdsList');const li=document.createElement('li');li.innerHTML=`${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;l.appendChild(li);checkoutListIds.add(id);document.getElementById('headphoneId').value='';}
+    function addHeadphoneId() {
+      const id = document.getElementById('headphoneId').value.trim();
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      const currentIds = getHeadphoneIds('headphoneIdsList');
+      if (currentIds.includes(id)) return alert(`Headphone ID ${id} is already in your checkout list!`);
+      if (headphones[id] && headphones[id].status === 'checked_out') return alert(`Headphone ${id} is already checked out!`);
+      const list = document.getElementById('headphoneIdsList');
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
+      list.appendChild(li);
+      checkoutListIds.add(id);
+      document.getElementById('headphoneId').value = '';
+    }
 
-    function addReturnHeadphoneId(){const id=document.getElementById('returnId').value.trim();if(!id)return alert('Please scan or enter a headphone ID!');if(!headphones[id]||headphones[id].status!=='checked_out')return alert(`Headphone ${id} is not checked out!`);const l=document.getElementById('returnHeadphoneIdsList');const e=getReturnHeadphoneIds();if(e.includes(id))return alert(`Headphone ${id} already in return list!`);const li=document.createElement('li');li.innerHTML=`${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;li.dataset.id=id;l.appendChild(li);document.getElementById('returnId').value='';}
+    function addReturnHeadphoneId() {
+      const id = document.getElementById('returnId').value.trim();
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (!headphones[id] || headphones[id].status !== 'checked_out') return alert(`Headphone ${id} is not checked out!`);
+      const list = document.getElementById('returnHeadphoneIdsList');
+      const existingIds = getReturnHeadphoneIds();
+      if (existingIds.includes(id)) return alert(`Headphone ${id} already in return list!`);
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
+      li.dataset.id = id;
+      list.appendChild(li);
+      document.getElementById('returnId').value = '';
+    }
 
-    function addDialogReturnHeadphoneId(){const id=document.getElementById('dialogReturnId').value.trim();if(!id)return alert('Please scan or enter a headphone ID!');if(!headphones[id]||headphones[id].status!=='checked_out')return alert(`Headphone ${id} is not checked out!`);const l=document.getElementById('dialogReturnHeadphoneIdsList');const e=getDialogReturnHeadphoneIds();if(e.includes(id))return alert(`Headphone ${id} already in return list!`);const li=document.createElement('li');li.innerHTML=`${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;li.dataset.id=id;l.appendChild(li);document.getElementById('dialogReturnId').value='';}
+    function addDialogReturnHeadphoneId() {
+      const id = document.getElementById('dialogReturnId').value.trim();
+      if (!id) return alert('Please scan or enter a headphone ID!');
+      if (!headphones[id] || headphones[id].status !== 'checked_out') return alert(`Headphone ${id} is not checked out!`);
+      const list = document.getElementById('dialogReturnHeadphoneIdsList');
+      const existingIds = getDialogReturnHeadphoneIds();
+      if (existingIds.includes(id)) return alert(`Headphone ${id} already in return list!`);
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this,'${id}')">Remove</button>`;
+      li.dataset.id = id;
+      list.appendChild(li);
+      document.getElementById('dialogReturnId').value = '';
+    }
 
-    function removeHeadphoneId(b,id){b.parentElement.remove();checkoutListIds.delete(id);}
+    function removeHeadphoneId(button, id) {
+      button.parentElement.remove();
+      checkoutListIds.delete(id);
+    }
 
-    function getHeadphoneIds(l){return Array.from(document.getElementById(l).children).map(li=>li.textContent.split(' ')[0]);}
+    function getHeadphoneIds(listId) {
+      return Array.from(document.getElementById(listId).children).map(li => li.textContent.split(' ')[0]);
+    }
 
-    function getReturnHeadphoneIds(){return Array.from(document.getElementById('returnHeadphoneIdsList').children).map(li=>li.dataset.id);}
+    function getReturnHeadphoneIds() {
+      return Array.from(document.getElementById('returnHeadphoneIdsList').children).map(li => li.dataset.id);
+    }
 
-    function getDialogReturnHeadphoneIds(){return Array.from(document.getElementById('dialogReturnHeadphoneIdsList').children).map(li=>li.dataset.id);}
+    function getDialogReturnHeadphoneIds() {
+      return Array.from(document.getElementById('dialogReturnHeadphoneIdsList').children).map(li => li.dataset.id);
+    }
 
-    function generateGroupId(){const r=/^GROUP_\d{7}$/;const e=Object.values(headphones).filter(h=>h.groupId&&r.test(h.groupId)).map(h=>parseInt(h.groupId.replace('GROUP_',''),10));let n=1;if(e.length)n=Math.max(...e)+1;return `GROUP_${String(n).padStart(7,'0')}`;}
+    function generateGroupId() {
+      const groupRegex = /^GROUP_\d{7}$/;
+      const existingGroups = Object.values(headphones)
+        .filter(hp => hp.groupId && groupRegex.test(hp.groupId))
+        .map(hp => parseInt(hp.groupId.replace('GROUP_', ''), 10));
+      let nextNum = 1;
+      if (existingGroups.length) nextNum = Math.max(...existingGroups) + 1;
+      return `GROUP_${String(nextNum).padStart(7, '0')}`;
+    }
 
-    function generateUniqueHeadphoneId(){const r=/^HP\d{7}$/;const a=new Set([...usedHeadphoneIds,...checkoutListIds]);const e=Array.from(a).filter(id=>r.test(id));let n=1;if(e.length)n=Math.max(...e.map(id=>parseInt(id.replace('HP',''),10)))+1;return `HP${String(n).padStart(7,'0')}`;}
+    function generateUniqueHeadphoneId() {
+      const regex = /^HP\d{7}$/;
+      const allIds = new Set([...usedHeadphoneIds, ...checkoutListIds]);
+      const existingIds = Array.from(allIds).filter(id => regex.test(id));
+      let nextNum = 1;
+      if (existingIds.length) nextNum = Math.max(...existingIds.map(id => parseInt(id.replace('HP', ''), 10))) + 1;
+      return `HP${String(nextNum).padStart(7, '0')}`;
+    }
 
-    async function showCheckout(){toggleForms('checkout');initSignaturePad('signaturePad');await initializeSquare();document.getElementById('headphoneIdsList').innerHTML='';checkoutListIds.clear();}
+    async function showCheckout() {
+      toggleForms('checkout');
+      initSignaturePad('signaturePad');
+      await initializeSquare();
+      document.getElementById('headphoneIdsList').innerHTML = '';
+      checkoutListIds.clear();
+    }
 
-    function showReturn(){toggleForms('return');document.getElementById('returnHeadphoneIdsList').innerHTML='';}
+    function showReturn() {
+      toggleForms('return');
+      document.getElementById('returnHeadphoneIdsList').innerHTML = '';
+    }
 
-    async function showDashboard(){toggleForms('dashboard');await loadHeadphones();updateDashboard();}
+    async function showDashboard() {
+      toggleForms('dashboard');
+      await loadHeadphones();
+      updateDashboard();
+    }
 
-    async function showReports(){toggleForms('reports');await loadHeadphones();document.getElementById('reportType').value='';document.getElementById('reportStartDate').value='';document.getElementById('reportEndDate').value='';document.getElementById('reportSearch').value='';document.getElementById('reportOutput').innerHTML='<p>Select a report type to view details.</p>';}
+    async function showReports() {
+      toggleForms('reports');
+      await loadHeadphones();
+      document.getElementById('reportType').value = '';
+      document.getElementById('reportStartDate').value = '';
+      document.getElementById('reportEndDate').value = '';
+      document.getElementById('reportSearch').value = '';
+      document.getElementById('reportOutput').innerHTML = '<p>Select a report type to view details.</p>';
+    }
 
-    async function scanNFCStatus(){toggleForms('nfcStatus');const r=document.getElementById('nfcStatusResult');r.textContent='Scanning...';if(!('NDEFReader' in window)){r.textContent='NFC not supported.';return;}const n=new NDEFReader();try{await n.scan();const c=new AbortController();n.onreading=e=>{const id=e.serialNumber||prompt('Enter headphone ID manually:');if(id&&headphones[id]){const h=headphones[id];r.innerHTML=`<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${h.nfcId||'N/A'}<br><strong>Status:</strong> ${h.status==='checked_out'?'Checked Out':h.status==='returned'?'Returned':'Charged'}<br><strong>Customer:</strong> ${h.customer.name}<br><strong>Email:</strong> ${h.customer.email}<br><strong>Phone:</strong> ${h.customer.phone}<br><strong>Preauth Status:</strong> ${h.pre_auth?'Hold':'Released'}<br><strong>Entry Method:</strong> ${h.entryMethod||'N/A'}<br><strong>Date:</strong> ${h.agreement.date||'N/A'}<br><strong>Group ID:</strong> ${h.groupId||'Single'}`;}else{r.textContent=`Headphone ${id} not found.`;}c.abort();};n.onreadingerror=()=>{r.textContent='NFC scan failed. Try again.';c.abort();};setTimeout(()=>{c.abort();if(r.textContent==='Scanning...')r.textContent='Scan timed out.';},5000);await new Promise(r=>c.signal.addEventListener('abort',r));}catch(e){r.textContent=`Error: ${e.message}`;}}
+    async function scanNFCStatus() {
+      toggleForms('nfcStatus');
+      const resultElement = document.getElementById('nfcStatusResult');
+      resultElement.textContent = 'Scanning...';
+      if (!('NDEFReader' in window)) {
+        resultElement.textContent = 'NFC not supported.';
+        return;
+      }
+      const ndef = new NDEFReader();
+      try {
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = event => {
+          const id = event.serialNumber || prompt('Enter headphone ID manually:');
+          if (id && headphones[id]) {
+            const hp = headphones[id];
+            resultElement.innerHTML = `
+              <strong>ID:</strong> ${id}<br>
+              <strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br>
+              <strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br>
+              <strong>Customer:</strong> ${hp.customer.name}<br>
+              <strong>Email:</strong> ${hp.customer.email}<br>
+              <strong>Phone:</strong> ${hp.customer.phone}<br>
+              <strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br>
+              <strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br>
+              <strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br>
+              <strong>Group ID:</strong> ${hp.groupId || 'Single'}
+            `;
+          } else {
+            resultElement.textContent = `Headphone ${id} not found.`;
+          }
+          controller.abort();
+        };
+        ndef.onreadingerror = () => {
+          resultElement.textContent = 'NFC scan failed. Try again.';
+          controller.abort();
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (resultElement.textContent === 'Scanning...') resultElement.textContent = 'Scan timed out.';
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+      }
+    }
 
-    function toggleForms(a){['checkout','return','dashboard','nfcStatus','reports'].forEach(id=>document.getElementById(id).style.display=id===a?'flex':'none');document.getElementById('returnDialog').style.display='none';document.getElementById('manualReturnDialog').style.display='none';document.getElementById('dialogOverlay').style.display='none';}
+    function toggleForms(active) {
+      ['checkout', 'return', 'dashboard', 'nfcStatus', 'reports'].forEach(id => {
+        document.getElementById(id).style.display = id === active ? 'flex' : 'none';
+      });
+      document.getElementById('returnDialog').style.display = 'none';
+      document.getElementById('manualReturnDialog').style.display = 'none';
+      document.getElementById('dialogOverlay').style.display = 'none';
+    }
 
-    async function scanNFC(c){const b=document.getElementById(c==='checkout'?'scanCheckout':c==='return'?'scanReturn':'dialogScanReturn'),i=document.getElementById(c==='checkout'?'headphoneId':c==='return'?'returnId':'dialogReturnId'),r=/^HP\d{7}$/;b.disabled=true;if(!('NDEFReader'in window)){alert('NFC not supported. Enter ID manually.');c==='checkout'?manualEntry(c):showManualReturnDialog(c);b.disabled=false;return;}const n=new NDEFReader();try{await n.scan();const co=new AbortController();n.onreading=e=>{const ni=e.serialNumber;let id;if(c==='checkout'){id=generateUniqueHeadphoneId();i.dataset.nfcId=ni;}else{id=prompt('Enter headphone ID for this NFC tag (e.g., HP0000001):');if(!id||!r.test(id)){alert('Invalid ID format. Use HP followed by 7 digits.');co.abort();b.disabled=false;return;}}i.value=id;i.dataset.entryMethod='NFC';alert(`Scanned headphone: ${id} with NFC ID: ${ni}`);co.abort();b.disabled=false;if(c==='return')addReturnHeadphoneId();else if(c==='dialogReturn')addDialogReturnHeadphoneId();else addHeadphoneId();};n.onreadingerror=()=>{alert('No NFC tag detected. Try again or enter manually.');c==='checkout'?manualEntry(c):showManualReturnDialog(c);co.abort();b.disabled=false;};setTimeout(()=>{co.abort();if(!b.disabled)return;alert('Scan timed out. Try again or enter manually.');c==='checkout'?manualEntry(c):showManualReturnDialog(c);b.disabled=false;},5000);await new Promise(r=>co.signal.addEventListener('abort',r));}catch(e){alert(`NFC error: ${e.message}. Enter ID manually.`);c==='checkout'?manualEntry(c):showManualReturnDialog(c);b.disabled=false;}}
+    async function scanNFC(context) {
+      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : 'dialogScanReturn');
+      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : 'dialogReturnId');
+      const headphoneIdRegex = /^HP\d{7}$/;
+      button.disabled = true;
+      if (!('NDEFReader' in window)) {
+        alert('NFC not supported. Enter ID manually.');
+        context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+        button.disabled = false;
+        return;
+      }
+      const ndef = new NDEFReader();
+      try {
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = event => {
+          const nfcId = event.serialNumber;
+          let id;
+          if (context === 'checkout') {
+            id = generateUniqueHeadphoneId();
+            input.dataset.nfcId = nfcId;
+          } else {
+            id = prompt('Enter headphone ID for this NFC tag (e.g., HP0000001):');
+            if (!id || !headphoneIdRegex.test(id)) {
+              alert('Invalid ID format. Use HP followed by 7 digits.');
+              controller.abort();
+              button.disabled = false;
+              return;
+            }
+          }
+          input.value = id;
+          input.dataset.entryMethod = 'NFC';
+          alert(`Scanned headphone: ${id} with NFC ID: ${nfcId}`);
+          controller.abort();
+          button.disabled = false;
+          if (context === 'return') addReturnHeadphoneId();
+          else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
+          else addHeadphoneId();
+        };
+        ndef.onreadingerror = () => {
+          alert('No NFC tag detected. Try again or enter manually.');
+          context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+          controller.abort();
+          button.disabled = false;
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (!button.disabled) return;
+          alert('Scan timed out. Try again or enter manually.');
+          context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+          button.disabled = false;
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        alert(`NFC error: ${error.message}. Enter ID manually.`);
+        context === 'checkout' ? manualEntry(context) : showManualReturnDialog(context);
+        button.disabled = false;
+      }
+    }
 
-    function manualEntry(c){const i=document.getElementById(c==='checkout'?'headphoneId':c==='return'?'returnId':'dialogReturnId'),b=document.getElementById(c==='checkout'?'scanCheckout':c==='return'?'scanReturn':'dialogScanReturn'),r=/^HP\d{7}$/;let id;if(c==='checkout'){const s=generateUniqueHeadphoneId();const u=prompt(`Enter headphone ID (suggested: ${s}):`,s);if(!u||!r.test(u)){alert('Invalid ID format. Use HP followed by 7 digits.');b.disabled=false;return;}if(headphones[u]&&headphones[u].status==='checked_out'){alert(`ID ${u} is already checked out!`);b.disabled=false;return;}if(checkoutListIds.has(u)){alert(`ID ${u} is already in your checkout list!`);b.disabled=false;return;}id=u;}else{id=prompt('Enter headphone ID (e.g., HP0000001):');if(!id||!r.test(id)){alert('Invalid ID format. Use HP followed by 7 digits.');b.disabled=false;return;}}i.value=id;i.dataset.entryMethod='Manual';b.disabled=false;if(c==='return')addReturnHeadphoneId();else if(c==='dialogReturn')addDialogReturnHeadphoneId();else addHeadphoneId();}
+    function manualEntry(context) {
+      const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : 'dialogReturnId');
+      const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : 'dialogScanReturn');
+      const regex = /^HP\d{7}$/;
+      let id;
+      if (context === 'checkout') {
+        const suggestedId = generateUniqueHeadphoneId();
+        const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
+        if (!userId || !regex.test(userId)) {
+          alert('Invalid ID format. Use HP followed by 7 digits.');
+          button.disabled = false;
+          return;
+        }
+        if (headphones[userId] && headphones[userId].status === 'checked_out') {
+          alert(`ID ${userId} is already checked out!`);
+          button.disabled = false;
+          return;
+        }
+        if (checkoutListIds.has(userId)) {
+          alert(`ID ${userId} is already in your checkout list!`);
+          button.disabled = false;
+          return;
+        }
+        id = userId;
+      } else {
+        id = prompt('Enter headphone ID (e.g., HP0000001):');
+        if (!id || !regex.test(id)) {
+          alert('Invalid ID format. Use HP followed by 7 digits.');
+          button.disabled = false;
+          return;
+        }
+      }
+      input.value = id;
+      input.dataset.entryMethod = 'Manual';
+      button.disabled = false;
+      if (context === 'return') addReturnHeadphoneId();
+      else if (context === 'dialogReturn') addDialogReturnHeadphoneId();
+      else addHeadphoneId();
+    }
 
-    function showManualReturnDialog(c){const d=document.getElementById('manualReturnDialog'),o=document.getElementById('dialogOverlay'),l=document.getElementById('manualReturnList'),co=Object.entries(headphones).filter(([_,h])=>h.status==='checked_out');d.style.display='flex';o.style.display='block';l.innerHTML='';co.forEach(([id,h])=>{const r=document.createElement('tr');r.innerHTML=`<td><input type="checkbox" name="returnHeadphone" value="${id}"></td><td>${id}</td><td>${h.customer.name}</td><td>${h.groupId||'Single'}</td>`;l.appendChild(r);});document.getElementById('manualReturnSearch').value='';document.getElementById('manualReturnSearch').dataset.context=c;}
+    function showManualReturnDialog(context) {
+      const dialog = document.getElementById('manualReturnDialog');
+      const overlay = document.getElementById('dialogOverlay');
+      const list = document.getElementById('manualReturnList');
+      const checkedOut = Object.entries(headphones).filter(([_, hp]) => hp.status === 'checked_out');
+      dialog.style.display = 'flex';
+      overlay.style.display = 'block';
+      list.innerHTML = '';
+      checkedOut.forEach(([id, hp]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td><input type="checkbox" name="returnHeadphone" value="${id}"></td><td>${id}</td><td>${hp.customer.name}</td><td>${hp.groupId || 'Single'}</td>`;
+        list.appendChild(row);
+      });
+      document.getElementById('manualReturnSearch').value = '';
+      document.getElementById('manualReturnSearch').dataset.context = context;
+    }
 
-    function filterManualReturnList(){const s=document.getElementById('manualReturnSearch').value.toLowerCase(),r=document.getElementById('manualReturnList').getElementsByTagName('tr');Array.from(r).forEach(row=>row.style.display=row.textContent.toLowerCase().includes(s)?'':'none');}
+    function filterManualReturnList() {
+      const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
+      const rows = document.getElementById('manualReturnList').getElementsByTagName('tr');
+      Array.from(rows).forEach(row => row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none');
+    }
 
-    async function submitManualReturn(){const s=Array.from(document.getElementById('manualReturnList').querySelectorAll('input[name="returnHeadphone"]:checked')).map(i=>i.value),c=document.getElementById('manualReturnSearch').dataset.context;if(!s.length)return alert('Please select at least one headphone!');const g=s.map(id=>headphones[id].groupId||'Single');if(new Set(g).size>1)return alert('All selected headphones must belong to the same group.');try{for(const id of s)await updateHeadphone(id,{status:'returned',pre_auth:null});const m=await sendReturnEmail(s);alert(m);closeDialog('manualReturn');if(c==='dialogReturn')closeDialog('return');else showDashboard();}catch(e){alert('Failed to return headphones: '+e.message);}}
+    async function submitManualReturn() {
+      const selected = Array.from(document.getElementById('manualReturnList').querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
+      const context = document.getElementById('manualReturnSearch').dataset.context;
+      if (!selected.length) return alert('Please select at least one headphone!');
+      const groupIds = selected.map(id => headphones[id].groupId || 'Single');
+      if (new Set(groupIds).size > 1) return alert('All selected headphones must belong to the same group.');
+      try {
+        for (const id of selected) await updateHeadphone(id, { status: 'returned', pre_auth: null });
+        const message = await sendReturnEmail(selected);
+        alert(message);
+        closeDialog('manualReturn');
+        if (context === 'dialogReturn') closeDialog('return');
+        else showDashboard();
+      } catch (error) {
+        alert('Failed to return headphones: ' + error.message);
+      }
+    }
 
-    function initSignaturePad(c){const ca=document.getElementById(c),ctx=ca.getContext('2d');let d=false;ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#000';function s(e){d=true;ctx.beginPath();const{x,y}=g(e);ctx.moveTo(x,y);e.preventDefault();}function dr(e){if(!d)return;const{x,y}=g(e);ctx.lineTo(x,y);ctx.stroke();e.preventDefault();}function st(){if(d){d=false;if(c==='signaturePad')signatureData=ca.toDataURL();}}function g(e){const r=ca.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}ca.addEventListener('mousedown',s);ca.addEventListener('mousemove',dr);ca.addEventListener('mouseup',st);ca.addEventListener('touchstart',s);ca.addEventListener('touchmove',dr);ca.addEventListener('touchend',st);}
+    function initSignaturePad(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000';
 
-    function clearSignature(){const c=document.getElementById('signaturePad'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);signatureData=null;}
+      function startDrawing(e) {
+        drawing = true;
+        ctx.beginPath();
+        const { x, y } = getPosition(e);
+        ctx.moveTo(x, y);
+        e.preventDefault();
+      }
 
-    async function tapToPayCheckout(){if(!('NDEFReader'in window))return alert('NFC not supported. Use manual entry.');const n=new NDEFReader();try{showLoading();await n.scan();const c=new AbortController();n.onreading=async e=>{const ni=e.serialNumber,pt='cnon:card-nonce-ok';await processPayment(pt);c.abort();};n.onreadingerror=()=>{alert('Failed to read payment card. Try again or use manual entry.');c.abort();hideLoading();};setTimeout(()=>{c.abort();if(!c.signal.aborted){alert('Payment scan timed out.');hideLoading();}},5000);await new Promise(r=>c.signal.addEventListener('abort',r));}catch(e){alert(`NFC error: ${e.message}. Use manual entry.`);hideLoading();}}
+      function draw(e) {
+        if (!drawing) return;
+        const { x, y } = getPosition(e);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        e.preventDefault();
+      }
 
-    async function processPayment(pt){const h=getHeadphoneIds('headphoneIdsList'),n=document.getElementById('name').value,e=document.getElementById('email').value,p=document.getElementById('phone').value,d=new Date().toISOString().split('T')[0];if(!h.length||!n||!e||!p||!signatureData){hideLoading();return alert('Please complete all fields and sign the agreement!');}const g=h.length>1?generateGroupId():null;let s=[];try{const r=await fetch('/.netlify/functions/preauthorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sourceId:pt,amount:h.length*10000,currency:'USD',locationId:squareLocationId})}),res=await r.json();if(!r.ok)throw new Error(res.error||'Preauthorization failed');const pi=res.paymentId;for(const id of h){if(headphones[id]&&headphones[id].status==='checked_out'){alert(`Headphone ID ${id} is already checked out! Skipping.`);continue;}const em=document.getElementById('headphoneId').dataset.entryMethod||'Manual',ni=document.getElementById('headphoneId').dataset.nfcId,data={status:'checked_out',customer:{name:n,email:e,phone:p},agreement:{text:document.getElementById('agreement').value.replace('[Customer Name]',n).replace('[Date]',d).replace('[Headphone IDs]',h.join(', ')),signature:signatureData,amount:100,date:d,timestamp:Date.now()},pre_auth:{pre_auth_id:pi,amount:h.length*100},entryMethod:em,nfcId:ni||null};if(g)data.groupId=g;await saveHeadphone(id,data);s.push(id);}if(s.length>0){const ht=s.join(', '),at=document.getElementById('agreement').value.replace('[Customer Name]',n).replace('[Date]',d).replace('[Headphone IDs]',ht),er=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e,agreement:at,signature:signatureData,preauthId:pi})});if(!er.ok)throw new Error('Email failed');alert(`Headphones ${ht} checked out! Agreement emailed to ${e}.`);}else{alert('No headphones were checked out due to existing usage.');}clearForm('checkout');showDashboard();}catch(e){console.error('Payment error:',e.message);alert('Payment failed: '+e.message);}finally{hideLoading();}}
+      function stopDrawing() {
+        if (drawing) {
+          drawing = false;
+          if (canvasId === 'signaturePad') signatureData = canvas.toDataURL();
+        }
+      }
 
-    async function checkout(){const h=getHeadphoneIds('headphoneIdsList'),n=document.getElementById('name').value,e=document.getElementById('email').value,p=document.getElementById('phone').value,d=new Date().toISOString().split('T')[0];if(!h.length||!n||!e||!p||!signatureData||!cardElement)return alert('Please complete all fields, enter card details, and sign!');showLoading();try{const r=await cardElement.tokenize();if(r.status!=='OK')throw new Error('Card tokenization failed.');await processPayment(r.token);}catch(e){console.error('Checkout error:',e.message);alert('Checkout failed: '+e.message);}finally{hideLoading();}}
+      function getPosition(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      }
 
-    async function sendReturnEmail(r){const c=headphones[r[0]].customer||{name:'Customer',email:''},hl=r.join(', '),eb=`Dear ${c.name||'Customer'},\n\nThank you for attending our Silent Disco event with SE2 Silent Disco! We hope you had an amazing experience. We're pleased to confirm that we've received the following headphone(s): ${hl}. \n\nYou are no longer responsible for these items, and any associated payment holds have been released. We appreciate your prompt return and hope to see you at future events!\n\nFor any questions, contact us at:\n- Website: www.se2.events\n- Email: se2login@gmail.com\n\nBest regards,\nThe SE2 Silent Disco Team`,ep={name:c.name||'Customer',email:c.email||'',agreement:eb,signature:'',preauthId:''};const er=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ep)});if(!er.ok){const et=await er.text();console.error('Failed to send return email:',et);return `Headphone(s) ${r.join(', ')} returned, but email failed: ${et}`;}return `Headphone(s) ${r.join(', ')} returned! Confirmation emailed to ${c.email||'customer'}.`;}
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
+    }
 
-    async function returnHeadphones(){const h=getReturnHeadphoneIds();if(!h.length)return alert('Scan or add at least one headphone!');const g=h.map(id=>headphones[id]?.groupId||null),ug=[...new Set(g.filter(id=>id!==null))],hg=g.some(id=>id!==null),hs=g.some(id=>id===null);if((hg&&hs)||(ug.length>1)){const m=h.filter(id=>{const gi=headphones[id]?.groupId||null;return(hg&&gi===null)||(ug.length>1&&gi!==ug[0]&&gi!==null);});alert(`All headphones must belong to the same group or all be singles. Mismatched: ${m.map(id=>`${id} (Group: ${headphones[id]?.groupId||'Single'})`).join(', ')}.`);const l=document.getElementById('returnHeadphoneIdsList');Array.from(l.children).forEach(li=>li.style.backgroundColor=m.includes(li.dataset.id)?'#ffcccc':'');return;}try{let r=[];for(const id of h){if(!headphones[id]||headphones[id].status!=='checked_out'){alert(`Headphone ${id} not checked out! Skipping.`);continue;}await updateHeadphone(id,{status:'returned',pre_auth:null});r.push(id);}if(r.length){const m=await sendReturnEmail(r);alert(m);}else alert('No headphones returned.');clearForm('return');showDashboard();}catch(e){console.error('Return error:',e.message);alert('Failed to return headphones: '+e.message);}}
+    function clearSignature() {
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      signatureData = null;
+    }
 
-    function showReturnDialog(id){document.getElementById('dialogReturnId').value=id;document.getElementById('returnDialog').style.display='flex';document.getElementById('dialogOverlay').style.display='block';document.getElementById('dialogReturnHeadphoneIdsList').innerHTML='';if(id)addDialogReturnHeadphoneId();}
+    async function tapToPayCheckout() {
+      if (!('NDEFReader' in window)) return alert('NFC not supported. Use manual entry.');
+      const ndef = new NDEFReader();
+      try {
+        showLoading();
+        await ndef.scan();
+        const controller = new AbortController();
+        ndef.onreading = async event => {
+          const nfcId = event.serialNumber;
+          const paymentToken = 'cnon:card-nonce-ok'; // Sandbox test nonce
+          await processPayment(paymentToken);
+          controller.abort();
+        };
+        ndef.onreadingerror = () => {
+          alert('Failed to read payment card. Try again or use manual entry.');
+          controller.abort();
+          hideLoading();
+        };
+        setTimeout(() => {
+          controller.abort();
+          if (!controller.signal.aborted) {
+            alert('Payment scan timed out.');
+            hideLoading();
+          }
+        }, 5000);
+        await new Promise(resolve => controller.signal.addEventListener('abort', resolve));
+      } catch (error) {
+        alert(`NFC error: ${error.message}. Use manual entry.`);
+        hideLoading();
+      }
+    }
 
-    function closeDialog(t){if(t==='return')document.getElementById('returnDialog').style.display='none';else if(t==='manualReturn')document.getElementById('manualReturnDialog').style.display='none';document.getElementById('dialogOverlay').style.display='none';if(t!=='manualReturn')showDashboard();}
+    async function processPayment(paymentToken) {
+      const headphoneIds = getHeadphoneIds('headphoneIdsList');
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const date = new Date().toISOString().split('T')[0];
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData) {
+        hideLoading();
+        return alert('Please complete all fields and sign the agreement!');
+      }
+      const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
+      let successfullyCheckedOutIds = [];
+      try {
+        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: paymentToken,
+            amount: headphoneIds.length * 10000,
+            currency: 'USD',
+            locationId: squareLocationId
+          })
+        });
+        const preauthResult = await preauthResponse.json();
+        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        const preauthId = preauthResult.paymentId;
+        for (const id of headphoneIds) {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ID ${id} is already checked out! Skipping.`);
+            continue;
+          }
+          const entryMethod = document.getElementById('headphoneId').dataset.entryMethod || 'Manual';
+          const nfcId = document.getElementById('headphoneId').dataset.nfcId;
+          const headphoneData = {
+            status: 'checked_out',
+            customer: { name, email, phone },
+            agreement: { text: document.getElementById('agreement').value.replace('[Customer Name]', name).replace('[Date]', date).replace('[Headphone IDs]', headphoneIds.join(', ')), signature: signatureData, amount: 100, date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 },
+            entryMethod,
+            nfcId: nfcId || null
+          };
+          if (groupId) headphoneData.groupId = groupId;
+          await saveHeadphone(id, headphoneData);
+          successfullyCheckedOutIds.push(id);
+        }
+        if (successfullyCheckedOutIds.length > 0) {
+          const headphoneIdsText = successfullyCheckedOutIds.join(', ');
+          const agreementText = document.getElementById('agreement').value
+            .replace('[Customer Name]', name)
+            .replace('[Date]', date)
+            .replace('[Headphone IDs]', headphoneIdsText);
+          const emailResponse = await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, agreement: agreementText, signature: signatureData, preauthId })
+          });
+          if (!emailResponse.ok) throw new Error('Email failed');
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+        } else {
+          alert('No headphones were checked out due to existing usage.');
+        }
+        clearForm('checkout');
+        showDashboard();
+      } catch (error) {
+        console.error('Payment error:', error.message);
+        alert('Payment failed: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    }
 
-    async function submitReturnDialog(){const h=getDialogReturnHeadphoneIds();if(!h.length)return alert('Scan or add at least one headphone!');const g=h.map(id=>headphones[id]?.groupId||null),ug=[...new Set(g.filter(id=>id!==null))],hg=g.some(id=>id!==null),hs=g.some(id=>id===null);if((hg&&hs)||(ug.length>1)){const m=h.filter(id=>{const gi=headphones[id]?.groupId||null;return(hg&&gi===null)||(ug.length>1&&gi!==ug[0]&&gi!==null);});alert(`All headphones must belong to the same group or all be singles. Mismatched: ${m.map(id=>`${id} (Group: ${headphones[id]?.groupId||'Single'})`).join(', ')}.`);const l=document.getElementById('dialogReturnHeadphoneIdsList');Array.from(l.children).forEach(li=>li.style.backgroundColor=m.includes(li.dataset.id)?'#ffcccc':'');return;}try{let r=[];for(const id of h){if(!headphones[id]||headphones[id].status!=='checked_out'){alert(`Headphone ${id} not checked out! Skipping.`);continue;}await updateHeadphone(id,{status:'returned',pre_auth:null});r.push(id);}if(r.length){const m=await sendReturnEmail(r);alert(m);}else alert('No headphones returned.');closeDialog('return');}catch(e){console.error('Return error:',e.message);alert('Failed to return headphones: '+e.message);}}
+    async function checkout() {
+      const headphoneIds = getHeadphoneIds('headphoneIdsList');
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const date = new Date().toISOString().split('T')[0];
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) return alert('Please complete all fields, enter card details, and sign!');
+      showLoading();
+      try {
+        const result = await cardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
+        await processPayment(result.token);
+      } catch (error) {
+        console.error('Checkout error:', error.message);
+        alert('Checkout failed: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    }
 
-    async function dashboardCharge(id){if(!headphones[id]||headphones[id].status!=='checked_out'||!headphones[id].pre_auth)return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);const g=headphones[id].groupId,c=g?Object.values(headphones).filter(h=>h.groupId===g&&h.status==='checked_out').length:1,a=Math.round(headphones[id].pre_auth.amount*100/c),ad=(a/100).toFixed(2);if(!confirm(`Charge ${headphones[id].customer.name} $${ad} for ${id}?`))return;showLoading();try{const r=await fetch('/.netlify/functions/capture-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paymentId:headphones[id].pre_auth.pre_auth_id,amount:a})}),res=await r.json();if(!r.ok)throw new Error(res.error||'Charge failed');await updateHeadphone(id,{status:'charged',pre_auth:null});alert(`Headphone ${id} charged for $${ad}!`);updateDashboard();}catch(e){alert(`Charge failed for ${id}: ${e.message}`);}finally{hideLoading();}}
+    async function sendReturnEmail(returnedIds) {
+      const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
+      const headphoneList = returnedIds.join(', ');
+      const emailBody = `
+Dear ${customer.name || 'Customer'},
 
-    function updateDashboard(){const t=document.getElementById('headphoneList'),s=document.getElementById('searchInput').value.toLowerCase(),d=document.getElementById('dateFilter').value,n=Date.now(),tw=12*60*60*1000;const ha=Object.entries(headphones).map(([id,h])=>({id,...h})),co=ha.filter(h=>h.status==='checked_out'),ci=ha.filter(h=>h.status!=='checked_out');co.sort((a,b)=>(a.customer?.name||'N/A').localeCompare(b.customer?.name||'N/A'));ci.sort((a,b)=>(a.customer?.name||'N/A').localeCompare(b.customer?.name||'N/A'));const sa=[...co,...ci];t.innerHTML='';sa.forEach(hp=>{const st=hp.status==='checked_out'?'Checked Out':hp.status==='returned'?'Returned':'Charged',o=hp.status==='checked_out'&&(n-(hp.agreement?.timestamp||n)>tw),rd=[hp.customer?.name||'N/A',st,hp.pre_auth?'Hold':'Released',hp.customer?.email||'N/A',hp.customer?.phone||'N/A',hp.id,hp.nfcId||'N/A',hp.entryMethod||'N/A',hp.agreement?.date||'N/A',hp.groupId||'Single'];if(rd.some(d=>d.toLowerCase().includes(s))&&(!d||hp.agreement?.date===d)){const r=document.createElement('tr');let a='';if(hp.status==='checked_out')a+=`<button class="checkin-btn" onclick="showReturnDialog('${hp.id}')">Check In</button>`;if(hp.status==='checked_out'&&hp.pre_auth&&o)a+=`<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;r.innerHTML=`<td>${a}</td><td>${hp.customer?.name||'N/A'}</td><td>${st}</td><td>${hp.pre_auth?'Hold':'Released'}</td><td>${hp.customer?.email||'N/A'}</td><td>${hp.customer?.phone||'N/A'}</td><td>${hp.id}</td><td>${hp.nfcId||'N/A'}</td><td>${hp.entryMethod||'N/A'}</td><td>${hp.groupId||'Single'}</td><td><button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button></td>`;t.appendChild(r);}});}
+Thank you for attending our Silent Disco event with SE2 Silent Disco! We hope you had an amazing experience. We're pleased to confirm that we've received the following headphone(s): ${headphoneList}. 
 
-    function searchHeadphones(){updateDashboard();}
-    function filterByDate(){updateDashboard();}
+You are no longer responsible for these items, and any associated payment holds have been released. We appreciate your prompt return and hope to see you at future events!
 
-    function clearForm(f){document.getElementById(f).querySelectorAll('input').forEach(i=>{i.value='';delete i.dataset.nfcId;delete i.dataset.entryMethod;});if(f==='checkout'){document.getElementById('card-container').innerHTML='';document.getElementById('headphoneIdsList').innerHTML='';checkoutListIds.clear();initializeSquare();}else if(f==='return')document.getElementById('returnHeadphoneIdsList').innerHTML='';}
+For any questions, contact us at:
+- Website: www.se2.events
+- Email: se2login@gmail.com
 
-    function generateReport(){const rt=document.getElementById('reportType').value,sd=document.getElementById('reportStartDate').value,ed=document.getElementById('reportEndDate').value||sd,st=document.getElementById('reportSearch').value.toLowerCase(),o=document.getElementById('reportOutput');o.innerHTML='';if(!rt){o.innerHTML='<p>Select a report type to view details.</p>';return;}const ha=Object.entries(headphones).map(([id,h])=>({id,...h})),n=Date.now(),tw=12*60*60*1000;let fa=ha;if(sd){const s=new Date(sd).setHours(0,0,0,0),e=new Date(ed).setHours(23,59,59,999);fa=ha.filter(h=>new Date(h.agreement?.date).setHours(0,0,0,0)>=s&&new Date(h.agreement?.date).setHours(0,0,0,0<=e);}let f=fa;if(st)f=fa.filter(h=>[h.id,h.nfcId||'',h.status,h.customer?.name||'',h.customer?.email||'',h.customer?.phone||'',h.agreement?.date||'',h.pre_auth?'Hold':'Released',h.entryMethod||'N/A',h.groupId||'Single'].some(d=>d.toLowerCase().includes(st)));switch(rt){case'allData':o.innerHTML=`<h3>All Data (${f.length} Headphones)</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>ID</th><th>NFC ID</th><th>Status</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Preauth Status</th><th>Entry Method</th><th>Group ID</th></tr></thead><tbody>${f.map(h=>`<tr><td>${h.id}</td><td>${h.nfcId||'N/A'}</td><td>${h.status==='checked_out'?'Checked Out':h.status==='returned'?'Returned':'Charged'}</td><td>${h.customer?.name||'N/A'}</td><td>${h.customer?.email||'N/A'}</td><td>${h.customer?.phone||'N/A'}</td><td>${h.agreement?.date||'N/A'}</td><td>${h.pre_auth?'Hold':'Released'}</td><td>${h.entryMethod||'N/A'}</td><td>${h.groupId||'Single'}</td></tr>`).join('')}</tbody></table>`;break;case'checkedOut':const co=f.filter(h=>h.status==='checked_out');o.innerHTML=`<h3>Currently Checked Out (${co.length})</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Entry Method</th><th>Group ID</th></tr></thead><tbody>${co.map(h=>`<tr><td>${h.id}</td><td>${h.nfcId||'N/A'}</td><td>${h.customer.name}</td><td>${h.customer.email}</td><td>${h.customer.phone}</td><td>${h.agreement.date}</td><td>${h.entryMethod||'N/A'}</td><td>${h.groupId||'Single'}</td></tr>`).join('')}</tbody></table>`;break;case'overdue':const ov=f.filter(h=>h.status==='checked_out'&&(n-h.agreement.timestamp>tw));o.innerHTML=`<h3>Overdue Headphones (${ov.length})</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Days Overdue</th><th>Entry Method</th><th>Group ID</th></tr></thead><tbody>${ov.map(h=>`<tr><td>${h.id}</td><td>${h.nfcId||'N/A'}</td><td>${h.customer.name}</td><td>${h.customer.email}</td><td>${h.customer.phone}</td><td>${h.agreement.date}</td><td>${Math.floor((n-h.agreement.timestamp)/(1000*60*60*24))}</td><td>${h.entryMethod||'N/A'}</td><td>${h.groupId||'Single'}</td></tr>`).join('')}</tbody></table>`;break;case'revenue':const ch=f.filter(h=>h.status==='charged');o.innerHTML=`<h3>Revenue Summary</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><p>Total Revenue: $${(ch.length*100).toFixed(2)}</p><table><thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Charge Date</th><th>Amount</th><th>Entry Method</th><th>Group ID</th></tr></thead><tbody>${ch.map(h=>`<tr><td>${h.id}</td><td>${h.nfcId||'N/A'}</td><td>${h.customer.name}</td><td>${h.customer.email}</td><td>${h.customer.phone}</td><td>${h.agreement.date}</td><td>$100.00</td><td>${h.entryMethod||'N/A'}</td><td>${h.groupId||'Single'}</td></tr>`).join('')}</tbody></table>`;break;case'customerActivity':const cu={};f.forEach(h=>{const k=`${h.customer.name}|${h.customer.email}|${h.customer.phone}`;if(!cu[k])cu[k]={name:h.customer.name,email:h.customer.email,phone:h.customer.phone,checkouts:0,headphones:[]};cu[k].checkouts++;cu[k].headphones.push(h.id);});o.innerHTML=`<h3>Customer Activity</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Total Checkouts</th><th>Headphone IDs</th></tr></thead><tbody>${Object.values(cu).map(c=>`<tr><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.checkouts}</td><td>${c.headphones.join(', ')}</td></tr>`).join('')}</tbody></table>`;break;case'groupSummary':const gr={};f.forEach(h=>{if(h.groupId){if(!gr[h.groupId])gr[h.groupId]={ids:[],customer:h.customer,total:0,checkedOut:0,returned:0,charged:0};gr[h.groupId].ids.push(h.id);gr[h.groupId].total++;if(h.status==='checked_out')gr[h.groupId].checkedOut++;if(h.status==='returned')gr[h.groupId].returned++;if(h.status==='charged')gr[h.groupId].charged++;}});o.innerHTML=`<h3>Group Checkout Summary</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>Group ID</th><th>Customer</th><th>Email</th><th>Total Headphones</th><th>Checked Out</th><th>Returned</th><th>Charged</th><th>Headphone IDs</th></tr></thead><tbody>${Object.entries(gr).map(([id,g])=>`<tr><td>${id}</td><td>${g.customer.name}</td><td>${g.customer.email}</td><td>${g.total}</td><td>${g.checkedOut}</td><td>${g.returned}</td><td>${g.charged}</td><td>${g.ids.join(', ')}</td></tr>`).join('')}</tbody></table>`;break;case'nfcUsage':const ns={};f.forEach(h=>{if(h.nfcId){if(!ns[h.nfcId])ns[h.nfcId]={uses:0,headphoneIds:[],dates:[]};ns[h.nfcId].uses++;ns[h.nfcId].headphoneIds.push(h.id);ns[h.nfcId].dates.push(h.agreement.date);}});o.innerHTML=`<h3>NFC Usage Statistics</h3><p>Date Range: ${sd||'All'} to ${ed||'All'}</p><table><thead><tr><th>NFC ID</th><th>Total Uses</th><th>Headphone IDs</th><th>Dates Used</th></tr></thead><tbody>${Object.entries(ns).map(([id,s])=>`<tr><td>${id}</td><td>${s.uses}</td><td>${s.headphoneIds.join(', ')}</td><td>${s.dates.join(', ')}</td></tr>`).join('')}</tbody></table>`;break;default:o.innerHTML='<p>Invalid report type.</p>';}}
+Best regards,
+The SE2 Silent Disco Team
+      `;
+      const emailPayload = { name: customer.name || 'Customer', email: customer.email || '', agreement: emailBody, signature: '', preauthId: '' };
+      const emailResponse = await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error('Failed to send return email:', errorText);
+        return `Headphone(s) ${returnedIds.join(', ')} returned, but email failed: ${errorText}`;
+      }
+      return `Headphone(s) ${returnedIds.join(', ')} returned! Confirmation emailed to ${customer.email || 'customer'}.`;
+    }
 
-    function exportReport(){const rt=document.getElementById('reportType').value;if(!rt)return alert('Select a report type first!');const sd=document.getElementById('reportStartDate').value,ed=document.getElementById('reportEndDate').value||sd;let fa=Object.entries(headphones).map(([id,h])=>({id,...h}));if(sd){const s=new Date(sd).setHours(0,0,0,0),e=new Date(ed).setHours(23,59,59,999);fa=fa.filter(h=>new Date(h.agreement?.date).setHours(0,0,0,0>=s&&new Date(h.agreement?.date).setHours(0,0,0,0<=e);}const n=Date.now(),tw=12*60*60*1000;let c='';switch(rt){case'allData':c='"ID","NFC ID","Status","Customer","Email","Phone","Checkout Date","Preauth Status","Entry Method","Group ID"\n'+fa.map(h=>`"${h.id}","${h.nfcId||'N/A'}","${h.status==='checked_out'?'Checked Out':h.status==='returned'?'Returned':'Charged'}","${h.customer?.name||'N/A'}","${h.customer?.email||'N/A'}","${h.customer?.phone||'N/A'}","${h.agreement?.date||'N/A'}","${h.pre_auth?'Hold':'Released'}","${h.entryMethod||'N/A'}","${h.groupId||'Single'}"`).join('\n');break;case'checkedOut':c='"ID","NFC ID","Customer","Email","Phone","Checkout Date","Entry Method","Group ID"\n'+fa.filter(h=>h.status==='checked_out').map(h=>`"${h.id}","${h.nfcId||'N/A'}","${h.customer.name}","${h.customer.email}","${h.customer.phone}","${h.agreement.date}","${h.entryMethod||'N/A'}","${h.groupId||'Single'}"`).join('\n');break;case'overdue':c='"ID","NFC ID","Customer","Email","Phone","Checkout Date","Days Overdue","Entry Method","Group ID"\n'+fa.filter(h=>h.status==='checked_out'&&(n-h.agreement.timestamp>tw)).map(h=>`"${h.id}","${h.nfcId||'N/A'}","${h.customer.name}","${h.customer.email}","${h.customer.phone}","${h.agreement.date}","${Math.floor((n-h.agreement.timestamp)/(1000*60*60*24))}","${h.entryMethod||'N/A'}","${h.groupId||'Single'}"`).join('\n');break;case'revenue':c='"ID","NFC ID","Customer","Email","Phone","Charge Date","Amount","Entry Method","Group ID"\n'+fa.filter(h=>h.status==='charged').map(h=>`"${h.id}","${h.nfcId||'N/A'}","${h.customer.name}","${h.customer.email}","${h.customer.phone}","${h.agreement.date}","$100.00","${h.entryMethod||'N/A'}","${h.groupId||'Single'}"`).join('\n');break;case'customerActivity':const cu={};fa.forEach(h=>{const k=`${h.customer.name}|${h.customer.email}|${h.customer.phone}`;if(!cu[k])cu[k]={name:h.customer.name,email:h.customer.email,phone:h.customer.phone,checkouts:0,headphones:[]};cu[k].checkouts++;cu[k].headphones.push(h.id);});c='"Name","Email","Phone","Total Checkouts","Headphone IDs"\n'+Object.values(cu).map(c=>`"${c.name}","${c.email}","${c.phone}","${c.checkouts}","${c.headphones.join(', ')}"`).join('\n');break;case'groupSummary':const gr={};fa.forEach(h=>{if(h.groupId){if(!gr[h.groupId])gr[h.groupId]={ids:[],customer:h.customer,total:0,checkedOut:0,returned:0,charged:0};gr[h.groupId].ids.push(h.id);gr[h.groupId].total++;if(h.status==='checked_out')gr[h.groupId].checkedOut++;if(h.status==='returned')gr[h.groupId].returned++;if(h.status==='charged')gr[h.groupId].charged++;}});c='"Group ID","Customer","Email","Total Headphones","Checked Out","Returned","Charged","Headphone IDs"\n'+Object.entries(gr).map(([id,g])=>`"${id}","${g.customer.name}","${g.customer.email}","${g.total}","${g.checkedOut}","${g.returned}","${g.charged}","${g.ids.join(', ')}"`).join('\n');break;case'nfcUsage':const ns={};fa.forEach(h=>{if(h.nfcId){if(!ns[h.nfcId])ns[h.nfcId]={uses:0,headphoneIds:[],dates:[]};ns[h.nfcId].uses++;ns[h.nfcId].headphoneIds.push(h.id);ns[h.nfcId].dates.push(h.agreement.date);}});c='"NFC ID","Total Uses","Headphone IDs","Dates Used"\n'+Object.entries(ns).map(([id,s])=>`"${id}","${s.uses}","${s.headphoneIds.join(', ')}","${s.dates.join(', ')}"`).join('\n');break;}const b=new Blob([c],{type:'text/csv;charset=utf-8;'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`${rt}_report_${sd||'all'}_${ed||'all'}.csv`;document.body.appendChild(l);l.click();document.body.removeChild(l);}
+    async function returnHeadphones() {
+      const headphoneIds = getReturnHeadphoneIds();
+      if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || null);
+      const uniqueGroups = [...new Set(groupIds.filter(id => id !== null))];
+      const hasGroups = groupIds.some(id => id !== null);
+      const hasSingles = groupIds.some(id => id === null);
+      if ((hasGroups && hasSingles) || (uniqueGroups.length > 1)) {
+        const mismatched = headphoneIds.filter(id => {
+          const groupId = headphones[id]?.groupId || null;
+          return (hasGroups && groupId === null) || (uniqueGroups.length > 1 && groupId !== uniqueGroups[0] && groupId !== null);
+        });
+        alert(`All headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
+        const list = document.getElementById('returnHeadphoneIdsList');
+        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
+        return;
+      }
+      try {
+        let returnedIds = [];
+        for (const id of headphoneIds) {
+          if (!headphones[id] || headphones[id].status !== 'checked_out') {
+            alert(`Headphone ${id} not checked out! Skipping.`);
+            continue;
+          }
+          await updateHeadphone(id, { status: 'returned', pre_auth: null });
+          returnedIds.push(id);
+        }
+        if (returnedIds.length) {
+          const message = await sendReturnEmail(returnedIds);
+          alert(message);
+        } else alert('No headphones returned.');
+        clearForm('return');
+        showDashboard();
+      } catch (error) {
+        console.error('Return error:', error.message);
+        alert('Failed to return headphones: ' + error.message);
+      }
+    }
 
-    function makeDraggable(d,h){const di=document.getElementById(d),he=document.getElementById(h);let i=false,cx=di.offsetLeft,cy=di.offsetTop,ix,iy;function s(e){i=true;ix=(e.type==='mousedown'?e.clientX:e.touches[0].clientX)-cx;iy=(e.type==='mousedown'?e.clientY:e.touches[0].clientY)-cy;he.style.cursor='grabbing';}function dr(e){if(!i)return;e.preventDefault();cx=(e.type==='mousemove'?e.clientX:e.touches[0].clientX)-ix;cy=(e.type==='mousemove'?e.clientY:e.touches[0].clientY)-iy;di.style.left=`${cx}px`;di.style.top=`${cy}px`;di.style.transform='none';}function st(){i=false;he.style.cursor='move';}he.addEventListener('mousedown',s);document.addEventListener('mousemove',dr);document.addEventListener('mouseup',st);he.addEventListener('touchstart',s);document.addEventListener('touchmove',dr);document.addEventListener('touchend',st);}
+    function showReturnDialog(id) {
+      document.getElementById('dialogReturnId').value = id;
+      document.getElementById('returnDialog').style.display = 'flex';
+      document.getElementById('dialogOverlay').style.display = 'block';
+      document.getElementById('dialogReturnHeadphoneIdsList').innerHTML = '';
+      if (id) addDialogReturnHeadphoneId();
+    }
+
+    function closeDialog(type) {
+      if (type === 'return') document.getElementById('returnDialog').style.display = 'none';
+      else if (type === 'manualReturn') document.getElementById('manualReturnDialog').style.display = 'none';
+      document.getElementById('dialogOverlay').style.display = 'none';
+      if (type !== 'manualReturn') showDashboard();
+    }
+
+    async function submitReturnDialog() {
+      const headphoneIds = getDialogReturnHeadphoneIds();
+      if (!headphoneIds.length) return alert('Scan or add at least one headphone!');
+      const groupIds = headphoneIds.map(id => headphones[id]?.groupId || null);
+      const uniqueGroups = [...new Set(groupIds.filter(id => id !== null))];
+      const hasGroups = groupIds.some(id => id !== null);
+      const hasSingles = groupIds.some(id => id === null);
+      if ((hasGroups && hasSingles) || (uniqueGroups.length > 1)) {
+        const mismatched = headphoneIds.filter(id => {
+          const groupId = headphones[id]?.groupId || null;
+          return (hasGroups && groupId === null) || (uniqueGroups.length > 1 && groupId !== uniqueGroups[0] && groupId !== null);
+        });
+        alert(`All headphones must belong to the same group or all be singles. Mismatched: ${mismatched.map(id => `${id} (Group: ${headphones[id]?.groupId || 'Single'})`).join(', ')}.`);
+        const list = document.getElementById('dialogReturnHeadphoneIdsList');
+        Array.from(list.children).forEach(li => li.style.backgroundColor = mismatched.includes(li.dataset.id) ? '#ffcccc' : '');
+        return;
+      }
+      try {
+        let returnedIds = [];
+        for (const id of headphoneIds) {
+          if (!headphones[id] || headphones[id].status !== 'checked_out') {
+            alert(`Headphone ${id} not checked out! Skipping.`);
+            continue;
+          }
+          await updateHeadphone(id, { status: 'returned', pre_auth: null });
+          returnedIds.push(id);
+        }
+        if (returnedIds.length) {
+          const message = await sendReturnEmail(returnedIds);
+          alert(message);
+        } else alert('No headphones returned.');
+        closeDialog('return');
+      } catch (error) {
+        console.error('Return error:', error.message);
+        alert('Failed to return headphones: ' + error.message);
+      }
+    }
+
+    async function dashboardCharge(id) {
+      if (!headphones[id] || headphones[id].status !== 'checked_out' || !headphones[id].pre_auth) return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);
+      const groupId = headphones[id].groupId;
+      const headphoneCount = groupId ? Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length : 1;
+      const chargeAmount = Math.round(headphones[id].pre_auth.amount * 100 / headphoneCount);
+      const chargeAmountDollars = (chargeAmount / 100).toFixed(2);
+      if (!confirm(`Charge ${headphones[id].customer.name} $${chargeAmountDollars} for ${id}?`)) return;
+      showLoading();
+      try {
+        const chargeResponse = await fetch('/.netlify/functions/capture-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: headphones[id].pre_auth.pre_auth_id, amount: chargeAmount })
+        });
+        const chargeResult = await chargeResponse.json();
+        if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Charge failed');
+        await updateHeadphone(id, { status: 'charged', pre_auth: null });
+        alert(`Headphone ${id} charged for $${chargeAmountDollars}!`);
+        updateDashboard();
+      } catch (error) {
+        alert(`Charge failed for ${id}: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function updateDashboard() {
+      const tbody = document.getElementById('headphoneList');
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const dateFilter = document.getElementById('dateFilter').value;
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
+      const checkedOut = headphoneArray.filter(hp => hp.status === 'checked_out');
+      const checkedIn = headphoneArray.filter(hp => hp.status !== 'checked_out');
+      checkedOut.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
+      checkedIn.sort((a, b) => (a.customer?.name || 'N/A').localeCompare(b.customer?.name || 'N/A'));
+      const sortedArray = [...checkedOut, ...checkedIn];
+      tbody.innerHTML = '';
+      sortedArray.forEach(hp => {
+        const statusText = hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged';
+        const overdue = hp.status === 'checked_out' && (now - (hp.agreement?.timestamp || now) > twelveHours);
+        const rowData = [
+          hp.customer?.name || 'N/A',
+          statusText,
+          hp.pre_auth ? 'Hold' : 'Released',
+          hp.customer?.email || 'N/A',
+          hp.customer?.phone || 'N/A',
+          hp.id,
+          hp.nfcId || 'N/A',
+          hp.entryMethod || 'N/A',
+          hp.agreement?.date || 'N/A',
+          hp.groupId || 'Single'
+        ];
+        if (rowData.some(data => data.toLowerCase().includes(searchTerm)) && (!dateFilter || hp.agreement?.date === dateFilter)) {
+          const row = document.createElement('tr');
+          let actionsHtml = '';
+          if (hp.status === 'checked_out') actionsHtml += `<button class="checkin-btn" onclick="showReturnDialog('${hp.id}')">Check In</button>`;
+          if (hp.status === 'checked_out' && hp.pre_auth && overdue) actionsHtml += `<button class="charge-btn" onclick="dashboardCharge('${hp.id}')">Charge</button>`;
+          row.innerHTML = `
+            <td>${actionsHtml}</td>
+            <td>${hp.customer?.name || 'N/A'}</td>
+            <td>${statusText}</td>
+            <td>${hp.pre_auth ? 'Hold' : 'Released'}</td>
+            <td>${hp.customer?.email || 'N/A'}</td>
+            <td>${hp.customer?.phone || 'N/A'}</td>
+            <td>${hp.id}</td>
+            <td>${hp.nfcId || 'N/A'}</td>
+            <td>${hp.entryMethod || 'N/A'}</td>
+            <td>${hp.groupId || 'Single'}</td>
+            <td><button class="delete-btn" onclick="deleteHeadphone('${hp.id}')">Delete</button></td>
+          `;
+          tbody.appendChild(row);
+        }
+      });
+    }
+
+    function searchHeadphones() { updateDashboard(); }
+    function filterByDate() { updateDashboard(); }
+
+    function clearForm(formId) {
+      document.getElementById(formId).querySelectorAll('input').forEach(input => {
+        input.value = '';
+        delete input.dataset.nfcId;
+        delete input.dataset.entryMethod;
+      });
+      if (formId === 'checkout') {
+        document.getElementById('card-container').innerHTML = '';
+        document.getElementById('headphoneIdsList').innerHTML = '';
+        checkoutListIds.clear();
+        initializeSquare();
+      } else if (formId === 'return') document.getElementById('returnHeadphoneIdsList').innerHTML = '';
+    }
+
+    function generateReport() {
+      const reportType = document.getElementById('reportType').value;
+      const startDate = document.getElementById('reportStartDate').value;
+      const endDate = document.getElementById('reportEndDate').value || startDate;
+      const searchTerm = document.getElementById('reportSearch').value.toLowerCase();
+      const output = document.getElementById('reportOutput');
+      output.innerHTML = '';
+      if (!reportType) {
+        output.innerHTML = '<p>Select a report type to view details.</p>';
+        return;
+      }
+      const headphoneArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+      let filteredArray = headphoneArray;
+      if (startDate) {
+        const start = new Date(startDate).setHours(0, 0, 0, 0);
+        const end = new Date(endDate).setHours(23, 59, 59, 999);
+        filteredArray = headphoneArray.filter(hp => {
+          const hpDate = new Date(hp.agreement?.date).setHours(0, 0, 0, 0);
+          return hpDate >= start && hpDate <= end;
+        });
+      }
+      let finalArray = filteredArray;
+      if (searchTerm) {
+        finalArray = filteredArray.filter(hp => {
+          return [hp.id, hp.nfcId || '', hp.status, hp.customer?.name || '', hp.customer?.email || '', hp.customer?.phone || '', hp.agreement?.date || '', hp.pre_auth ? 'Hold' : 'Released', hp.entryMethod || 'N/A', hp.groupId || 'Single']
+            .some(data => data.toLowerCase().includes(searchTerm));
+        });
+      }
+      switch (reportType) {
+        case 'allData':
+          output.innerHTML = `
+            <h3>All Data (${finalArray.length} Headphones)</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Status</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Preauth Status</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${finalArray.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}</td><td>${hp.customer?.name || 'N/A'}</td><td>${hp.customer?.email || 'N/A'}</td><td>${hp.customer?.phone || 'N/A'}</td><td>${hp.agreement?.date || 'N/A'}</td><td>${hp.pre_auth ? 'Hold' : 'Released'}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'checkedOut':
+          const checkedOut = finalArray.filter(hp => hp.status === 'checked_out');
+          output.innerHTML = `
+            <h3>Currently Checked Out (${checkedOut.length})</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${checkedOut.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'overdue':
+          const overdue = finalArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours));
+          output.innerHTML = `
+            <h3>Overdue Headphones (${overdue.length})</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Checkout Date</th><th>Days Overdue</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${overdue.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>${Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24))}</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'revenue':
+          const charged = finalArray.filter(hp => hp.status === 'charged');
+          output.innerHTML = `
+            <h3>Revenue Summary</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <p>Total Revenue: $${(charged.length * 100).toFixed(2)}</p>
+            <table>
+              <thead><tr><th>ID</th><th>NFC ID</th><th>Customer</th><th>Email</th><th>Phone</th><th>Charge Date</th><th>Amount</th><th>Entry Method</th><th>Group ID</th></tr></thead>
+              <tbody>${charged.map(hp => `<tr><td>${hp.id}</td><td>${hp.nfcId || 'N/A'}</td><td>${hp.customer.name}</td><td>${hp.customer.email}</td><td>${hp.customer.phone}</td><td>${hp.agreement.date}</td><td>$100.00</td><td>${hp.entryMethod || 'N/A'}</td><td>${hp.groupId || 'Single'}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'customerActivity':
+          const customers = {};
+          finalArray.forEach(hp => {
+            const key = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[key]) customers[key] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            customers[key].checkouts++;
+            customers[key].headphones.push(hp.id);
+          });
+          output.innerHTML = `
+            <h3>Customer Activity</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Total Checkouts</th><th>Headphone IDs</th></tr></thead>
+              <tbody>${Object.values(customers).map(c => `<tr><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.checkouts}</td><td>${c.headphones.join(', ')}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'groupSummary':
+          const groups = {};
+          finalArray.forEach(hp => {
+            if (hp.groupId) {
+              if (!groups[hp.groupId]) groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
+              groups[hp.groupId].ids.push(hp.id);
+              groups[hp.groupId].total++;
+              if (hp.status === 'checked_out') groups[hp.groupId].checkedOut++;
+              if (hp.status === 'returned') groups[hp.groupId].returned++;
+              if (hp.status === 'charged') groups[hp.groupId].charged++;
+            }
+          });
+          output.innerHTML = `
+            <h3>Group Checkout Summary</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>Group ID</th><th>Customer</th><th>Email</th><th>Total Headphones</th><th>Checked Out</th><th>Returned</th><th>Charged</th><th>Headphone IDs</th></tr></thead>
+              <tbody>${Object.entries(groups).map(([id, g]) => `<tr><td>${id}</td><td>${g.customer.name}</td><td>${g.customer.email}</td><td>${g.total}</td><td>${g.checkedOut}</td><td>${g.returned}</td><td>${g.charged}</td><td>${g.ids.join(', ')}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        case 'nfcUsage':
+          const nfcStats = {};
+          finalArray.forEach(hp => {
+            if (hp.nfcId) {
+              if (!nfcStats[hp.nfcId]) nfcStats[hp.nfcId] = { uses: 0, headphoneIds: [], dates: [] };
+              nfcStats[hp.nfcId].uses++;
+              nfcStats[hp.nfcId].headphoneIds.push(hp.id);
+              nfcStats[hp.nfcId].dates.push(hp.agreement.date);
+            }
+          });
+          output.innerHTML = `
+            <h3>NFC Usage Statistics</h3>
+            <p>Date Range: ${startDate || 'All'} to ${endDate || 'All'}</p>
+            <table>
+              <thead><tr><th>NFC ID</th><th>Total Uses</th><th>Headphone IDs</th><th>Dates Used</th></tr></thead>
+              <tbody>${Object.entries(nfcStats).map(([id, stats]) => `<tr><td>${id}</td><td>${stats.uses}</td><td>${stats.headphoneIds.join(', ')}</td><td>${stats.dates.join(', ')}</td></tr>`).join('')}</tbody>
+            </table>
+          `;
+          break;
+        default:
+          output.innerHTML = '<p>Invalid report type.</p>';
+      }
+    }
+
+    function exportReport() {
+      const reportType = document.getElementById('reportType').value;
+      if (!reportType) return alert('Select a report type first!');
+      const startDate = document.getElementById('reportStartDate').value;
+      const endDate = document.getElementById('reportEndDate').value || startDate;
+      let filteredArray = Object.entries(headphones).map(([id, hp]) => ({ id, ...hp }));
+      if (startDate) {
+        const start = new Date(startDate).setHours(0, 0, 0, 0);
+        const end = new Date(endDate).setHours(23, 59, 59, 999);
+        filteredArray = filteredArray.filter(hp => {
+          const hpDate = new Date(hp.agreement?.date).setHours(0, 0, 0, 0);
+          return hpDate >= start && hpDate <= end;
+        });
+      }
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+      let csvContent = '';
+      switch (reportType) {
+        case 'allData':
+          csvContent = '"ID","NFC ID","Status","Customer","Email","Phone","Checkout Date","Preauth Status","Entry Method","Group ID"\n' +
+            filteredArray.map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}","${hp.customer?.name || 'N/A'}","${hp.customer?.email || 'N/A'}","${hp.customer?.phone || 'N/A'}","${hp.agreement?.date || 'N/A'}","${hp.pre_auth ? 'Hold' : 'Released'}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+          break;
+        case 'checkedOut':
+          csvContent = '"ID","NFC ID","Customer","Email","Phone","Checkout Date","Entry Method","Group ID"\n' +
+            filteredArray.filter(hp => hp.status === 'checked_out').map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+          break;
+        case 'overdue':
+          csvContent = '"ID","NFC ID","Customer","Email","Phone","Checkout Date","Days Overdue","Entry Method","Group ID"\n' +
+            filteredArray.filter(hp => hp.status === 'checked_out' && (now - hp.agreement.timestamp > twelveHours))
+              .map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","${Math.floor((now - hp.agreement.timestamp) / (1000 * 60 * 60 * 24))}","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+          break;
+        case 'revenue':
+          csvContent = '"ID","NFC ID","Customer","Email","Phone","Charge Date","Amount","Entry Method","Group ID"\n' +
+            filteredArray.filter(hp => hp.status === 'charged').map(hp => `"${hp.id}","${hp.nfcId || 'N/A'}","${hp.customer.name}","${hp.customer.email}","${hp.customer.phone}","${hp.agreement.date}","$100.00","${hp.entryMethod || 'N/A'}","${hp.groupId || 'Single'}"`).join('\n');
+          break;
+        case 'customerActivity':
+          const customers = {};
+          filteredArray.forEach(hp => {
+            const key = `${hp.customer.name}|${hp.customer.email}|${hp.customer.phone}`;
+            if (!customers[key]) customers[key] = { name: hp.customer.name, email: hp.customer.email, phone: hp.customer.phone, checkouts: 0, headphones: [] };
+            customers[key].checkouts++;
+            customers[key].headphones.push(hp.id);
+          });
+          csvContent = '"Name","Email","Phone","Total Checkouts","Headphone IDs"\n' +
+            Object.values(customers).map(c => `"${c.name}","${c.email}","${c.phone}","${c.checkouts}","${c.headphones.join(', ')}"`).join('\n');
+          break;
+        case 'groupSummary':
+          const groups = {};
+          filteredArray.forEach(hp => {
+            if (hp.groupId) {
+              if (!groups[hp.groupId]) groups[hp.groupId] = { ids: [], customer: hp.customer, total: 0, checkedOut: 0, returned: 0, charged: 0 };
+              groups[hp.groupId].ids.push(hp.id);
+              groups[hp.groupId].total++;
+              if (hp.status === 'checked_out') groups[hp.groupId].checkedOut++;
+              if (hp.status === 'returned') groups[hp.groupId].returned++;
+              if (hp.status === 'charged') groups[hp.groupId].charged++;
+            }
+          });
+          csvContent = '"Group ID","Customer","Email","Total Headphones","Checked Out","Returned","Charged","Headphone IDs"\n' +
+            Object.entries(groups).map(([id, g]) => `"${id}","${g.customer.name}","${g.customer.email}","${g.total}","${g.checkedOut}","${g.returned}","${g.charged}","${g.ids.join(', ')}"`).join('\n');
+          break;
+        case 'nfcUsage':
+          const nfcStats = {};
+          filteredArray.forEach(hp => {
+            if (hp.nfcId) {
+              if (!nfcStats[hp.nfcId]) nfcStats[hp.nfcId] = { uses: 0, headphoneIds: [], dates: [] };
+              nfcStats[hp.nfcId].uses++;
+              nfcStats[hp.nfcId].headphoneIds.push(hp.id);
+              nfcStats[hp.nfcId].dates.push(hp.agreement.date);
+            }
+          });
+          csvContent = '"NFC ID","Total Uses","Headphone IDs","Dates Used"\n' +
+            Object.entries(nfcStats).map(([id, stats]) => `"${id}","${stats.uses}","${stats.headphoneIds.join(', ')}","${stats.dates.join(', ')}"`).join('\n');
+          break;
+      }
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${reportType}_report_${startDate || 'all'}_${endDate || 'all'}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function makeDraggable(dialogId, headerId) {
+      const dialog = document.getElementById(dialogId);
+      const header = document.getElementById(headerId);
+      let isDragging = false;
+      let currentX = dialog.offsetLeft;
+      let currentY = dialog.offsetTop;
+      let initialX, initialY;
+
+      function startDragging(e) {
+        isDragging = true;
+        initialX = (e.type === 'mousedown' ? e.clientX : e.touches[0].clientX) - currentX;
+        initialY = (e.type === 'mousedown' ? e.clientY : e.touches[0].clientY) - currentY;
+        header.style.cursor = 'grabbing';
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        currentX = (e.type === 'mousemove' ? e.clientX : e.touches[0].clientX) - initialX;
+        currentY = (e.type === 'mousemove' ? e.clientY : e.touches[0].clientY) - initialY;
+        dialog.style.left = `${currentX}px`;
+        dialog.style.top = `${currentY}px`;
+        dialog.style.transform = 'none';
+      }
+
+      function stopDragging() {
+        isDragging = false;
+        header.style.cursor = 'move';
+      }
+
+      header.addEventListener('mousedown', startDragging);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDragging);
+      header.addEventListener('touchstart', startDragging);
+      document.addEventListener('touchmove', drag);
+      document.addEventListener('touchend', stopDragging);
+    }
   </script>
 </body>
 </html>
