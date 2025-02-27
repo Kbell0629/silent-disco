@@ -220,8 +220,8 @@
       <h1>SE2 Silent Disco Tracker</h1>
     </header>
     <div class="button-group">
-      <button onclick="showCheckout(); vibrate()">Checkout Headphones</button>
-      <button onclick="showReturn(); vibrate()">Return Headphones</button>
+      <button onclick="showCheckout(); vibrate()">Checkout - Handout Headphones</button>
+      <button onclick="showReturn(); vibrate()">Check In - Return Headphones</button>
       <button onclick="showDashboard(); vibrate()">View Dashboard</button>
       <button onclick="showReports(); vibrate()">View Reports</button>
       <button onclick="scanNFCStatus(); vibrate()">Scan NFC Status</button>
@@ -722,8 +722,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       const regex = /^HP\d{7}$/;
       let id;
       if (context === 'checkout') {
-        id = generateUniqueHeadphoneId();
-        const userId = prompt(`Enter headphone ID (suggested: ${id}):`, id);
+        // Generate the next available ID based on existing IDs
+        const suggestedId = generateUniqueHeadphoneId();
+        const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
         if (!userId || !regex.test(userId)) {
           alert('Invalid ID format. Use HP followed by 7 digits.');
           button.disabled = false;
