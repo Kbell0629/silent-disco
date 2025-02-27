@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout Headphones</title>
+  <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+    h1 { font-size: 28px; margin-bottom: 20px; }
+    button { padding: 15px; font-size: 18px; margin: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .form { display: flex; flex-direction: column; gap: 15px; max-width: 800px; margin: 0 auto; }
+    input, textarea { padding: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
+    textarea { resize: vertical; }
+    #headphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
+    #card-container { margin: 20px auto; min-height: 60px; }
+    #signaturePad { border: 2px solid #000; background: #f0f0f0; width: 300px; height: 150px; margin: 20px auto; }
+    #clearSignature { font-size: 14px; padding: 10px; background: #ff4444; }
+    .loading-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.3); 
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 2000; 
+    }
+    .spinner { 
+      border: 8px solid #f3f3f3; 
+      border-top: 8px solid #007bff; 
+      border-radius: 50%; 
+      width: 60px; 
+      height: 60px; 
+      animation: spin 1s linear infinite; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
+  </style>
+</head>
+<body>
+  <h1>Checkout Headphones</h1>
+  <div class="form">
+    <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
+    <input id="headphoneId" placeholder="Headphone ID (e.g., HP0000001)" readonly onclick="manualEntry('checkout'); vibrate()">
+    <button onclick="addHeadphoneId(); vibrate()">Add Headphone ID</button>
+    <ul id="headphoneIdsList"></ul>
+    <input id="name" placeholder="Full Name">
+    <input id="email" placeholder="Email">
+    <input id="phone" placeholder="Phone Number">
+    <textarea id="agreement" readonly rows="30">RENTAL AGREEMENT AND COLLATERAL TERMS
+
+By signing below, I, [Customer Name], agree to rent the following wireless headphones ([Headphone IDs]) from SE2 Silent Disco DBA and SE2 Events Inc. ("the Company") for use during the event on [Date]. I acknowledge that the headphones remain the property of the Company and must be returned in good working condition at the end of the event or upon request.
+I understand and agree that failure to return any headphone by the end of the event will result in a replacement fee of $100.00 USD per headphone ("Replacement Fee"). I authorize the Company to charge my credit card, provided below, the Replacement Fee for each headphone not returned or returned damaged beyond normal wear and tear.
+LIABILITY RELEASE: I hereby release, waive, discharge, and agree not to sue SE2 Silent Disco DBA and SE2 Events Inc., its officers, employees, agents, or affiliates ("Released Parties") from any and all liability, claims, demands, actions, or causes of action arising out of or related to any loss, damage, or injury, including death, that may be sustained by me or my property while using the headphones or attending the event, whether caused by the negligence of the Released Parties or otherwise. I assume full responsibility for any risk of bodily injury, death, or property damage arising from my use of the headphones and participation in the event.
+MARKETING CONSENT: I grant SE2 Silent Disco DBA and SE2 Events Inc. permission to use my email address and phone number provided herein for marketing purposes, including but not limited to sending promotional offers, event updates, and newsletters. I understand I may opt out of these communications at any time by following the unsubscribe instructions provided in such messages.
+PHOTO/VIDEO CONSENT: I consent to being photographed or recorded in video or audio by SE2 Silent Disco DBA and SE2 Events Inc. during the event. I grant the Company full permission to use, reproduce, publish, and distribute such photographs, videos, or recordings, including my likeness, voice, or image, for marketing, advertising, or promotional purposes in any medium, without compensation or further notice to me.
+This agreement constitutes a legally binding contract. I acknowledge that I have read and understood these terms, and I sign this agreement voluntarily under no duress. Any disputes arising from this agreement shall be governed by the laws of New York, USA.</textarea>
+    <div id="card-container"></div>
+    <canvas id="signaturePad" width="300" height="150"></canvas>
+    <button id="clearSignature" onclick="clearSignature(); vibrate()">Clear Signature</button>
+    <button id="checkoutButton" onclick="checkout(); vibrate()">Complete Checkout</button>
+    <button onclick="window.location.href='index.html'; vibrate()">Cancel</button>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
+    let headphones = {};
+    let signatureData = null;
+    let payments;
+    let cardElement;
+    let db;
+    let headphonesCollection;
+    let squareLocationId;
+    let firebaseConfig;
+
+    async function fetchConfig() {
+      try {
+        const response = await fetch('/.netlify/functions/get-config');
+        const config = await response.json();
+        squareLocationId = config.squareLocationId;
+        firebaseConfig = config.firebaseConfig;
+      } catch (error) {
+        console.error('Failed to fetch config:', error);
+        alert('Failed to load configuration. Please try again later.');
+      }
+    }
+
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        const maxAttempts = 100;
+        let attempts = 0;
+        console.log('Waiting for Firebase SDK to load...');
+        const checkFirebase = setInterval(() => {
+          attempts++;
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.firestore) {
+            clearInterval(checkFirebase);
+            try {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+              headphonesCollection = db.collection('headphones');
+              console.log('Firebase v9 initialized successfully');
+              resolve();
+            } catch (error) {
+              console.error('Firebase initialization failed:', error);
+              reject(error);
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkFirebase);
+            console.error('Firebase SDK failed to load');
+            alert('Firebase failed to load. Proceeding without database.');
+            resolve();
+          }
+        }, 100);
+      });
+    }
+
+    async function loadHeadphones() {
+      if (!db || !headphonesCollection) {
+        console.warn('Firebase not initialized, using local data');
+        return headphones;
+      }
+      try {
+        const snapshot = await headphonesCollection.get();
+        headphones = {};
+        snapshot.forEach(doc => {
+          headphones[doc.id] = doc.data();
+        });
+        return headphones;
+      } catch (error) {
+        console.error('Error loading headphones:', error);
+        alert('Failed to load data.');
+        return headphones;
+      }
+    }
+
+    async function saveHeadphone(id, data) {
+      if (!db || !headphonesCollection) {
+        headphones[id] = data;
+        return;
+      }
+      try {
+        await headphonesCollection.doc(id).set(data);
+        headphones[id] = data;
+      } catch (error) {
+        console.error('Error saving headphone:', error);
+        alert('Failed to save data.');
+        throw error;
+      }
+    }
+
+    async function initializeSquare() {
+      if (!window.Square) {
+        console.error('Square SDK not loaded');
+        return;
+      }
+      if (!payments) {
+        payments = window.Square.payments(squareAppId);
+      }
+      const cardContainer = document.getElementById('card-container');
+      cardContainer.innerHTML = '';
+      cardElement = await payments.card();
+      await cardElement.attach('#card-container');
+      return cardElement;
+    }
+
+    window.onload = async () => {
+      try {
+        await fetchConfig();
+        await waitForFirebase();
+        await loadHeadphones();
+        await initializeSquare();
+        initSignaturePad('signaturePad');
+        
+        // Pre-fill headphone ID from query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id) {
+          document.getElementById('headphoneId').value = id;
+          addHeadphoneId();
+        }
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        alert('Failed to start app.');
+      }
+    };
+
+    function vibrate() {
+      if ('vibrate' in navigator) navigator.vibrate(100);
+    }
+
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('checkoutButton').disabled = true;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('checkoutButton').disabled = false;
+    }
+
+    function addHeadphoneId() {
+      const id = document.getElementById('headphoneId').value.trim();
+      if (!id) {
+        alert('Please scan or enter a headphone ID first!');
+        return;
+      }
+      if (headphones[id] && headphones[id].status === 'checked_out') {
+        alert(`Headphone ${id} is already checked out!`);
+        return;
+      }
+      const list = document.getElementById('headphoneIdsList');
+      const existingIds = getHeadphoneIds();
+      if (existingIds.includes(id)) {
+        alert(`Headphone ${id} is already in the list!`);
+        return;
+      }
+      const li = document.createElement('li');
+      li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
+      list.appendChild(li);
+      document.getElementById('headphoneId').value = '';
+    }
+
+    function removeHeadphoneId(button, id) {
+      button.parentElement.remove();
+    }
+
+    function getHeadphoneIds() {
+      const list = document.getElementById('headphoneIdsList');
+      return Array.from(list.children).map(li => li.textContent.split(' ')[0]);
+    }
+
+    function initSignaturePad(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000';
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
+
+      function startDrawing(e) {
+        drawing = true;
+        ctx.beginPath();
+        const { x, y } = getPosition(e);
+        ctx.moveTo(x, y);
+        e.preventDefault();
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        const { x, y } = getPosition(e);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        e.preventDefault();
+      }
+
+      function stopDrawing() {
+        if (drawing) {
+          drawing = false;
+          signatureData = canvas.toDataURL();
+        }
+      }
+
+      function getPosition(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return {
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top
+        };
+      }
+    }
+
+    function clearSignature() {
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      signatureData = null;
+    }
+
+    function generateGroupId() {
+      const groupRegex = /^GROUP_\d{7}$/;
+      const existingGroups = Object.values(headphones)
+        .filter(hp => hp.groupId && groupRegex.test(hp.groupId))
+        .map(hp => parseInt(hp.groupId.replace('GROUP_', ''), 10));
+      let nextNum = 1;
+      if (existingGroups.length > 0) {
+        nextNum = Math.max(...existingGroups) + 1;
+      }
+      return `GROUP_${String(nextNum).padStart(7, '0')}`;
+    }
+
+    async function scanNFC(context) {
+      const button = document.getElementById('scanCheckout');
+      const input = document.getElementById('headphoneId');
+      const headphoneIdRegex = /^HP\d{7}$/;
+      button.disabled = true;
+
+      if ('NDEFReader' in window) {
+        const ndef = new NDEFReader();
+        try {
+          await ndef.scan();
+          const controller = new AbortController();
+          ndef.onreading = event => {
+            let id = event.serialNumber;
+            if (id && headphoneIdRegex.test(id)) {
+              input.value = id;
+              input.dataset.entryMethod = 'NFC';
+              alert(`Scanned headphone: ${id}`);
+            } else {
+              id = prompt('Scanned NFC tag doesn\'t match expected format (HP followed by 7 digits). Please enter a valid headphone ID (e.g., HP0000001):');
+              if (id && headphoneIdRegex.test(id)) {
+                input.value = id;
+                input.dataset.entryMethod = 'NFC-Manual';
+                alert(`Accepted headphone: ${id}`);
+              } else if (id) {
+                alert('Invalid ID format. Please use HP followed by 7 digits (e.g., HP0000001).');
+                controller.abort();
+                button.disabled = false;
+                return;
+              } else {
+                controller.abort();
+                button.disabled = false;
+                return;
+              }
+            }
+            controller.abort();
+            button.disabled = false;
+            addHeadphoneId();
+          };
+          ndef.onreadingerror = () => {
+            alert('No NFC tag detected. Try again or enter manually.');
+            manualEntry(context);
+            controller.abort();
+            button.disabled = false;
+          };
+          setTimeout(() => {
+            controller.abort();
+            if (!button.disabled) return;
+            alert('Scan timed out. Try again or enter manually.');
+            manualEntry(context);
+            button.disabled = false;
+          }, 5000);
+          await new Promise((resolve) => {
+            controller.signal.addEventListener('abort', resolve);
+          });
+        } catch (error) {
+          alert(`NFC error: ${error.message}. Enter ID manually.`);
+          manualEntry(context);
+          button.disabled = false;
+        }
+      } else {
+        alert('NFC not supported. Enter ID manually.');
+        manualEntry(context);
+        button.disabled = false;
+      }
+    }
+
+    function manualEntry(context) {
+      const input = document.getElementById('headphoneId');
+      const button = document.getElementById('scanCheckout');
+      const regex = /^HP\d{7}$/;
+
+      const existingIds = Object.keys(headphones).filter(id => regex.test(id));
+      const checkoutIds = getHeadphoneIds();
+      const allIds = [...new Set([...existingIds, ...checkoutIds])];
+      
+      let nextNum = 1;
+      if (allIds.length > 0) {
+        const numbers = allIds.map(id => parseInt(id.replace('HP', ''), 10));
+        nextNum = Math.max(...numbers) + 1;
+      }
+      const suggestedId = `HP${String(nextNum).padStart(7, '0')}`;
+
+      let id;
+      do {
+        id = prompt(`Enter headphone ID (e.g., HP0000001).\nSuggested ID: ${suggestedId}.`, suggestedId);
+        if (id === null) {
+          button.disabled = false;
+          return;
+        }
+        if (!regex.test(id)) {
+          alert('Invalid ID format. Use HP followed by 7 digits (e.g., HP0000001).');
+        } else if (checkoutIds.includes(id)) {
+          alert(`Headphone ${id} is already in the checkout list.`);
+          id = null;
+        }
+      } while (!regex.test(id) || checkoutIds.includes(id));
+
+      input.value = id;
+      input.dataset.entryMethod = 'Manual';
+      button.disabled = false;
+      addHeadphoneId();
+    }
+
+    async function checkout() {
+      const headphoneIds = getHeadphoneIds();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const date = new Date().toISOString().split('T')[0];
+
+      if (!headphoneIds.length || !name || !email || !phone || !signatureData || !cardElement) {
+        alert('Please add at least one headphone ID, fill all fields, enter card details, and sign the agreement!');
+        return;
+      }
+
+      showLoading();
+      const groupId = headphoneIds.length > 1 ? generateGroupId() : null;
+      const headphoneIdsText = headphoneIds.join(', ');
+      const agreementText = document.getElementById('agreement').value
+        .replace('[Customer Name]', name)
+        .replace('[Date]', date)
+        .replace('[Headphone IDs]', headphoneIdsText);
+
+      try {
+        const result = await cardElement.tokenize();
+        if (result.status !== 'OK') throw new Error('Card tokenization failed.');
+        const paymentToken = result.token;
+
+        const preauthResponse = await fetch('/.netlify/functions/preauthorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: paymentToken,
+            amount: headphoneIds.length * 10000,
+            currency: 'USD',
+            locationId: squareLocationId
+          })
+        });
+
+        const preauthResult = await preauthResponse.json();
+        if (!preauthResponse.ok) throw new Error(preauthResult.error || 'Preauthorization failed');
+        const preauthId = preauthResult.paymentId;
+
+        for (const id of headphoneIds) {
+          if (headphones[id] && headphones[id].status === 'checked_out') {
+            alert(`Headphone ${id} is already checked out! Skipping.`);
+            continue;
+          }
+          const entryMethod = document.getElementById('headphoneId').dataset.entryMethod || 'Manual';
+          const headphoneData = {
+            status: 'checked_out',
+            customer: { name, email, phone },
+            agreement: { text: agreementText, signature: signatureData, amount: 100, date: date, timestamp: Date.now() },
+            pre_auth: { pre_auth_id: preauthId, amount: headphoneIds.length * 100 },
+            entryMethod: entryMethod
+          };
+          if (groupId) headphoneData.groupId = groupId;
+          await saveHeadphone(id, headphoneData);
+        }
+
+        const emailResponse = await fetch('/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            agreement: agreementText,
+            signature: signatureData,
+            preauthId: preauthId
+          })
+        });
+
+        if (emailResponse.ok) {
+          alert(`Headphones ${headphoneIdsText} checked out! Agreement emailed to ${email}.`);
+          window.location.href = 'index.html';
+        } else {
+          throw new Error('Email failed');
+        }
+      } catch (error) {
+        console.error('Checkout error:', error.message);
+        alert('Checkout failed: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    }
+  </script>
+</body>
+</html>
