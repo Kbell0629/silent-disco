@@ -107,7 +107,7 @@
   <div id="checkout" class="form">
     <h2>Checkout Headphones</h2>
     <button id="scanCheckout" onclick="scanNFC('checkout'); vibrate()">Scan NFC Tag</button>
-    <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
+    <input id="headphoneId" placeholder="Headphone ID (e.g., HP123)" readonly onclick="manualEntry('checkout'); vibrate()">
     <button onclick="addHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="headphoneIdsList"></ul>
     <input id="name" placeholder="Full Name">
@@ -182,7 +182,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="checkoutDialog" class="dialog">
     <div id="checkoutDialogHeader" class="dialog-header">Checkout Headphones</div>
     <button id="dialogScanCheckout" onclick="scanNFC('dialogCheckout'); vibrate()">Scan NFC Tag</button>
-    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly>
+    <input id="dialogHeadphoneId" placeholder="Headphone ID (e.g., HP123)" readonly onclick="manualEntry('dialogCheckout'); vibrate()">
     <button onclick="addDialogHeadphoneId(); vibrate()">Add Headphone ID</button>
     <ul id="dialogHeadphoneIdsList"></ul>
     <input id="dialogName" placeholder="Full Name">
