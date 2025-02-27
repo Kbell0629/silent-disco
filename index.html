@@ -324,8 +324,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       let suggestedId;
 
       if (context === 'checkout' || context === 'dialogCheckout') {
-        // For checkout, suggest the next sequential ID
-        const allIds = Object.keys(headphones).filter(id => headphoneIdRegex.test(id)).map(id => parseInt(id.slice(2)));
+        // Combine database IDs and current checkout list IDs
+        const dbIds = Object.keys(headphones).filter(id => headphoneIdRegex.test(id)).map(id => parseInt(id.slice(2)));
+        const listIds = existingIds.map(id => parseInt(id.slice(2)));
+        const allIds = [...dbIds, ...listIds];
         const maxNum = allIds.length ? Math.max(...allIds) : 0;
         const nextNum = maxNum + 1;
         suggestedId = `HP${String(nextNum).padStart(7, '0')}`;
