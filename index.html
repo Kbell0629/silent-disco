@@ -26,7 +26,7 @@
     .checkout-btn { background-color: #dc3545; padding: 4px; margin: 1px; font-size: 12px; }
     .charge-btn { background-color: #ffc107; padding: 4px; margin: 1px; font-size: 12px; }
     .delete-btn { background-color: #808080; padding: 4px; margin: 1px; font-size: 12px; color: white; }
-    #dashboard, #reports { overflow-x: auto; }
+    #dashboard, #reports, #manualReturnDialog table { overflow-x: auto; }
     .dialog { 
       position: absolute; 
       top: 10%; 
@@ -66,10 +66,9 @@
     }
     #dialogSignaturePad { border: 2px solid #000; background: #f0f0f0; width: 250px; height: 120px; margin: 8px auto; }
     #dialogCardContainer { margin: 8px auto; min-height: 50px; }
-    #headphoneIdsList, #dialogHeadphoneIdsList, #manualReturnList { list-style: none; padding: 0; margin: 10px 0; }
-    #headphoneIdsList li, #dialogHeadphoneIdsList li, #manualReturnList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+    #headphoneIdsList, #dialogHeadphoneIdsList { list-style: none; padding: 0; margin: 10px 0; }
+    #headphoneIdsList li, #dialogHeadphoneIdsList li { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
     .remove-btn { background-color: #dc3545; padding: 5px; font-size: 12px; }
-    #manualReturnList label { display: flex; align-items: center; gap: 5px; }
     /* Loading Spinner Styles */
     .loading-overlay { 
       position: fixed; 
@@ -130,7 +129,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="return" class="form">
     <h2>Return</h2>
     <button id="scanReturn" onclick="scanNFC('return'); vibrate()">Scan NFC Tag</button>
-    <input id="returnId" placeholder="Headphone ID" readonly>
+    <input id="returnId" placeholder="Headphone ID" readonly onclick="showManualReturnDialog('return'); vibrate()">
     <button onclick="returnHeadphone(); vibrate()">Return</button>
   </div>
 
@@ -208,7 +207,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="returnDialog" class="dialog">
     <div id="returnDialogHeader" class="dialog-header">Return Headphone</div>
     <button id="dialogScanReturn" onclick="scanNFC('dialogReturn'); vibrate()">Scan NFC Tag</button>
-    <input id="dialogReturnId" placeholder="Headphone ID" readonly>
+    <input id="dialogReturnId" placeholder="Headphone ID" readonly onclick="showManualReturnDialog('dialogReturn'); vibrate()">
     <button onclick="submitReturnDialog(); vibrate()">Return</button>
     <button onclick="closeDialog('return'); vibrate()">Cancel</button>
   </div>
@@ -217,7 +216,17 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
   <div id="manualReturnDialog" class="dialog">
     <div id="manualReturnDialogHeader" class="dialog-header">Select Headphones to Return</div>
     <input id="manualReturnSearch" type="text" placeholder="Search headphones..." onkeyup="filterManualReturnList()">
-    <ul id="manualReturnList"></ul>
+    <table id="manualReturnTable">
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Group ID</th>
+        </tr>
+      </thead>
+      <tbody id="manualReturnList"></tbody>
+    </table>
     <button onclick="submitManualReturn(); vibrate()">Return Selected</button>
     <button onclick="closeDialog('manualReturn'); vibrate()">Cancel</button>
   </div>
@@ -653,14 +662,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       list.innerHTML = '';
 
       checkedOut.forEach(([id, hp]) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <label>
-            <input type="checkbox" name="returnHeadphone" value="${id}">
-            ${id} - ${hp.customer.name} (Group: ${hp.groupId || 'Single'})
-          </label>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><input type="checkbox" name="returnHeadphone" value="${id}"></td>
+          <td>${id}</td>
+          <td>${hp.customer.name}</td>
+          <td>${hp.groupId || 'Single'}</td>
         `;
-        list.appendChild(li);
+        list.appendChild(row);
       });
 
       document.getElementById('manualReturnSearch').value = '';
@@ -670,11 +679,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     function filterManualReturnList() {
       const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
       const list = document.getElementById('manualReturnList');
-      const items = list.getElementsByTagName('li');
+      const rows = list.getElementsByTagName('tr');
 
-      Array.from(items).forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(searchTerm) ? '' : 'none';
+      Array.from(rows).forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
       });
     }
 
@@ -878,7 +887,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function returnHeadphone() {
       const id = document.getElementById('returnId').value;
       if (!id) {
-        alert('Please scan a headphone!');
+        alert('Please scan a headphone or select from the dialog!');
         return;
       }
       if (headphones[id] && headphones[id].status === 'checked_out') {
