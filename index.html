@@ -792,7 +792,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       function stopDrawing() {
         if (drawing) {
           drawing = false;
-          signatureData = canvas.toDataURL();
+          if (canvasId === 'signaturePad') {
+            signatureData = canvas.toDataURL();
+          } else {
+            dialogSignatureData = canvas.toDataURL();
+          }
         }
       }
 
@@ -930,6 +934,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
+        let returnedIds = [];
         for (const id of headphoneIds) {
           if (!headphones[id] || headphones[id].status !== 'checked_out') {
             alert(`Headphone ${id} is not checked out! Skipping.`);
@@ -940,8 +945,44 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             pre_auth: null
           };
           await updateHeadphone(id, updatedData);
+          returnedIds.push(id);
         }
-        alert(`Headphone(s) ${headphoneIds.join(', ')} returned!`);
+
+        if (returnedIds.length > 0) {
+          const customer = headphones[returnedIds[0]].customer;
+          const headphoneList = returnedIds.join(', ');
+          const emailBody = `
+Dear ${customer.name},
+
+Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
+
+If you have any questions or need assistance, feel free to reach out to us at SE2 Silent Disco. You can visit our website at www.se2.events or email us at se2login@gmail.com. We’d love to see you at future events!
+
+Warm regards,
+The SE2 Silent Disco Team
+www.se2.events
+Email: se2login@gmail.com
+          `;
+
+          const emailResponse = await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: customer.email,
+              bcc: 'se2login@gmail.com',
+              subject: 'Headphone Return Confirmation - Thank You!',
+              body: emailBody
+            })
+          });
+
+          if (!emailResponse.ok) {
+            console.error('Failed to send return email:', await emailResponse.text());
+            alert('Headphones returned, but email notification failed. Please contact support.');
+          } else {
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
+          }
+        }
+
         clearForm('return');
         showDashboard();
       } catch (error) {
@@ -997,6 +1038,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
 
       try {
+        let returnedIds = [];
         for (const id of headphoneIds) {
           if (!headphones[id] || headphones[id].status !== 'checked_out') {
             alert(`Headphone ${id} is not checked out! Skipping.`);
@@ -1007,8 +1049,44 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             pre_auth: null
           };
           await updateHeadphone(id, updatedData);
+          returnedIds.push(id);
         }
-        alert(`Headphone(s) ${headphoneIds.join(', ')} returned!`);
+
+        if (returnedIds.length > 0) {
+          const customer = headphones[returnedIds[0]].customer;
+          const headphoneList = returnedIds.join(', ');
+          const emailBody = `
+Dear ${customer.name},
+
+Thank you so much for attending our Silent Disco event! We’re thrilled you joined us and hope you had an amazing time. We’re pleased to inform you that we’ve received the following headphone(s) back: ${headphoneList}. You are no longer liable for these items, and we appreciate your prompt return.
+
+If you have any questions or need assistance, feel free to reach out to us at SE2 Silent Disco. You can visit our website at www.se2.events or email us at se2login@gmail.com. We’d love to see you at future events!
+
+Warm regards,
+The SE2 Silent Disco Team
+www.se2.events
+Email: se2login@gmail.com
+          `;
+
+          const emailResponse = await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: customer.email,
+              bcc: 'se2login@gmail.com',
+              subject: 'Headphone Return Confirmation - Thank You!',
+              body: emailBody
+            })
+          });
+
+          if (!emailResponse.ok) {
+            console.error('Failed to send return email:', await emailResponse.text());
+            alert('Headphones returned, but email notification failed. Please contact support.');
+          } else {
+            alert(`Headphone(s) ${returnedIds.join(', ')} returned successfully! A confirmation email has been sent to ${customer.email}.`);
+          }
+        }
+
         closeDialog('return');
       } catch (error) {
         alert('Failed to return headphones: ' + error.message);
