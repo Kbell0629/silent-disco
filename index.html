@@ -451,7 +451,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
       }
       const li = document.createElement('li');
       li.innerHTML = `${id} <button class="remove-btn" onclick="removeHeadphoneId(this, '${id}')">Remove</button>`;
-      li.dataset.id = id; // Store ID for easier access
+      li.dataset.id = id;
       list.appendChild(li);
       document.getElementById('returnId').value = '';
     }
@@ -602,17 +602,39 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     async function scanNFC(context) {
       const button = document.getElementById(context === 'checkout' ? 'scanCheckout' : context === 'return' ? 'scanReturn' : context === 'dialogCheckout' ? 'dialogScanCheckout' : 'dialogScanReturn');
       const input = document.getElementById(context === 'checkout' ? 'headphoneId' : context === 'return' ? 'returnId' : context === 'dialogCheckout' ? 'dialogHeadphoneId' : 'dialogReturnId');
+      const headphoneIdRegex = /^HP\d{7}$/; // Expected format: HP followed by 7 digits
       button.disabled = true;
+
       if ('NDEFReader' in window) {
         const ndef = new NDEFReader();
         try {
           await ndef.scan();
           const controller = new AbortController();
           ndef.onreading = event => {
-            const id = event.serialNumber || `HP${Date.now()}`;
-            input.value = id;
-            input.dataset.entryMethod = 'NFC';
-            alert(`Scanned headphone: ${id}`);
+            let id = event.serialNumber; // Get the NFC tag's serial number
+            // Check if the scanned ID matches the expected headphone ID format
+            if (id && headphoneIdRegex.test(id)) {
+              input.value = id;
+              input.dataset.entryMethod = 'NFC';
+              alert(`Scanned headphone: ${id}`);
+            } else {
+              // If the scanned ID isn't in the right format, prompt for manual entry
+              id = prompt('Scanned NFC tag doesn\'t match expected format (HP followed by 7 digits). Please enter a valid headphone ID (e.g., HP0000001):');
+              if (id && headphoneIdRegex.test(id)) {
+                input.value = id;
+                input.dataset.entryMethod = 'NFC-Manual';
+                alert(`Accepted headphone: ${id}`);
+              } else if (id) {
+                alert('Invalid ID format. Please use HP followed by 7 digits (e.g., HP0000001).');
+                controller.abort();
+                button.disabled = false;
+                return;
+              } else {
+                controller.abort();
+                button.disabled = false;
+                return;
+              }
+            }
             controller.abort();
             button.disabled = false;
             if (context === 'return') addReturnHeadphoneId();
@@ -942,7 +964,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const list = document.getElementById('returnHeadphoneIdsList');
         Array.from(list.children).forEach(li => {
           if (mismatched.includes(li.dataset.id)) {
-            li.style.backgroundColor = '#ffcccc'; // Highlight mismatched
+            li.style.backgroundColor = '#ffcccc';
           } else {
             li.style.backgroundColor = '';
           }
