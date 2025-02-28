@@ -206,6 +206,16 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
         let headphones = {}, usedHeadphoneIds = new Set(), checkoutListIds = new Set(), allHeadphoneIds = new Set(), signatureData = null, payments, cardElement, db, headphonesCollection, squareLocationId, firebaseConfig, activeNFCController = null, nfcTriggered = false, timeoutId = null, chartInstance = null;
 
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800;
+            oscillator.connect(audioContext.destination);
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), 100);
+        }
+
         async function fetchConfig() {
             try {
                 const response = await fetch('/.netlify/functions/get-config');
@@ -214,8 +224,9 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 firebaseConfig = config.firebaseConfig;
             } catch (error) {
                 console.error('Failed to fetch config:', error);
-                alert('Failed to load configuration');
+                return false;
             }
+            return true;
         }
 
         async function waitForFirebase() {
@@ -225,9 +236,13 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     if ((typeof firebase !== 'undefined' && firebase.app && firebase.firestore) || attempts >= 100) {
                         clearInterval(checkFirebase);
                         if (firebase.app) {
-                            firebase.initializeApp(firebaseConfig);
-                            db = firebase.firestore();
-                            headphonesCollection = db.collection('headphones');
+                            try {
+                                firebase.initializeApp(firebaseConfig);
+                                db = firebase.firestore();
+                                headphonesCollection = db.collection('headphones');
+                            } catch (error) {
+                                console.error('Firebase init failed:', error);
+                            }
                         }
                         resolve();
                     }
@@ -251,7 +266,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 return headphones;
             } catch (error) {
                 console.error('Error loading headphones:', error);
-                alert('Failed to load data');
                 return headphones;
             }
         }
@@ -271,7 +285,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             try {
                 if (db && headphonesCollection) await headphonesCollection.doc(id).update(data);
                 headphones[id] = { ...headphones[id], ...data };
-                if (data.status === 'returned' || data.status === 'charged') usedHeadphoneIds.delete(id);
+                if (data.status === 'returned' || data.status === 'charged') {
+                    usedHeadphoneIds.delete(id);
+                    headphones[id].nfcId = null; // Release NFC ID on check-in
+                }
             } catch (error) {
                 console.error('Error updating headphone:', error);
                 alert('Failed to update data');
@@ -296,27 +313,28 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function initializeSquare() {
-            if (!window.Square) return;
+            if (!window.Square) return false;
             if (!payments) payments = window.Square.payments(squareAppId);
             const cardContainer = document.getElementById('card-container');
             cardContainer.innerHTML = '';
             cardElement = await payments.card();
             await cardElement.attach('#card-container');
-            return cardElement;
+            return true;
         }
 
         window.onload = async () => {
             try {
-                await fetchConfig();
+                const configLoaded = await fetchConfig();
+                if (!configLoaded) throw new Error('Config loading failed');
                 await waitForFirebase();
-                await initializeSquare();
+                const squareLoaded = await initializeSquare();
                 await loadHeadphones();
                 makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
                 nfcTriggered = false;
                 runTests();
             } catch (error) {
                 console.error('Initialization error:', error);
-                alert('Failed to start app');
+                alert('Failed to start app. Some features may not work. Please refresh.');
             }
         };
 
@@ -436,21 +454,28 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             try {
                 await ndef.scan({ signal: activeNFCController.signal });
                 ndef.onreading = event => {
+                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId);
                     if (matchingHeadphone) {
                         const [id, hp] = matchingHeadphone;
-                        resultElement.innerHTML += `<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br><strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br><strong>Customer:</strong> ${hp.customer.name}<br><strong>Email:</strong> ${hp.customer.email}<br><strong>Phone:</strong> ${hp.customer.phone}<br><strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br><strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br><strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br><strong>Group ID:</strong> ${hp.groupId || 'Single'}<br><hr>`;
-                        dialog.style.display = 'none'; // Hide "Scanning..." after successful scan
+                        resultElement.innerHTML = `<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br><strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br><strong>Customer:</strong> ${hp.customer.name}<br><strong>Email:</strong> ${hp.customer.email}<br><strong>Phone:</strong> ${hp.customer.phone}<br><strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br><strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br><strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br><strong>Group ID:</strong> ${hp.groupId || 'Single'}`;
+                    } else {
+                        resultElement.textContent = `No headphone found with NFC ID: ${nfcId}`;
                     }
+                    dialog.style.display = 'none'; // Hide "Scanning..." after scan
                 };
                 ndef.onreadingerror = () => {
-                    resultElement.innerHTML += '<br>Error reading NFC tag. Try again.';
+                    resultElement.textContent = 'Error reading NFC tag. Try again.';
+                    dialog.style.display = 'none';
+                    overlay.style.display = 'none';
                 };
             } catch (error) {
-                if (error.name !== 'AbortError') resultElement.textContent = `Error: ${error.message}`;
-                dialog.style.display = 'none';
-                overlay.style.display = 'none';
+                if (error.name !== 'AbortError') {
+                    resultElement.textContent = `Error: ${error.message}`;
+                    dialog.style.display = 'none';
+                    overlay.style.display = 'none';
+                }
             }
         }
 
@@ -492,6 +517,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 const scanStartTime = Date.now();
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
+                    playBeep();
                     const timeSinceStart = Date.now() - scanStartTime;
                     if (timeSinceStart < 500) {
                         console.log(`Ignoring NFC read within 500ms of scan start: ${event.serialNumber}`);
@@ -612,6 +638,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 await ndef.scan({ signal: activeNFCController.signal });
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
+                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId && hp.status === 'checked_out');
                     if (matchingHeadphone) {
@@ -666,6 +693,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 await ndef.scan({ signal: activeNFCController.signal });
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
+                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId && hp.status === 'checked_out');
                     if (matchingHeadphone) {
