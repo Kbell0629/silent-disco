@@ -36,8 +36,8 @@
         th { background: #6B48FF; font-weight: 600; position: sticky; top: 0; z-index: 10; }
         td { color: #EDEDED; }
         .checkin-btn { background: #28A745; }
-        .charge-btn { background: #FFC107; color: #1A1A1A; padding: 4px 8px; font-size: 10px; }
-        .delete-btn { background: #808080; padding: 4px 8px; font-size: 10px; }
+        .charge-btn { background: #FFC107; color: #1A1A1A; padding: 4px; font-size: 10px; }
+        .delete-btn { background: #808080; padding: 4px; font-size: 10px; }
         .button-group button { width: 90%; max-width: 600px; text-align: center; }
         .form button { width: auto; min-width: 150px; }
         #headphoneIdsList { list-style: none; padding: 0; margin: 10px 0; background: #3A3A3A; border-radius: 6px; }
@@ -204,7 +204,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
     </div>
     <script>
         const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
-        let headphones = {}, usedHeadphoneIds = new Set(), checkoutListIds = new Set(), signatureData = null, payments, cardElement, db, headphonesCollection, squareLocationId, firebaseConfig, activeNFCController = null, nfcTriggered = false, timeoutId = null, chartInstance = null;
+        let headphones = {}, usedHeadphoneIds = new Set(), checkoutListIds = new Set(), allHeadphoneIds = new Set(), signatureData = null, payments, cardElement, db, headphonesCollection, squareLocationId, firebaseConfig, activeNFCController = null, nfcTriggered = false, timeoutId = null, chartInstance = null;
 
         async function fetchConfig() {
             try {
@@ -242,8 +242,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 const snapshot = await headphonesCollection.get();
                 headphones = {};
                 usedHeadphoneIds = new Set();
+                allHeadphoneIds = new Set();
                 snapshot.forEach(doc => {
                     headphones[doc.id] = doc.data();
+                    allHeadphoneIds.add(doc.id);
                     if (headphones[doc.id].status === 'checked_out') usedHeadphoneIds.add(doc.id);
                 });
                 return headphones;
@@ -257,6 +259,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             try {
                 if (db && headphonesCollection) await headphonesCollection.doc(id).set(data);
                 headphones[id] = data;
+                allHeadphoneIds.add(id);
                 if (data.status === 'checked_out') usedHeadphoneIds.add(id);
             } catch (error) {
                 console.error('Error saving headphone:', error);
@@ -367,7 +370,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
 
         function generateUniqueHeadphoneId() {
             const regex = /^HP\d{7}$/;
-            const allIds = new Set([...usedHeadphoneIds, ...checkoutListIds]);
+            const allIds = new Set([...allHeadphoneIds, ...checkoutListIds]);
             const existingIds = Array.from(allIds).filter(id => regex.test(id));
             let nextNum = 1;
             if (existingIds.length) nextNum = Math.max(...existingIds.map(id => parseInt(id.replace('HP', ''), 10))) + 1;
@@ -438,6 +441,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     if (matchingHeadphone) {
                         const [id, hp] = matchingHeadphone;
                         resultElement.innerHTML += `<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br><strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br><strong>Customer:</strong> ${hp.customer.name}<br><strong>Email:</strong> ${hp.customer.email}<br><strong>Phone:</strong> ${hp.customer.phone}<br><strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br><strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br><strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br><strong>Group ID:</strong> ${hp.groupId || 'Single'}<br><hr>`;
+                        dialog.style.display = 'none'; // Hide "Scanning..." after successful scan
                     }
                 };
                 ndef.onreadingerror = () => {
@@ -563,7 +567,11 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             const regex = /^HP\d{7}$/;
             const suggestedId = generateUniqueHeadphoneId();
             const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
-            if (!userId || !regex.test(userId)) {
+            if (userId === null) { // User clicked Cancel
+                button.disabled = false;
+                return;
+            }
+            if (!regex.test(userId)) {
                 alert('Invalid ID format. Use HP followed by 7 digits.');
                 button.disabled = false;
                 return;
