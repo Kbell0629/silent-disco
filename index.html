@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sandbox.web.squarecdn.com https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://via.placeholder.com; connect-src 'self' https://pci-connect.squareupsandbox.com https://se2silentdisco.netlify.app">
     <title>SE2 Silent Disco Tracker</title>
     <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -80,7 +81,7 @@
 <body>
     <div class="container">
         <header>
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbniqSWBhKlwtFnBvx5elx7r_rqfffG3tFbfcg3OA&s" alt="SE2 Silent Disco Logo">
+            <img src="https://via.placeholder.com/60" alt="SE2 Silent Disco Logo">
             <h1>SE2 Silent Disco Tracker</h1>
         </header>
         <div class="button-group">
@@ -216,17 +217,44 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             setTimeout(() => oscillator.stop(), 100);
         }
 
+        function makeDraggable(dialogId, headerId) {
+            const dialog = document.getElementById(dialogId);
+            const header = document.getElementById(headerId);
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            header.onmousedown = dragMouseDown;
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                dialog.style.top = (dialog.offsetTop - pos2) + "px";
+                dialog.style.left = (dialog.offsetLeft - pos1) + "px";
+            }
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
         async function fetchConfig() {
             try {
                 const response = await fetch('/.netlify/functions/get-config');
                 const config = await response.json();
                 squareLocationId = config.squareLocationId;
                 firebaseConfig = config.firebaseConfig;
+                return true;
             } catch (error) {
                 console.error('Failed to fetch config:', error);
                 return false;
             }
-            return true;
         }
 
         async function waitForFirebase() {
@@ -313,25 +341,32 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function initializeSquare() {
-            if (!window.Square) return false;
-            if (!payments) payments = window.Square.payments(squareAppId);
-            const cardContainer = document.getElementById('card-container');
-            cardContainer.innerHTML = '';
-            cardElement = await payments.card();
-            await cardElement.attach('#card-container');
-            return true;
+            if (!window.Square) {
+                console.warn('Square SDK not loaded');
+                return false;
+            }
+            try {
+                if (!payments) payments = window.Square.payments(squareAppId);
+                const cardContainer = document.getElementById('card-container');
+                cardContainer.innerHTML = '';
+                cardElement = await payments.card();
+                await cardElement.attach('#card-container');
+                return true;
+            } catch (error) {
+                console.error('Square initialization failed:', error);
+                return false;
+            }
         }
 
         window.onload = async () => {
             try {
                 const configLoaded = await fetchConfig();
-                if (!configLoaded) throw new Error('Config loading failed');
+                if (!configLoaded) console.warn('Config not loaded, some features may be unavailable');
                 await waitForFirebase();
                 const squareLoaded = await initializeSquare();
+                if (!squareLoaded) console.warn('Square not initialized, payment features may not work');
                 await loadHeadphones();
                 makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
-                nfcTriggered = false;
-                runTests();
             } catch (error) {
                 console.error('Initialization error:', error);
                 alert('Failed to start app. Some features may not work. Please refresh.');
@@ -463,7 +498,8 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     } else {
                         resultElement.textContent = `No headphone found with NFC ID: ${nfcId}`;
                     }
-                    dialog.style.display = 'none'; // Hide "Scanning..." after scan
+                    dialog.style.display = 'none';
+                    overlay.style.display = 'none';
                 };
                 ndef.onreadingerror = () => {
                     resultElement.textContent = 'Error reading NFC tag. Try again.';
@@ -593,7 +629,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             const regex = /^HP\d{7}$/;
             const suggestedId = generateUniqueHeadphoneId();
             const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
-            if (userId === null) { // User clicked Cancel
+            if (userId === null) {
                 button.disabled = false;
                 return;
             }
