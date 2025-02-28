@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sandbox.web.squarecdn.com https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://via.placeholder.com; connect-src 'self' https://pci-connect.squareupsandbox.com https://se2silentdisco.netlify.app">
     <title>SE2 Silent Disco Tracker</title>
     <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -81,15 +80,15 @@
 <body>
     <div class="container">
         <header>
-            <img src="https://via.placeholder.com/60" alt="SE2 Silent Disco Logo">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbniqSWBhKlwtFnBvx5elx7r_rqfffG3tFbfcg3OA&s" alt="SE2 Silent Disco Logo">
             <h1>SE2 Silent Disco Tracker</h1>
         </header>
         <div class="button-group">
-            <button id="checkoutBtn" onclick="showCheckout();vibrate()">Checkout - Handout Headphones</button>
-            <button id="returnBtn" onclick="showReturn();vibrate()">Check In - Return Headphones</button>
-            <button id="dashboardBtn" onclick="showDashboard();vibrate()">View Dashboard</button>
-            <button id="reportsBtn" onclick="showReports();vibrate()">View Reports</button>
-            <button id="nfcStatusBtn" onclick="scanNFCStatus();vibrate()">Scan NFC Status</button>
+            <button onclick="showCheckout();vibrate()">Checkout - Handout Headphones</button>
+            <button onclick="showReturn();vibrate()">Check In - Return Headphones</button>
+            <button onclick="showDashboard();vibrate()">View Dashboard</button>
+            <button onclick="showReports();vibrate()">View Reports</button>
+            <button onclick="scanNFCStatus();vibrate()">Scan NFC Status</button>
         </div>
         <div id="checkout" class="form">
             <h2>Checkout Headphones</h2>
@@ -207,77 +206,28 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         const squareAppId = 'sandbox-sq0idb-qaDoxfFQK3OfUWlaCrgkDw';
         let headphones = {}, usedHeadphoneIds = new Set(), checkoutListIds = new Set(), allHeadphoneIds = new Set(), signatureData = null, payments, cardElement, db, headphonesCollection, squareLocationId, firebaseConfig, activeNFCController = null, nfcTriggered = false, timeoutId = null, chartInstance = null;
 
-        console.log('Script loaded, defining functions...');
-
-        function playBeep() {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 800;
-            oscillator.connect(audioContext.destination);
-            oscillator.start();
-            setTimeout(() => oscillator.stop(), 100);
-        }
-
-        function makeDraggable(dialogId, headerId) {
-            console.log(`Making ${dialogId} draggable`);
-            const dialog = document.getElementById(dialogId);
-            const header = document.getElementById(headerId);
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            header.onmousedown = dragMouseDown;
-            function dragMouseDown(e) {
-                e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-            }
-            function elementDrag(e) {
-                e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                dialog.style.top = (dialog.offsetTop - pos2) + "px";
-                dialog.style.left = (dialog.offsetLeft - pos1) + "px";
-            }
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-            }
-        }
-
         async function fetchConfig() {
-            console.log('Fetching config...');
             try {
                 const response = await fetch('/.netlify/functions/get-config');
                 const config = await response.json();
                 squareLocationId = config.squareLocationId;
                 firebaseConfig = config.firebaseConfig;
-                console.log('Config fetched successfully');
-                return true;
             } catch (error) {
                 console.error('Failed to fetch config:', error);
-                return false;
+                alert('Failed to load configuration');
             }
         }
 
         async function waitForFirebase() {
-            console.log('Waiting for Firebase...');
             return new Promise(resolve => {
                 let attempts = 0;
                 const checkFirebase = setInterval(() => {
                     if ((typeof firebase !== 'undefined' && firebase.app && firebase.firestore) || attempts >= 100) {
                         clearInterval(checkFirebase);
                         if (firebase.app) {
-                            try {
-                                firebase.initializeApp(firebaseConfig);
-                                db = firebase.firestore();
-                                headphonesCollection = db.collection('headphones');
-                                console.log('Firebase initialized');
-                            } catch (error) {
-                                console.error('Firebase init failed:', error);
-                            }
+                            firebase.initializeApp(firebaseConfig);
+                            db = firebase.firestore();
+                            headphonesCollection = db.collection('headphones');
                         }
                         resolve();
                     }
@@ -287,10 +237,7 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function loadHeadphones() {
-            if (!db || !headphonesCollection) {
-                console.warn('Database not available, skipping loadHeadphones');
-                return headphones;
-            }
+            if (!db || !headphonesCollection) return headphones;
             try {
                 const snapshot = await headphonesCollection.get();
                 headphones = {};
@@ -301,15 +248,14 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                     allHeadphoneIds.add(doc.id);
                     if (headphones[doc.id].status === 'checked_out') usedHeadphoneIds.add(doc.id);
                 });
-                console.log('Headphones loaded:', Object.keys(headphones).length);
                 return headphones;
             } catch (error) {
                 console.error('Error loading headphones:', error);
+                alert('Failed to load data');
                 return headphones;
             }
         }
         async function saveHeadphone(id, data) {
-            console.log(`Saving headphone ${id}`);
             try {
                 if (db && headphonesCollection) await headphonesCollection.doc(id).set(data);
                 headphones[id] = data;
@@ -322,14 +268,10 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function updateHeadphone(id, data) {
-            console.log(`Updating headphone ${id}`);
             try {
                 if (db && headphonesCollection) await headphonesCollection.doc(id).update(data);
                 headphones[id] = { ...headphones[id], ...data };
-                if (data.status === 'returned' || data.status === 'charged') {
-                    usedHeadphoneIds.delete(id);
-                    headphones[id].nfcId = null;
-                }
+                if (data.status === 'returned' || data.status === 'charged') usedHeadphoneIds.delete(id);
             } catch (error) {
                 console.error('Error updating headphone:', error);
                 alert('Failed to update data');
@@ -338,7 +280,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function deleteHeadphone(id) {
-            console.log(`Deleting headphone ${id}`);
             try {
                 if (confirm(`Are you sure you want to delete headphone ${id}?`)) {
                     if (db && headphonesCollection) await headphonesCollection.doc(id).delete();
@@ -355,41 +296,28 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function initializeSquare() {
-            console.log('Initializing Square...');
-            if (!window.Square) {
-                console.warn('Square SDK not loaded');
-                return false;
-            }
-            try {
-                if (!payments) payments = window.Square.payments(squareAppId);
-                const cardContainer = document.getElementById('card-container');
-                cardContainer.innerHTML = '';
-                cardElement = await payments.card();
-                await cardElement.attach('#card-container');
-                console.log('Square initialized');
-                return true;
-            } catch (error) {
-                console.error('Square initialization failed:', error);
-                return false;
-            }
+            if (!window.Square) return;
+            if (!payments) payments = window.Square.payments(squareAppId);
+            const cardContainer = document.getElementById('card-container');
+            cardContainer.innerHTML = '';
+            cardElement = await payments.card();
+            await cardElement.attach('#card-container');
+            return cardElement;
         }
 
         window.onload = async () => {
-            console.log('Window onload started');
             try {
-                const configLoaded = await fetchConfig();
-                if (!configLoaded) console.warn('Config not loaded, some features may be unavailable');
+                await fetchConfig();
                 await waitForFirebase();
-                const squareLoaded = await initializeSquare();
-                if (!squareLoaded) console.warn('Square not initialized, payment features may not work');
+                await initializeSquare();
                 await loadHeadphones();
                 makeDraggable('manualReturnDialog', 'manualReturnDialogHeader');
-                console.log('Window onload completed successfully');
+                nfcTriggered = false;
+                runTests();
             } catch (error) {
                 console.error('Initialization error:', error);
-                alert('Failed to start app. Some features may not work. Please refresh.');
+                alert('Failed to start app');
             }
-            console.log('Button event listeners should now be active');
         };
 
         function vibrate() {
@@ -397,21 +325,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function showLoading() {
-            console.log('Showing loading overlay');
             document.getElementById('loadingOverlay').style.display = 'flex';
             document.getElementById('checkoutButton').disabled = true;
             document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = true);
         }
 
         function hideLoading() {
-            console.log('Hiding loading overlay');
             document.getElementById('loadingOverlay').style.display = 'none';
             document.getElementById('checkoutButton').disabled = false;
             document.querySelectorAll('.charge-btn').forEach(btn => btn.disabled = false);
         }
 
         function addHeadphoneId() {
-            console.log('Adding headphone ID');
             const id = document.getElementById('headphoneId').value.trim();
             if (!id) return alert('Please enter a headphone ID!');
             if (usedHeadphoneIds.has(id)) return alert(`Headphone ID ${id} is already checked out!`);
@@ -426,7 +351,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function removeHeadphoneId(button, id) {
-            console.log(`Removing headphone ID ${id}`);
             button.parentElement.remove();
             checkoutListIds.delete(id);
             console.log(`Removed headphone ID: ${id}`);
@@ -437,7 +361,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function generateGroupId() {
-            console.log('Generating group ID');
             const groupRegex = /^GROUP_\d{7}$/;
             const existingGroups = Object.values(headphones).filter(hp => hp.groupId && groupRegex.test(hp.groupId)).map(hp => parseInt(hp.groupId.replace('GROUP_', ''), 10));
             let nextNum = 1;
@@ -446,7 +369,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function generateUniqueHeadphoneId() {
-            console.log('Generating unique headphone ID');
             const regex = /^HP\d{7}$/;
             const allIds = new Set([...allHeadphoneIds, ...checkoutListIds]);
             const existingIds = Array.from(allIds).filter(id => regex.test(id));
@@ -456,7 +378,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function showCheckout() {
-            console.log('Show Checkout button clicked');
             toggleForms('checkout');
             initSignaturePad('signaturePad');
             await initializeSquare();
@@ -473,21 +394,18 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function showReturn() {
-            console.log('Show Return button clicked');
             toggleForms('return');
             await loadHeadphones();
             updateReturnTable();
         }
 
         async function showDashboard() {
-            console.log('Show Dashboard button clicked');
             toggleForms('dashboard');
             await loadHeadphones();
             updateDashboard();
         }
 
         async function showReports() {
-            console.log('Show Reports button clicked');
             toggleForms('reports');
             await loadHeadphones();
             document.getElementById('reportType').value = '';
@@ -499,7 +417,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function scanNFCStatus() {
-            console.log('Scan NFC Status button clicked');
             nfcTriggered = true;
             toggleForms('nfcStatus');
             const dialog = document.getElementById('nfcDialog');
@@ -519,34 +436,25 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
             try {
                 await ndef.scan({ signal: activeNFCController.signal });
                 ndef.onreading = event => {
-                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId);
                     if (matchingHeadphone) {
                         const [id, hp] = matchingHeadphone;
-                        resultElement.innerHTML = `<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br><strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br><strong>Customer:</strong> ${hp.customer.name}<br><strong>Email:</strong> ${hp.customer.email}<br><strong>Phone:</strong> ${hp.customer.phone}<br><strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br><strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br><strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br><strong>Group ID:</strong> ${hp.groupId || 'Single'}`;
-                    } else {
-                        resultElement.textContent = `No headphone found with NFC ID: ${nfcId}`;
+                        resultElement.innerHTML += `<strong>ID:</strong> ${id}<br><strong>NFC ID:</strong> ${hp.nfcId || 'N/A'}<br><strong>Status:</strong> ${hp.status === 'checked_out' ? 'Checked Out' : hp.status === 'returned' ? 'Returned' : 'Charged'}<br><strong>Customer:</strong> ${hp.customer.name}<br><strong>Email:</strong> ${hp.customer.email}<br><strong>Phone:</strong> ${hp.customer.phone}<br><strong>Preauth Status:</strong> ${hp.pre_auth ? 'Hold' : 'Released'}<br><strong>Entry Method:</strong> ${hp.entryMethod || 'N/A'}<br><strong>Date:</strong> ${hp.agreement.date || 'N/A'}<br><strong>Group ID:</strong> ${hp.groupId || 'Single'}<br><hr>`;
+                        dialog.style.display = 'none'; // Hide "Scanning..." after successful scan
                     }
-                    dialog.style.display = 'none';
-                    overlay.style.display = 'none';
                 };
                 ndef.onreadingerror = () => {
-                    resultElement.textContent = 'Error reading NFC tag. Try again.';
-                    dialog.style.display = 'none';
-                    overlay.style.display = 'none';
+                    resultElement.innerHTML += '<br>Error reading NFC tag. Try again.';
                 };
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    resultElement.textContent = `Error: ${error.message}`;
-                    dialog.style.display = 'none';
-                    overlay.style.display = 'none';
-                }
+                if (error.name !== 'AbortError') resultElement.textContent = `Error: ${error.message}`;
+                dialog.style.display = 'none';
+                overlay.style.display = 'none';
             }
         }
 
         function toggleForms(active) {
-            console.log(`Toggling form to ${active}`);
             ['checkout', 'return', 'dashboard', 'nfcStatus', 'reports'].forEach(id => document.getElementById(id).style.display = id === active ? 'flex' : 'none');
             document.getElementById('manualReturnDialog').style.display = 'none';
             document.getElementById('nfcDialog').style.display = 'none';
@@ -554,7 +462,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function scanNFCForCheckout() {
-            console.log('Scan NFC for Checkout clicked');
             nfcTriggered = true;
             const button = document.getElementById('scanCheckout');
             const input = document.getElementById('headphoneId');
@@ -585,7 +492,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 const scanStartTime = Date.now();
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
-                    playBeep();
                     const timeSinceStart = Date.now() - scanStartTime;
                     if (timeSinceStart < 500) {
                         console.log(`Ignoring NFC read within 500ms of scan start: ${event.serialNumber}`);
@@ -656,13 +562,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function manualEntry() {
-            console.log('Manual entry triggered');
             const input = document.getElementById('headphoneId');
             const button = document.getElementById('scanCheckout');
             const regex = /^HP\d{7}$/;
             const suggestedId = generateUniqueHeadphoneId();
             const userId = prompt(`Enter headphone ID (suggested: ${suggestedId}):`, suggestedId);
-            if (userId === null) {
+            if (userId === null) { // User clicked Cancel
                 button.disabled = false;
                 return;
             }
@@ -687,7 +592,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function scanNFCForDashboard() {
-            console.log('Scan NFC for Dashboard clicked');
             nfcTriggered = true;
             const button = document.getElementById('scanDashboardNFC');
             const dialog = document.getElementById('nfcDialog');
@@ -708,7 +612,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 await ndef.scan({ signal: activeNFCController.signal });
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
-                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId && hp.status === 'checked_out');
                     if (matchingHeadphone) {
@@ -743,7 +646,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function scanNFCForReturn() {
-            console.log('Scan NFC for Return clicked');
             nfcTriggered = true;
             const button = document.getElementById('scanReturn');
             const dialog = document.getElementById('nfcDialog');
@@ -764,7 +666,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
                 await ndef.scan({ signal: activeNFCController.signal });
                 let scannedCount = 0, lastScanTime = Date.now();
                 ndef.onreading = event => {
-                    playBeep();
                     const nfcId = event.serialNumber.toLowerCase();
                     const matchingHeadphone = Object.entries(headphones).find(([_, hp]) => hp.nfcId && hp.nfcId.toLowerCase() === nfcId && hp.status === 'checked_out');
                     if (matchingHeadphone) {
@@ -799,7 +700,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function cancelNFCScan() {
-            console.log('Cancelling NFC scan');
             if (activeNFCController) {
                 activeNFCController.abort();
                 activeNFCController = null;
@@ -817,7 +717,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function showManualReturnDialog() {
-            console.log('Showing manual return dialog');
             const dialog = document.getElementById('manualReturnDialog');
             const overlay = document.getElementById('dialogOverlay');
             const list = document.getElementById('manualReturnList');
@@ -834,14 +733,12 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function filterManualReturnList() {
-            console.log('Filtering manual return list');
             const searchTerm = document.getElementById('manualReturnSearch').value.toLowerCase();
             const rows = document.getElementById('manualReturnList').getElementsByTagName('tr');
             Array.from(rows).forEach(row => row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none');
         }
 
         async function submitManualReturn() {
-            console.log('Submitting manual return');
             const selected = Array.from(document.getElementById('manualReturnList').querySelectorAll('input[name="manualReturnHeadphone"]:checked')).map(input => input.value);
             if (!selected.length) return alert('Please select at least one headphone!');
             const groupIds = selected.map(id => headphones[id].groupId || 'Single');
@@ -858,7 +755,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function initSignaturePad(canvasId) {
-            console.log(`Initializing signature pad for ${canvasId}`);
             const canvas = document.getElementById(canvasId);
             const ctx = canvas.getContext('2d');
             let drawing = false;
@@ -913,7 +809,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         function clearSignature() {
-            console.log('Clearing signature');
             const canvas = document.getElementById('signaturePad');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -921,7 +816,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function tapToPayCheckout() {
-            console.log('Tap to Pay Checkout clicked');
             if (!('NDEFReader' in window)) return alert('NFC not supported. Use manual entry.');
             const ndef = new NDEFReader();
             try {
@@ -954,7 +848,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function processPayment(paymentToken) {
-            console.log('Processing payment');
             const headphoneIds = getHeadphoneIds('headphoneIdsList');
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
@@ -1022,7 +915,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function checkout() {
-            console.log('Complete Checkout clicked');
             const headphoneIds = getHeadphoneIds('headphoneIdsList');
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
@@ -1043,7 +935,6 @@ This agreement constitutes a legally binding contract. I acknowledge that I have
         }
 
         async function sendReturnEmail(returnedIds) {
-            console.log('Sending return email for IDs:', returnedIds);
             const customer = headphones[returnedIds[0]].customer || { name: 'Customer', email: '' };
             const headphoneList = returnedIds.join(', ');
             const emailBody = `Dear ${customer.name || 'Customer'},
@@ -1073,7 +964,6 @@ The SE2 Silent Disco Team`;
         }
 
         async function returnSelectedHeadphones() {
-            console.log('Return Selected clicked');
             const selected = Array.from(document.querySelectorAll('input[name="returnHeadphone"]:checked')).map(input => input.value);
             if (!selected.length) return alert('Please select at least one headphone to return!');
             const groupIds = selected.map(id => headphones[id].groupId || 'Single');
@@ -1100,7 +990,6 @@ The SE2 Silent Disco Team`;
         }
 
         function showReturnDialogForSelected() {
-            console.log('Show Return Dialog for Selected clicked');
             const selected = Array.from(document.querySelectorAll('input[name="checkinHeadphone"]:checked')).map(input => input.value);
             if (!selected.length) return alert('Please select at least one headphone to return!');
             const groupIds = selected.map(id => headphones[id].groupId || 'Single');
@@ -1117,7 +1006,6 @@ The SE2 Silent Disco Team`;
         }
 
         function closeDialog(type) {
-            console.log(`Closing dialog: ${type || 'overlay'}`);
             if (type === 'manualReturn') document.getElementById('manualReturnDialog').style.display = 'none';
             document.getElementById('dialogOverlay').style.display = 'none';
             document.getElementById('nfcDialog').style.display = 'none';
@@ -1125,7 +1013,6 @@ The SE2 Silent Disco Team`;
         }
 
         async function dashboardCharge(id) {
-            console.log(`Charging headphone ${id}`);
             if (!headphones[id] || headphones[id].status !== 'checked_out' || !headphones[id].pre_auth) return alert(`Cannot charge ${id}: Not checked out or no preauthorization.`);
             const groupId = headphones[id].groupId;
             const headphoneCount = groupId ? Object.values(headphones).filter(hp => hp.groupId === groupId && hp.status === 'checked_out').length : 1;
@@ -1152,7 +1039,6 @@ The SE2 Silent Disco Team`;
         }
 
         function updateDashboard() {
-            console.log('Updating dashboard');
             const tbody = document.getElementById('headphoneList');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const dateFilter = document.getElementById('dateFilter').value;
@@ -1188,7 +1074,6 @@ The SE2 Silent Disco Team`;
         }
 
         function updateReturnTable() {
-            console.log('Updating return table');
             const tbody = document.getElementById('returnList');
             const searchTerm = document.getElementById('returnSearch').value.toLowerCase();
             const headphoneArray = Object.entries(headphones).filter(([_, hp]) => hp.status === 'checked_out').map(([id, hp]) => ({ id, ...hp }));
@@ -1208,7 +1093,6 @@ The SE2 Silent Disco Team`;
         function filterByDate() { updateDashboard(); }
 
         function clearForm(formId) {
-            console.log(`Clearing form ${formId}`);
             document.getElementById(formId).querySelectorAll('input').forEach(input => {
                 input.value = '';
                 delete input.dataset.nfcId;
@@ -1223,7 +1107,6 @@ The SE2 Silent Disco Team`;
         }
 
         function filterReport(days) {
-            console.log(`Filtering report for last ${days} days`);
             const endDate = new Date();
             const startDate = new Date();
             startDate.setDate(endDate.getDate() - days);
@@ -1233,7 +1116,6 @@ The SE2 Silent Disco Team`;
         }
 
         function resetFilters() {
-            console.log('Resetting report filters');
             document.getElementById('reportStartDate').value = '';
             document.getElementById('reportEndDate').value = '';
             document.getElementById('reportSearch').value = '';
@@ -1241,7 +1123,6 @@ The SE2 Silent Disco Team`;
         }
 
         function generateReport() {
-            console.log('Generating report');
             const reportType = document.getElementById('reportType').value;
             const startDate = document.getElementById('reportStartDate').value;
             const endDate = document.getElementById('reportEndDate').value || startDate;
