@@ -5,6 +5,9 @@ This repository includes the staging web UIs (`index.html`, `admin.html`) and th
 ## Deploying the Worker
 
 1. Make sure you have [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) configured for the Cloudflare account that hosts the Worker.
+   - If you have Node.js on your computer, open a terminal and run `npm install -g wrangler` to install the CLI.
+   - Run `wrangler login` once. A browser window will open so you can allow Wrangler to access your Cloudflare account.
+   - After the login succeeds, the terminal prints the account it is connected to. That’s all “step one” requires—Wrangler is now ready to deploy whatever `worker.js` you point it at.
 2. Deploy directly from the checked-in source file:
    ```bash
    wrangler deploy worker.js
