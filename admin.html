@@ -277,6 +277,24 @@
     .event-row:last-child {
       border-bottom: none;
     }
+    .key-status {
+      display: none;
+      margin: 0 auto 18px auto;
+      max-width: 1200px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(129, 153, 255, 0.5);
+      background: rgba(4, 9, 26, 0.85);
+      color: #c7d0ff;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .key-status button {
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -288,6 +306,11 @@
       <button class="btn btn-primary" id="authUnlockBtn" style="margin-top:12px;width:100%;justify-content:center;">Unlock</button>
       <div style="font-size:11px;color:#9fb3ff;margin-top:8px;">Key saved locally for this device.</div>
     </div>
+  </div>
+
+  <div class="key-status" id="keyStatusBar">
+    <span id="keyStatusLabel">Admin key not loaded.</span>
+    <button class="small-btn" type="button" id="changeKeyBtn">Change key</button>
   </div>
 
   <div class="drawer" id="recordDrawer">
@@ -445,33 +468,79 @@
     const authGate = document.getElementById("authGate");
     const adminKeyInput = document.getElementById("adminKeyInput");
     const authUnlockBtn = document.getElementById("authUnlockBtn");
+    const keyStatusBar = document.getElementById("keyStatusBar");
+    const keyStatusLabel = document.getElementById("keyStatusLabel");
+    const changeKeyBtn = document.getElementById("changeKeyBtn");
+    let appBootstrapped = false;
+    let autoRefreshToggle = null;
+    let dashboardTimer = null;
 
-    if (!adminKey && DEFAULT_ADMIN_KEY) {
-      adminKeyInput.value = DEFAULT_ADMIN_KEY;
+    function updateKeyStatus() {
+      if (!keyStatusBar || !keyStatusLabel) return;
+      if (adminKey) {
+        const masked = adminKey.length <= 4 ? adminKey : `••••${adminKey.slice(-4)}`;
+        keyStatusLabel.textContent = `Admin key active (${masked}).`;
+      } else {
+        keyStatusLabel.textContent = "Admin key not loaded.";
+      }
+      keyStatusBar.style.display = "flex";
     }
 
-    if (adminKey) {
-      adminKeyInput.value = adminKey;
+    function promptForKey() {
+      authGate.style.display = "flex";
+      adminKeyInput.focus();
+      adminKeyInput.select();
+    }
+
+    function clearAdminKey() {
+      adminKey = "";
+      localStorage.removeItem("sdhqAdminKey");
+      adminKeyInput.value = "";
+      updateKeyStatus();
+      if (dashboardTimer) {
+        clearInterval(dashboardTimer);
+        dashboardTimer = null;
+      }
+    }
+
+    function setAdminKey(value, { silent = false } = {}) {
+      const trimmed = (value || "").trim();
+      if (!trimmed) {
+        clearAdminKey();
+        if (!silent) alert("Enter the admin key to continue.");
+        promptForKey();
+        return false;
+      }
+      adminKey = trimmed;
+      adminKeyInput.value = trimmed;
+      localStorage.setItem("sdhqAdminKey", trimmed);
       authGate.style.display = "none";
+      updateKeyStatus();
+      if (appBootstrapped) {
+        loadDashboard();
+        loadLog();
+        loadEvents();
+        if (autoRefreshToggle && autoRefreshToggle.checked) {
+          startAutoRefresh();
+        }
+      } else {
+        bootstrap();
+      }
+      return true;
     }
 
     authUnlockBtn.addEventListener("click", () => {
-      const value = adminKeyInput.value.trim();
-      if (!value) {
-        alert("Enter the admin key to continue.");
-        return;
-      }
-      adminKey = value;
-      localStorage.setItem("sdhqAdminKey", value);
-      authGate.style.display = "none";
-      bootstrap();
+      const value = adminKeyInput.value.trim() || DEFAULT_ADMIN_KEY || "";
+      setAdminKey(value);
     });
 
-    if (!adminKey) {
-      authGate.style.display = "flex";
-    } else {
-      bootstrap();
+    if (changeKeyBtn) {
+      changeKeyBtn.addEventListener("click", () => {
+        clearAdminKey();
+        promptForKey();
+      });
     }
+
 
     function buildAdminHeaders(extra = {}) {
       if (!adminKey) throw new Error("Admin key missing");
@@ -480,13 +549,12 @@
 
     function handleUnauthorized() {
       alert("Admin key expired or invalid. Please enter it again.");
-      adminKey = "";
-      localStorage.removeItem("sdhqAdminKey");
+      clearAdminKey();
       if (dashboardTimer) {
         clearInterval(dashboardTimer);
         dashboardTimer = null;
       }
-      authGate.style.display = "flex";
+      promptForKey();
     }
 
     async function adminFetch(path, options = {}) {
@@ -522,7 +590,7 @@
     const statActiveGuests = document.getElementById("statActiveGuests");
     const statHeadphonesOut = document.getElementById("statHeadphonesOut");
     const statAvgPerGuest = document.getElementById("statAvgPerGuest");
-    const autoRefreshToggle = document.getElementById("autoRefreshToggle");
+    autoRefreshToggle = document.getElementById("autoRefreshToggle");
 
     const refreshLogBtn = document.getElementById("refreshLogBtn");
     const logStatus = document.getElementById("logStatus");
@@ -561,7 +629,18 @@
     let dashboardData = [];
     let logData = [];
     let eventsData = [];
-    let dashboardTimer = null;
+
+    if (adminKey) {
+      adminKeyInput.value = adminKey;
+      authGate.style.display = "none";
+      updateKeyStatus();
+      setAdminKey(adminKey, { silent: true });
+    } else if (DEFAULT_ADMIN_KEY) {
+      adminKeyInput.value = DEFAULT_ADMIN_KEY;
+      setAdminKey(DEFAULT_ADMIN_KEY, { silent: true });
+    } else {
+      promptForKey();
+    }
 
     drawerCloseBtn.addEventListener("click", () => recordDrawer.classList.remove("active"));
 
@@ -746,14 +825,16 @@
       dashboardTimer = setInterval(loadDashboard, 3000);
     }
 
-    autoRefreshToggle.addEventListener("change", () => {
-      if (autoRefreshToggle.checked) {
-        startAutoRefresh();
-      } else if (dashboardTimer) {
-        clearInterval(dashboardTimer);
-        dashboardTimer = null;
-      }
-    });
+    if (autoRefreshToggle) {
+      autoRefreshToggle.addEventListener("change", () => {
+        if (autoRefreshToggle.checked) {
+          startAutoRefresh();
+        } else if (dashboardTimer) {
+          clearInterval(dashboardTimer);
+          dashboardTimer = null;
+        }
+      });
+    }
 
     function matchesLogSearch(item, term) {
       if (!term) return true;
@@ -1078,6 +1159,7 @@
         eventName: eventNameInput.value || "",
         eventDate: eventDateInput.value || "",
         eventVenue: eventVenueInput.value || "",
+        active: true,
       };
       if (!payload.eventName) {
         alert("Enter an event name before saving.");
@@ -1093,7 +1175,9 @@
           body: JSON.stringify(payload),
         });
         eventStatus.textContent = "Event saved.";
+        eventsData = data.events || eventsData;
         eventOutput.textContent = prettyJson(data.event);
+        renderEvents();
         await loadEvents();
       } catch (err) {
         eventStatus.textContent = "Error saving event.";
@@ -1185,10 +1269,12 @@
     }
 
     function bootstrap() {
+      if (appBootstrapped) return;
+      appBootstrapped = true;
       loadDashboard();
       loadLog();
       loadEvents();
-      if (autoRefreshToggle.checked) {
+      if (autoRefreshToggle && autoRefreshToggle.checked) {
         startAutoRefresh();
       }
     }
