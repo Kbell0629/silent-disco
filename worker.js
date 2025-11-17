@@ -12,6 +12,8 @@ const RESEND_API_BASE = "https://api.resend.com/emails";
 const ADMIN_API_KEY = "SE2_ADMIN_TEST_KEY";
 const HID_COUNTER_KEY = "global:HID_COUNTER";
 const HID_RELEASE_POOL_KEY = "headphones:pool";
+const EVENTS_LIST_KEY = "events:list";
+const NFC_TAG_PREFIX = "nfctag:";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": CORS_ORIGIN,
@@ -103,6 +105,9 @@ async function saveCheckin(env, record) {
     await env.CHECKINS.put(`headphone:${hp.id}`, record.id, {
       expirationTtl: 60 * 60 * 24 * 365,
     });
+    if (hp.metadata?.nfcTagId) {
+      await saveNfcTagMapping(env, hp.metadata.nfcTagId, record.id);
+    }
   }
 }
 
@@ -130,8 +135,51 @@ async function clearHeadphoneMapping(env, headphoneId) {
   await env.CHECKINS.delete(`headphone:${headphoneId}`);
 }
 
+function normalizeTagKey(tagId) {
+  if (!tagId) return "";
+  return String(tagId).trim().toLowerCase();
+}
+
+async function saveNfcTagMapping(env, tagId, checkinId) {
+  if (!env.CHECKINS) return;
+  const normalized = normalizeTagKey(tagId);
+  if (!normalized) return;
+  await env.CHECKINS.put(`${NFC_TAG_PREFIX}${normalized}`, checkinId, {
+    expirationTtl: 60 * 60 * 24 * 365,
+  });
+}
+
+async function getCheckinByNfcTag(env, tagId) {
+  if (!env.CHECKINS) return null;
+  const normalized = normalizeTagKey(tagId);
+  if (!normalized) return null;
+  const checkinId = await env.CHECKINS.get(`${NFC_TAG_PREFIX}${normalized}`);
+  if (!checkinId) return null;
+  return await getCheckinById(env, checkinId);
+}
+
+async function clearNfcTagMapping(env, tagId) {
+  if (!env.CHECKINS) return;
+  const normalized = normalizeTagKey(tagId);
+  if (!normalized) return;
+  await env.CHECKINS.delete(`${NFC_TAG_PREFIX}${normalized}`);
+}
+
+async function clearHeadphoneReferences(env, headphone) {
+  if (!headphone || !headphone.id) return;
+  await clearHeadphoneMapping(env, headphone.id);
+  const tagId = headphone.metadata?.nfcTagId || headphone.metadata?.sourceTag;
+  if (tagId) {
+    await clearNfcTagMapping(env, tagId);
+  }
+}
+
 async function saveCurrentEvent(env, event) {
   if (!env.CHECKINS) return;
+  if (!event) {
+    await env.CHECKINS.delete("event:current");
+    return;
+  }
   await env.CHECKINS.put("event:current", JSON.stringify(event), {
     expirationTtl: 60 * 60 * 24 * 180,
   });
@@ -146,6 +194,30 @@ async function getCurrentEvent(env) {
   } catch {
     return null;
   }
+}
+
+async function getEventsList(env) {
+  if (!env.CHECKINS) return [];
+  const raw = await env.CHECKINS.get(EVENTS_LIST_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveEventsList(env, events) {
+  if (!env.CHECKINS) return;
+  await env.CHECKINS.put(EVENTS_LIST_KEY, JSON.stringify(events), {
+    expirationTtl: 60 * 60 * 24 * 365,
+  });
+}
+
+function pickPrimaryEvent(events) {
+  if (!Array.isArray(events) || events.length === 0) return null;
+  return events.find((evt) => evt.active) || events[0];
 }
 
 function countHeadphonesOut(record) {
@@ -296,6 +368,12 @@ function renderReturnEmail(record) {
   return { html, text };
 }
 
+function sanitizeNfcTagId(value) {
+  const raw = typeof value === "string" ? value : String(value || "");
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function normalizeHeadphonesFromBody(body, now) {
   const ids = Array.isArray(body.headphoneIds) ? body.headphoneIds : [];
   const meta = Array.isArray(body.headphonesMeta) ? body.headphonesMeta : [];
@@ -306,14 +384,15 @@ function normalizeHeadphonesFromBody(body, now) {
     if (!id || seen.has(id)) continue;
     seen.add(id);
     const detail = meta[i] || {};
+    const tagId = sanitizeNfcTagId(detail.nfcTagId || detail.sourceTag);
     headphones.push({
       id,
       assignedAt: now,
       returnedAt: null,
       lost: false,
       metadata: {
-        nfcTagId: detail.nfcTagId || null,
-        sourceTag: detail.nfcTagId || detail.sourceTag || null,
+        nfcTagId: tagId,
+        sourceTag: tagId,
       },
     });
   }
@@ -328,6 +407,7 @@ function flattenCheckin(record, { includeReturned = false } = {}) {
     returnedAt: record.returnedAt || null,
     customer: record.customer || null,
     event: record.event || null,
+    eventId: record.eventId || null,
   };
   if (!Array.isArray(record.headphones) || record.headphones.length === 0) {
     return [
@@ -382,7 +462,18 @@ async function handleRequest(request, env, ctx) {
     return jsonResponse({ ok: true, app: "Silent Disco HQ", api: "v0.8.0", env: "staging" });
   }
 
+  if (pathname === "/public/events" && request.method === "GET") {
+    const allEvents = await getEventsList(env);
+    const active = allEvents.filter((evt) => evt.active);
+    return jsonResponse({ ok: true, events: active, allEvents });
+  }
+
   if (pathname === "/public/event" && request.method === "GET") {
+    const events = await getEventsList(env);
+    const primary = pickPrimaryEvent(events);
+    if (primary) {
+      return jsonResponse({ ok: true, event: { name: primary.name, date: primary.date, venue: primary.venue }, eventId: primary.id });
+    }
     const event = await getCurrentEvent(env);
     return jsonResponse({ ok: true, event });
   }
@@ -453,6 +544,53 @@ async function handleRequest(request, env, ctx) {
       }
     }
 
+    const seenTags = new Set();
+    for (const hp of headphones) {
+      const tagId = hp.metadata?.nfcTagId;
+      if (!tagId) continue;
+      const normalized = normalizeTagKey(tagId);
+      if (seenTags.has(normalized)) {
+        return jsonResponse(
+          { ok: false, error: "This NFC tag is already assigned in this check-in.", nfcTagId: tagId },
+          409
+        );
+      }
+      seenTags.add(normalized);
+      const existingByTag = await getCheckinByNfcTag(env, tagId);
+      if (existingByTag && countHeadphonesOut(existingByTag) > 0) {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "This NFC tag is currently checked out.",
+            nfcTagId: tagId,
+            currentHolder: {
+              fullName: existingByTag.customer?.fullName || "",
+              phone: existingByTag.customer?.phone || "",
+              email: existingByTag.customer?.email || "",
+              event: existingByTag.event || null,
+              checkinId: existingByTag.id,
+            },
+          },
+          409
+        );
+      }
+    }
+
+    let eventId = typeof body.eventId === "string" ? body.eventId.trim() : String(body.eventId || "").trim();
+    if (!eventId) eventId = "";
+    let eventInfo = {
+      name: body.eventName || "",
+      date: body.eventDate || "",
+      venue: body.eventVenue || "",
+    };
+    if (eventId) {
+      const events = await getEventsList(env);
+      const found = events.find((evt) => evt.id === eventId);
+      if (found) {
+        eventInfo = { name: found.name || "", date: found.date || "", venue: found.venue || "" };
+      }
+    }
+
     const holdAmountCents = 100;
     const currency = "usd";
     let stripeSummary;
@@ -490,11 +628,8 @@ async function handleRequest(request, env, ctx) {
         email: body.email || "",
         phone: body.phone || "",
       },
-      event: {
-        name: body.eventName || "",
-        date: body.eventDate || "",
-        venue: body.eventVenue || "",
-      },
+      eventId: eventId || null,
+      event: eventInfo,
       consents: body.consents || {},
       signature: body.signature || null,
       signatureHash,
@@ -573,9 +708,11 @@ async function handleRequest(request, env, ctx) {
 
     const now = new Date().toISOString();
     let updated = false;
+    let targetHp = null;
     for (const hp of record.headphones || []) {
       if (hp && hp.id === hpId && !hp.returnedAt && !hp.lost) {
         hp.returnedAt = now;
+        targetHp = hp;
         updated = true;
         break;
       }
@@ -584,7 +721,9 @@ async function handleRequest(request, env, ctx) {
       return jsonResponse({ ok: false, error: "Headphone already returned or lost" }, 409);
     }
 
-    await clearHeadphoneMapping(env, hpId);
+    if (targetHp) {
+      await clearHeadphoneReferences(env, targetHp);
+    }
     const remaining = countHeadphonesOut(record);
     if (remaining === 0) {
       record.status = "returned";
@@ -633,7 +772,7 @@ async function handleRequest(request, env, ctx) {
       if (lostIds.includes(hp.id)) {
         hp.lost = true;
         hp.returnedAt = null;
-        await clearHeadphoneMapping(env, hp.id);
+        await clearHeadphoneReferences(env, hp);
         marked = true;
       }
     }
@@ -701,6 +840,104 @@ async function handleRequest(request, env, ctx) {
     return jsonResponse({ ok: true, items: rows.slice(0, limit) });
   }
 
+  if (pathname === "/admin/events" && request.method === "GET") {
+    const auth = await requireAdmin(request, url);
+    if (!auth.ok) return auth.response;
+    const events = await getEventsList(env);
+    events.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    return jsonResponse({ ok: true, events });
+  }
+
+  if (pathname === "/admin/events" && request.method === "POST") {
+    const auth = await requireAdmin(request, url);
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const name = body.eventName || body.name || "";
+    if (!name) {
+      return jsonResponse({ ok: false, error: "Event name required" }, 400);
+    }
+    const date = body.eventDate || body.date || "";
+    const venue = body.eventVenue || body.venue || "";
+    const now = new Date().toISOString();
+    const events = await getEventsList(env);
+    let eventId = typeof body.eventId === "string" ? body.eventId.trim() : String(body.eventId || "").trim();
+    if (!eventId) {
+      eventId = "evt_" + Math.random().toString(36).slice(2, 10);
+    }
+    let target = events.find((evt) => evt.id === eventId);
+    const active = body.active === undefined ? true : Boolean(body.active);
+    if (target) {
+      target.name = name;
+      target.date = date;
+      target.venue = venue;
+      target.active = active;
+      target.updatedAt = now;
+    } else {
+      target = {
+        id: eventId,
+        name,
+        date,
+        venue,
+        active,
+        createdAt: now,
+        updatedAt: now,
+      };
+      events.push(target);
+    }
+    await saveEventsList(env, events);
+    if (target.active) {
+      await saveCurrentEvent(env, {
+        id: target.id,
+        name: target.name,
+        date: target.date,
+        venue: target.venue,
+        active: true,
+      });
+    }
+    return jsonResponse({ ok: true, event: target, events });
+  }
+
+  if (pathname === "/admin/events/activate" && request.method === "POST") {
+    const auth = await requireAdmin(request, url);
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const eventId = typeof body.eventId === "string" ? body.eventId.trim() : "";
+    if (!eventId) {
+      return jsonResponse({ ok: false, error: "eventId required" }, 400);
+    }
+    const events = await getEventsList(env);
+    const target = events.find((evt) => evt.id === eventId);
+    if (!target) {
+      return jsonResponse({ ok: false, error: "Event not found" }, 404);
+    }
+    target.active = Boolean(body.active);
+    target.updatedAt = new Date().toISOString();
+    await saveEventsList(env, events);
+    const primary = pickPrimaryEvent(events);
+    if (primary) {
+      await saveCurrentEvent(env, {
+        id: primary.id,
+        name: primary.name,
+        date: primary.date,
+        venue: primary.venue,
+        active: true,
+      });
+    } else {
+      await saveCurrentEvent(env, null);
+    }
+    return jsonResponse({ ok: true, event: target, events });
+  }
+
   if (pathname === "/admin/event" && request.method === "POST") {
     const auth = await requireAdmin(request, url);
     if (!auth.ok) return auth.response;
@@ -717,7 +954,26 @@ async function handleRequest(request, env, ctx) {
       updatedAt: new Date().toISOString(),
     };
     await saveCurrentEvent(env, event);
-    return jsonResponse({ ok: true, event, message: "Event settings updated." });
+    const events = await getEventsList(env);
+    const existing = events.find(
+      (evt) => evt.name === event.name && evt.date === event.date && evt.venue === event.venue
+    );
+    if (existing) {
+      existing.active = true;
+      existing.updatedAt = event.updatedAt;
+    } else {
+      events.push({
+        id: "evt_" + Math.random().toString(36).slice(2, 10),
+        name: event.name,
+        date: event.date,
+        venue: event.venue,
+        active: true,
+        createdAt: event.updatedAt,
+        updatedAt: event.updatedAt,
+      });
+    }
+    await saveEventsList(env, events);
+    return jsonResponse({ ok: true, event, events, message: "Event settings updated." });
   }
 
   return jsonResponse({ ok: false, error: "Not found" }, 404);

@@ -256,6 +256,27 @@
       font-size: 11px;
       color: #aeb8ff;
     }
+    .event-list {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(70, 91, 180, 0.9);
+      background: rgba(2, 4, 18, 0.96);
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .event-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(80, 100, 190, 0.3);
+      font-size: 12px;
+    }
+    .event-row:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
@@ -286,7 +307,7 @@
         <button class="btn btn-primary" id="refreshDashboardBtn">Refresh now</button>
         <div class="auto-refresh">
           <label for="autoRefreshToggle">Auto-refresh</label>
-          <input type="checkbox" id="autoRefreshToggle" /> every 3s
+          <input type="checkbox" id="autoRefreshToggle" checked /> every 3s
         </div>
         <input id="searchInput" type="text" placeholder="Search by guest, headphone, event..." style="flex:1;min-width:200px;padding:7px 10px;border-radius:999px;border:1px solid rgba(129,153,255,0.7);background:rgba(4,9,26,0.9);color:#f5f7ff;font-size:12px;" />
       </div>
@@ -363,7 +384,11 @@
         <div class="badge"><span class="badge-dot"></span><span>Headphone Lookup</span></div>
         <div class="field">
           <label for="hpInput" style="font-size:12px;color:#cbd4ff;">Headphone ID</label>
-          <input id="hpInput" type="text" placeholder="HID000000123" style="padding:7px 10px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;" />
+          <div class="row" style="gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <input id="hpInput" type="text" placeholder="HID000000123" style="flex:1;padding:7px 10px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;" />
+            <button class="small-btn" type="button" id="scanLookupBtn">Scan NFC</button>
+          </div>
+          <div class="note" id="scanLookupStatus">Scan a headphone tag to auto-fill and look up its holder.</div>
         </div>
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" id="hpLookupBtn">Lookup holder</button>
@@ -376,6 +401,7 @@
 
       <div class="card">
         <div class="badge"><span class="badge-dot"></span><span>Nightly Event Setup</span></div>
+        <div class="section-title">Add event to tonight's roster</div>
         <div class="field">
           <label for="eventName">Event name</label>
           <input id="eventName" type="text" placeholder="Silent Disco at RiverWorks" />
@@ -388,9 +414,26 @@
           <label for="eventVenue">Event venue</label>
           <input id="eventVenue" type="text" placeholder="Buffalo RiverWorks, Buffalo NY" />
         </div>
-        <button class="btn btn-primary" id="saveEventBtn" style="width:100%;justify-content:center;">Save event for tonight</button>
-        <div class="note" id="eventStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">Loading current event...</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="saveEventBtn" style="flex:1;justify-content:center;">Add event</button>
+          <button class="btn btn-secondary" id="refreshEventsBtn" type="button">Refresh</button>
+        </div>
+        <div class="note" id="eventStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">Loading events...</div>
         <div id="eventOutput" class="output" style="margin-top:8px;">Waiting for event settings.</div>
+        <div class="section-title" style="margin-top:14px;">Active sessions</div>
+        <div class="event-list" id="eventList">Loading events...</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Reporting &amp; Audits</span></div>
+        <div class="section-title">Download CSV snapshots</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="downloadActiveCsvBtn">Active headphones CSV</button>
+          <button class="btn btn-secondary" id="downloadLogCsvBtn">Recent log CSV</button>
+        </div>
+        <div class="note" id="reportStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">
+          Uses the data currently loaded in the tables. Refresh the dashboard/log first for the latest exports.
+        </div>
       </div>
     </div>
   </div>
@@ -430,6 +473,39 @@
       return { ...extra, "x-admin-key": adminKey };
     }
 
+    function handleUnauthorized() {
+      alert("Admin key expired or invalid. Please enter it again.");
+      adminKey = "";
+      localStorage.removeItem("sdhqAdminKey");
+      if (dashboardTimer) {
+        clearInterval(dashboardTimer);
+        dashboardTimer = null;
+      }
+      authGate.style.display = "flex";
+    }
+
+    async function adminFetch(path, options = {}) {
+      const headers = buildAdminHeaders(options.headers || {});
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (res.status === 401) {
+        handleUnauthorized();
+        throw new Error("Unauthorized");
+      }
+      return res;
+    }
+
+    async function adminJson(path, options = {}) {
+      const res = await adminFetch(path, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        const message = data.error || "API error";
+        const err = new Error(message);
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
     const refreshDashboardBtn = document.getElementById("refreshDashboardBtn");
     const dashboardStatus = document.getElementById("dashboardStatus");
     const checkoutsTableBody = document.getElementById("checkoutsTableBody");
@@ -450,6 +526,8 @@
     const hpClearBtn = document.getElementById("hpClearBtn");
     const hpStatus = document.getElementById("hpStatus");
     const hpOutput = document.getElementById("hpOutput");
+    const scanLookupBtn = document.getElementById("scanLookupBtn");
+    const scanLookupStatus = document.getElementById("scanLookupStatus");
 
     const scanReturnBtn = document.getElementById("scanReturnBtn");
     const scanReturnStatus = document.getElementById("scanReturnStatus");
@@ -458,8 +536,14 @@
     const eventDateInput = document.getElementById("eventDate");
     const eventVenueInput = document.getElementById("eventVenue");
     const saveEventBtn = document.getElementById("saveEventBtn");
+    const refreshEventsBtn = document.getElementById("refreshEventsBtn");
     const eventStatus = document.getElementById("eventStatus");
     const eventOutput = document.getElementById("eventOutput");
+    const eventListContainer = document.getElementById("eventList");
+
+    const downloadActiveCsvBtn = document.getElementById("downloadActiveCsvBtn");
+    const downloadLogCsvBtn = document.getElementById("downloadLogCsvBtn");
+    const reportStatus = document.getElementById("reportStatus");
 
     const recordDrawer = document.getElementById("recordDrawer");
     const recordContent = document.getElementById("recordContent");
@@ -467,6 +551,7 @@
 
     let dashboardData = [];
     let logData = [];
+    let eventsData = [];
     let dashboardTimer = null;
 
     drawerCloseBtn.addEventListener("click", () => recordDrawer.classList.remove("active"));
@@ -497,6 +582,32 @@
           ctx.close();
         }, 120);
       } catch (e) {}
+    }
+
+    function toCsv(rows, columns) {
+      const header = columns.map((col) => `"${col.label}"`).join(",");
+      const lines = rows.map((row) =>
+        columns
+          .map((col) => {
+            const value = col.value(row);
+            const safe = value === undefined || value === null ? "" : String(value);
+            return `"${safe.replace(/"/g, '""')}"`;
+          })
+          .join(",")
+      );
+      return [header].concat(lines).join("\n");
+    }
+
+    function downloadCsv(filename, csv) {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     function computeStats(items) {
@@ -575,11 +686,7 @@
       dashboardStatus.textContent = "Loading dashboard...";
       checkoutsTableBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
       try {
-        const res = await fetch(API_BASE + "/admin/checkins/active", {
-          headers: buildAdminHeaders(),
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || "API error");
+        const data = await adminJson("/admin/checkins/active");
         dashboardData = data.items || [];
         dashboardStatus.textContent = `Loaded ${dashboardData.length} active headphones.`;
         renderDashboard();
@@ -623,9 +730,16 @@
     refreshDashboardBtn.addEventListener("click", loadDashboard);
     searchInput.addEventListener("input", renderDashboard);
 
+    function startAutoRefresh() {
+      if (dashboardTimer) {
+        clearInterval(dashboardTimer);
+      }
+      dashboardTimer = setInterval(loadDashboard, 3000);
+    }
+
     autoRefreshToggle.addEventListener("change", () => {
       if (autoRefreshToggle.checked) {
-        dashboardTimer = setInterval(loadDashboard, 3000);
+        startAutoRefresh();
       } else if (dashboardTimer) {
         clearInterval(dashboardTimer);
         dashboardTimer = null;
@@ -688,11 +802,7 @@
       logStatus.textContent = "Loading log...";
       logTableBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
       try {
-        const res = await fetch(API_BASE + "/admin/checkins/log?limit=200", {
-          headers: buildAdminHeaders(),
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || "API error");
+        const data = await adminJson("/admin/checkins/log?limit=200");
         logData = data.items || [];
         logStatus.textContent = `Showing ${logData.length} headphones in log.`;
         renderLog();
@@ -736,40 +846,30 @@
 
     async function markHeadphoneReturned(headphoneId) {
       try {
-        const res = await fetch(API_BASE + "/admin/headphone/return", {
+        const data = await adminJson("/admin/headphone/return", {
           method: "POST",
-          headers: buildAdminHeaders({ "Content-Type": "application/json" }),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ headphoneId }),
         });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          alert(`Failed to mark returned: ${data.error || "Unknown"}`);
-          return { ok: false };
-        }
         playBeep();
-        return { ok: true };
+        return { ok: true, data };
       } catch (err) {
-        alert(`Error returning headphone: ${err.message}`);
+        alert(`Failed to mark returned: ${err.message}`);
         return { ok: false };
       }
     }
 
     async function markHeadphoneLostSingle(checkinId, headphoneId, perFeeCents) {
       try {
-        const res = await fetch(API_BASE + "/admin/checkin/lost", {
+        await adminJson("/admin/checkin/lost", {
           method: "POST",
-          headers: buildAdminHeaders({ "Content-Type": "application/json" }),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             checkinId,
             lostHeadphoneIds: [headphoneId],
             lossPerHeadphoneCents: perFeeCents,
           }),
         });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          alert(`Failed to mark lost: ${data.error || "Unknown"}`);
-          return { ok: false };
-        }
         alert(`Loss recorded (test): $${(perFeeCents / 100).toFixed(2)}`);
         return { ok: true };
       } catch (err) {
@@ -780,11 +880,7 @@
 
     async function openRecordDrawer(checkinId) {
       try {
-        const res = await fetch(`${API_BASE}/admin/checkin?id=${encodeURIComponent(checkinId)}`, {
-          headers: buildAdminHeaders(),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || "Not found");
+        const data = await adminJson(`/admin/checkin?id=${encodeURIComponent(checkinId)}`);
         recordContent.textContent = prettyJson(data.checkin);
         recordDrawer.classList.add("active");
       } catch (err) {
@@ -813,6 +909,44 @@
       hpOutput.textContent = "Ready for lookup.";
     });
 
+    async function scanForLookup() {
+      if (!("NDEFReader" in window)) {
+        scanLookupStatus.textContent = "This device/browser does not support Web NFC.";
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        scanLookupStatus.textContent = "Hold the headphone tag close...";
+        reader.onreading = async (event) => {
+          let value = event.serialNumber || "";
+          if (event.message && event.message.records.length > 0) {
+            for (const record of event.message.records) {
+              if (record.recordType === "text") {
+                const decoder = new TextDecoder(record.encoding || "utf-8");
+                value = decoder.decode(record.data);
+                break;
+              }
+            }
+          }
+          if (!value) value = "UNKNOWN_TAG";
+          hpInput.value = value;
+          scanLookupStatus.textContent = `Scanned ${value}, looking up...`;
+          await lookupHeadphone();
+        };
+        reader.onreadingerror = () => {
+          scanLookupStatus.textContent = "NFC read error.";
+        };
+      } catch (err) {
+        console.error("NFC lookup error", err);
+        scanLookupStatus.textContent = "NFC error or permission denied.";
+      }
+    }
+
+    if (scanLookupBtn) {
+      scanLookupBtn.addEventListener("click", scanForLookup);
+    }
+
     async function lookupHeadphone() {
       const hp = hpInput.value.trim();
       if (!hp) {
@@ -824,11 +958,7 @@
       setPill(hpStatus, "Looking up...", false);
       hpOutput.textContent = "Checking API...";
       try {
-        const res = await fetch(`${API_BASE}/admin/headphone?headphoneId=${encodeURIComponent(hp)}`, {
-          headers: buildAdminHeaders(),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || "Not found");
+        const data = await adminJson(`/admin/headphone?headphoneId=${encodeURIComponent(hp)}`);
         setPill(hpStatus, "Found", true);
         hpOutput.textContent = prettyJson({
           checkinId: data.checkin.id,
@@ -886,23 +1016,51 @@
 
     scanReturnBtn.addEventListener("click", scanAndReturn);
 
-    async function loadCurrentEvent() {
+    function renderEvents() {
+      if (!eventListContainer) return;
+      if (!eventsData.length) {
+        eventListContainer.innerHTML = "<div class='note'>No events saved yet.</div>";
+        eventOutput.textContent = "Add an event to begin.";
+        return;
+      }
+      const rows = eventsData
+        .map((evt) => {
+          const statusClass = evt.active ? "pill pill-ok" : "pill pill-warn";
+          const actionLabel = evt.active ? "End session" : "Start session";
+          const details = [evt.date || "", evt.venue || ""].filter(Boolean).join(" · ");
+          return `
+            <div class="event-row">
+              <div>
+                <strong>${evt.name || "Event"}</strong><br/>
+                <span style="font-size:11px;color:#9fb3ff;">${details}</span>
+              </div>
+              <div><span class="${statusClass}">${evt.active ? "Active" : "Inactive"}</span></div>
+              <div>
+                <button class="small-btn" data-event-action="toggle" data-event-id="${evt.id}" data-active="${evt.active}">${actionLabel}</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+      eventListContainer.innerHTML = rows;
+      eventOutput.textContent = prettyJson(eventsData);
+    }
+
+    async function loadEvents() {
+      eventStatus.textContent = "Loading events...";
+      if (eventListContainer) {
+        eventListContainer.textContent = "Loading...";
+      }
       try {
-        const res = await fetch(API_BASE + "/public/event");
-        const data = await res.json();
-        if (!data.ok || !data.event) {
-          eventStatus.textContent = "No event set yet.";
-          eventOutput.textContent = prettyJson(data);
-          return;
-        }
-        eventNameInput.value = data.event.name || "";
-        eventDateInput.value = data.event.date || "";
-        eventVenueInput.value = data.event.venue || "";
-        eventStatus.textContent = "Loaded current event.";
-        eventOutput.textContent = prettyJson(data.event);
+        const data = await adminJson("/admin/events");
+        eventsData = data.events || [];
+        eventStatus.textContent = `Tracking ${eventsData.length} event(s).`;
+        renderEvents();
       } catch (err) {
-        eventStatus.textContent = "Error loading current event.";
-        eventOutput.textContent = err.message;
+        eventStatus.textContent = "Error loading events.";
+        if (eventListContainer) {
+          eventListContainer.innerHTML = `<div class='note'>${err.message}</div>`;
+        }
       }
     }
 
@@ -912,19 +1070,22 @@
         eventDate: eventDateInput.value || "",
         eventVenue: eventVenueInput.value || "",
       };
+      if (!payload.eventName) {
+        alert("Enter an event name before saving.");
+        return;
+      }
       saveEventBtn.disabled = true;
       eventStatus.textContent = "Saving event...";
       eventOutput.textContent = prettyJson(payload);
       try {
-        const res = await fetch(API_BASE + "/admin/event", {
+        const data = await adminJson("/admin/events", {
           method: "POST",
-          headers: buildAdminHeaders({ "Content-Type": "application/json" }),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || "Failed to save");
         eventStatus.textContent = "Event saved.";
         eventOutput.textContent = prettyJson(data.event);
+        await loadEvents();
       } catch (err) {
         eventStatus.textContent = "Error saving event.";
         eventOutput.textContent = err.message;
@@ -933,10 +1094,94 @@
       }
     });
 
+    if (refreshEventsBtn) {
+      refreshEventsBtn.addEventListener("click", loadEvents);
+    }
+
+    if (eventListContainer) {
+      eventListContainer.addEventListener("click", async (event) => {
+        const btn = event.target.closest("button[data-event-action]");
+        if (!btn) return;
+        const eventId = btn.getAttribute("data-event-id");
+        const current = btn.getAttribute("data-active") === "true";
+        if (!eventId) return;
+        const confirmMsg = current
+          ? "End this event session? Guests will no longer see it in the check-in app."
+          : "Start this event session? It will appear in the check-in app.";
+        if (!confirm(confirmMsg)) return;
+        try {
+          await adminJson("/admin/events/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId, active: !current }),
+          });
+          await loadEvents();
+        } catch (err) {
+          alert(`Unable to update event: ${err.message}`);
+        }
+      });
+    }
+
+    if (downloadActiveCsvBtn) {
+      downloadActiveCsvBtn.addEventListener("click", () => {
+        if (!dashboardData.length) {
+          alert("Load the active dashboard before exporting.");
+          return;
+        }
+        const columns = [
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Email", value: (row) => row.customer?.email || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Status", value: (row) => row.status || "" },
+          { label: "Checked Out At", value: (row) => row.createdAt || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+        ];
+        const csv = toCsv(dashboardData, columns);
+        downloadCsv(`active_headphones_${new Date().toISOString()}.csv`, csv);
+        if (reportStatus) {
+          reportStatus.textContent = "Active headphones CSV downloaded.";
+        }
+      });
+    }
+
+    if (downloadLogCsvBtn) {
+      downloadLogCsvBtn.addEventListener("click", () => {
+        if (!logData.length) {
+          alert("Load the activity log before exporting.");
+          return;
+        }
+        const columns = [
+          { label: "Timestamp", value: (row) => row.createdAt || "" },
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Status", value: (row) => row.status || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+        ];
+        const csv = toCsv(logData, columns);
+        downloadCsv(`recent_log_${new Date().toISOString()}.csv`, csv);
+        if (reportStatus) {
+          reportStatus.textContent = "Recent log CSV downloaded.";
+        }
+      });
+    }
+
     function bootstrap() {
       loadDashboard();
       loadLog();
-      loadCurrentEvent();
+      loadEvents();
+      if (autoRefreshToggle.checked) {
+        startAutoRefresh();
+      }
     }
   </script>
 </body>

@@ -445,23 +445,24 @@
           <label>Headphones for this guest</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button type="button" id="scanNfcBtn" class="small-btn">Scan NFC tag</button>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <input
-                id="manualNoteInput"
-                type="text"
-                placeholder="Optional note (color / channel)"
-                style="width:200px;font-size:12px;"
-              />
-              <button type="button" id="addManualHeadphoneBtn" class="small-btn">Add w/out NFC</button>
-            </div>
+            <button type="button" id="addManualHeadphoneBtn" class="small-btn">Add w/out NFC</button>
           </div>
-          <div id="nfcStatus" class="submit-caption" style="margin-top:4px;">Tap each headphone's NFC tag, confirm, and it will be assigned a global HID.</div>
+          <div id="nfcStatus" class="submit-caption" style="margin-top:4px;">
+            Tap each headphone's NFC tag, confirm, and it will be assigned a unique HID. The same tag cannot be re-used until that headphone is returned.
+          </div>
           <div id="headphoneList" class="headphone-list">No headphones added yet.</div>
         </div>
 
         <div class="field">
           <label for="headphonesQty">Total headphones</label>
           <input id="headphonesQty" name="headphonesQty" type="number" min="0" step="1" value="0" readonly />
+        </div>
+        <div class="field">
+          <label for="eventSelect">Event session</label>
+          <select id="eventSelect">
+            <option value="">Loading events…</option>
+          </select>
+          <div class="submit-caption" id="eventSelectHint">Active events load automatically from the admin console.</div>
         </div>
         <div class="field">
           <label for="eventName">Event name</label>
@@ -480,22 +481,22 @@
           <div class="consent-item">
             <input type="checkbox" id="consentDamage" checked />
             <label for="consentDamage">
-              <span class="consent-label-strong">Damage / loss authorization (required).</span>
-              I authorize SE2 Events Inc. to charge up to $80/headphone if lost or damaged.
+              <span class="consent-label-strong">Equipment responsibility &amp; payment authorization (required).</span>
+              By signing below I accept full financial responsibility for the Silent Disco headphones issued to me tonight. I authorize SE2 Events Inc. to place a temporary authorization on my card and to charge up to <strong>$80 per headphone</strong> (plus any applicable processing fees) if any unit is lost, stolen, not returned the same night, or returned damaged. I understand this authorization may be captured without further notice if the equipment is not returned on demand.
             </label>
           </div>
           <div class="consent-item">
             <input type="checkbox" id="consentPhoto" checked />
             <label for="consentPhoto">
-              <span class="consent-label-strong">Photo &amp; video consent (required).</span>
-              Media captured tonight may be used for marketing with no further notice.
+              <span class="consent-label-strong">Media release (required).</span>
+              I grant SE2 Events Inc., its partners, licensees, and assigns a perpetual, worldwide, royalty-free right to photograph, film, and record me during this event and to use my name, likeness, and voice in any media now known or later developed for promotional, advertising, and archival purposes without additional notice or compensation.
             </label>
           </div>
           <div class="consent-item">
             <input type="checkbox" id="consentMarketing" checked />
             <label for="consentMarketing">
-              <span class="consent-label-strong">Communication &amp; marketing consent (required).</span>
-              Receive event messages + occasional future silent disco updates.
+              <span class="consent-label-strong">Event communications &amp; marketing consent (required).</span>
+              I consent to receive transactional text messages and emails about this event and occasional future announcements from SE2 Events Inc. I understand I can opt out at any time by following the instructions in those messages.
             </label>
           </div>
         </div>
@@ -546,10 +547,11 @@
     const submitBtn = document.getElementById("submitBtn");
     const scanNfcBtn = document.getElementById("scanNfcBtn");
     const addManualHeadphoneBtn = document.getElementById("addManualHeadphoneBtn");
-    const manualNoteInput = document.getElementById("manualNoteInput");
     const nfcStatusEl = document.getElementById("nfcStatus");
     const headphoneListEl = document.getElementById("headphoneList");
     const headphonesQtyInput = document.getElementById("headphonesQty");
+    const eventSelect = document.getElementById("eventSelect");
+    const eventSelectHint = document.getElementById("eventSelectHint");
     const eventNameInput = document.getElementById("eventName");
     const eventDateInput = document.getElementById("eventDate");
     const eventVenueInput = document.getElementById("eventVenue");
@@ -582,7 +584,10 @@
     modalCancelBtn.addEventListener("click", () => closeModal(false));
 
     const reservedIds = new Set();
+    const lockedTags = new Set();
     let headphones = [];
+    let eventCatalog = new Map();
+    let selectedEventId = "";
 
     function playBeep() {
       try {
@@ -645,11 +650,10 @@
       headphonesQtyInput.value = headphones.length;
       headphoneListEl.innerHTML = headphones
         .map((h, index) => {
-          const note = h.note ? ` · ${h.note}` : "";
           const tagInfo = h.nfcTagId ? ` · tag: ${h.nfcTagId}` : "";
           return `
             <span class="headphone-pill" data-index="${index}">
-              ${h.hid}${note}${tagInfo}
+              ${h.hid}${tagInfo}
               <span class="remove" data-index="${index}" title="Remove">✕</span>
             </span>
           `;
@@ -664,6 +668,9 @@
       if (Number.isNaN(idx) || !headphones[idx]) return;
       const removed = headphones.splice(idx, 1)[0];
       if (removed) {
+        if (removed.nfcTagId) {
+          lockedTags.delete(removed.nfcTagId);
+        }
         if (reservedIds.has(removed.hid)) {
           reservedIds.delete(removed.hid);
           await releaseHeadphoneIds([removed.hid]);
@@ -672,14 +679,18 @@
       updateHeadphoneListUI();
     });
 
-    async function addHeadphoneToList({ hid, note = "", nfcTagId = null }) {
+    async function addHeadphoneToList({ hid, nfcTagId = null }) {
       if (!hid) return;
       if (reservedIds.has(hid)) {
         alert(`Headphone ${hid} already assigned in this form.`);
         return;
       }
+      const normalizedTag = nfcTagId ? String(nfcTagId).trim() : null;
       reservedIds.add(hid);
-      headphones.push({ hid, note, nfcTagId });
+      if (normalizedTag) {
+        lockedTags.add(normalizedTag);
+      }
+      headphones.push({ hid, nfcTagId: normalizedTag });
       updateHeadphoneListUI();
     }
 
@@ -687,7 +698,6 @@
       try {
         submitBtn.disabled = true;
         const hid = await reserveHeadphoneId();
-        const note = manualNoteInput.value.trim();
         const confirmed = await showConfirmation({
           title: "Manual headphone",
           body: `Assign <strong>${hid}</strong> to this guest?`,
@@ -698,8 +708,7 @@
           return;
         }
         playBeep();
-        await addHeadphoneToList({ hid, note, nfcTagId: null });
-        manualNoteInput.value = "";
+        await addHeadphoneToList({ hid, nfcTagId: null });
         nfcStatusEl.textContent = `Added ${hid} manually.`;
       } catch (err) {
         alert(err.message || "Unable to reserve headphone");
@@ -748,8 +757,14 @@
               await releaseHeadphoneIds([hid]);
               return;
             }
-            await addHeadphoneToList({ hid, note: "NFC", nfcTagId: tagId });
-            nfcStatusEl.textContent = `Added ${hid} from tag ${tagId}.`;
+            const normalizedTag = String(tagId).trim() || "UNKNOWN_TAG";
+            if (normalizedTag && lockedTags.has(normalizedTag)) {
+              alert(`Tag ${normalizedTag} is already assigned to this guest. Remove it before scanning again.`);
+              await releaseHeadphoneIds([hid]);
+              return;
+            }
+            await addHeadphoneToList({ hid, nfcTagId: normalizedTag });
+            nfcStatusEl.textContent = `Added ${hid} from tag ${normalizedTag}.`;
           } catch (err) {
             alert(err.message || "Unable to reserve HID");
           } finally {
@@ -868,21 +883,102 @@
     }
     pingApiStatus();
 
-    async function loadEventDefaults() {
+    function applyEventToFields(evt) {
+      if (!evt) return;
+      if (eventNameInput) eventNameInput.value = evt.name || "";
+      if (eventDateInput) eventDateInput.value = evt.date || "";
+      if (eventVenueInput) eventVenueInput.value = evt.venue || "";
+    }
+
+    function renderEventSelectOptions(list) {
+      if (!eventSelect) return;
+      if (!Array.isArray(list) || list.length === 0) {
+        eventSelect.innerHTML = '<option value="">No saved events</option>';
+        eventSelect.disabled = true;
+        selectedEventId = "";
+        return;
+      }
+      eventSelect.disabled = false;
+      const options = ['<option value="">Choose event session...</option>']
+        .concat(
+          list.map((evt) => {
+            const label = [evt.name || "Event", evt.date || ""].filter(Boolean).join(" · ");
+            return `<option value="${evt.id}">${label || evt.id}</option>`;
+          })
+        )
+        .join("\n");
+      eventSelect.innerHTML = options;
+      const defaultEvt = list.find((evt) => evt.id) || list[0];
+      if (defaultEvt?.id) {
+        eventSelect.value = defaultEvt.id;
+        selectedEventId = defaultEvt.id;
+        applyEventToFields(defaultEvt);
+      } else {
+        eventSelect.value = "";
+        selectedEventId = "";
+      }
+    }
+
+    async function loadEventFallback() {
       try {
         const res = await fetch(API_BASE + "/public/event");
+        if (!res.ok) return;
         const data = await res.json();
-        if (!data.ok || !data.event) return;
-        if (eventNameInput && !eventNameInput.value) eventNameInput.value = data.event.name || "";
-        if (eventDateInput && !eventDateInput.value) eventDateInput.value = data.event.date || "";
-        if (eventVenueInput && !eventVenueInput.value && data.event.venue) {
-          eventVenueInput.value = data.event.venue;
+        if (data?.event) {
+          applyEventToFields(data.event);
         }
       } catch (err) {
         console.warn("Event default load failed", err);
       }
     }
-    loadEventDefaults();
+
+    async function loadEventOptions() {
+      if (!eventSelect) {
+        await loadEventFallback();
+        return;
+      }
+      try {
+        const data = await fetchJson(API_BASE + "/public/events");
+        const active = Array.isArray(data.events) ? data.events : [];
+        const allEvents = Array.isArray(data.allEvents) ? data.allEvents : [];
+        eventCatalog = new Map(allEvents.map((evt) => [evt.id, evt]));
+        const listToRender = active.length > 0 ? active : allEvents;
+        renderEventSelectOptions(listToRender);
+        if (eventSelectHint) {
+          if (listToRender.length === 0) {
+            eventSelectHint.textContent = "No events available. Enter details manually.";
+          } else if (active.length === 0) {
+            eventSelectHint.textContent = "No sessions are marked active; showing saved events.";
+          } else {
+            eventSelectHint.textContent = "Select the event session for this guest.";
+          }
+        }
+        if (listToRender.length === 0) {
+          await loadEventFallback();
+        }
+      } catch (err) {
+        console.warn("Event list load failed", err);
+        if (eventSelect) {
+          eventSelect.innerHTML = '<option value="">Unable to load events</option>';
+          eventSelect.disabled = true;
+          selectedEventId = "";
+        }
+        if (eventSelectHint) {
+          eventSelectHint.textContent = "Unable to load events automatically. Enter details manually.";
+        }
+        await loadEventFallback();
+      }
+    }
+    loadEventOptions();
+    if (eventSelect) {
+      eventSelect.addEventListener("change", () => {
+        const value = eventSelect.value;
+        selectedEventId = value || "";
+        if (value && eventCatalog.has(value)) {
+          applyEventToFields(eventCatalog.get(value));
+        }
+      });
+    }
 
     function logDev(obj, label) {
       const header = label ? label + ":\n" : "";
@@ -946,11 +1042,12 @@
         fullName: document.getElementById("fullName").value || "",
         email: document.getElementById("email").value || "",
         phone: document.getElementById("phone").value || "",
+        eventId: selectedEventId || "",
         eventName: eventNameInput?.value || "",
         eventDate: eventDateInput?.value || "",
         eventVenue: eventVenueInput?.value || "",
         headphoneIds: headphones.map((h) => h.hid),
-        headphonesMeta: headphones.map((h) => ({ nfcTagId: h.nfcTagId, note: h.note })),
+        headphonesMeta: headphones.map((h) => ({ nfcTagId: h.nfcTagId })),
         consents: {
           damage: document.getElementById("consentDamage").checked,
           photo: document.getElementById("consentPhoto").checked,
@@ -976,6 +1073,7 @@
         } else {
           alert("Check-in recorded with emails + Stripe test hold.");
           reservedIds.clear();
+          lockedTags.clear();
           headphones = [];
           updateHeadphoneListUI();
           clearSignature();
