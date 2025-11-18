@@ -277,23 +277,16 @@
     .event-row:last-child {
       border-bottom: none;
     }
-    .key-status {
-      display: none;
-      margin: 0 auto 18px auto;
-      max-width: 1200px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(129, 153, 255, 0.5);
-      background: rgba(4, 9, 26, 0.85);
-      color: #c7d0ff;
-      font-size: 12px;
+    .key-card-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .key-status button {
-      flex-shrink: 0;
+    .key-status-label {
+      font-size: 13px;
+      color: #f5f7ff;
     }
   </style>
 </head>
@@ -306,11 +299,6 @@
       <button class="btn btn-primary" id="authUnlockBtn" style="margin-top:12px;width:100%;justify-content:center;">Unlock</button>
       <div style="font-size:11px;color:#9fb3ff;margin-top:8px;">Key saved locally for this device.</div>
     </div>
-  </div>
-
-  <div class="key-status" id="keyStatusBar">
-    <span id="keyStatusLabel">Admin key not loaded.</span>
-    <button class="small-btn" type="button" id="changeKeyBtn">Change key</button>
   </div>
 
   <div class="drawer" id="recordDrawer">
@@ -395,6 +383,18 @@
     </div>
 
     <div style="display:flex;flex-direction:column;gap:18px;">
+      <div class="card" id="keyStatusBar">
+        <div class="badge"><span class="badge-dot"></span><span>Admin session</span></div>
+        <div class="key-card-row">
+          <div>
+            <div class="section-title" style="margin:0;">API key status</div>
+            <div id="keyStatusLabel" class="key-status-label">Admin key not loaded.</div>
+          </div>
+          <button class="small-btn" type="button" id="changeKeyBtn">Change key</button>
+        </div>
+        <div class="note">Key is stored locally in this browser until you change it.</div>
+      </div>
+
       <div class="card">
         <div class="badge"><span class="badge-dot"></span><span>Scan to Return</span></div>
         <div class="section-title" style="font-size:13px;font-weight:600;">Instant NFC return</div>
@@ -483,7 +483,6 @@
       } else {
         keyStatusLabel.textContent = "Admin key not loaded.";
       }
-      keyStatusBar.style.display = "flex";
     }
 
     function promptForKey() {
@@ -629,6 +628,10 @@
     let dashboardData = [];
     let logData = [];
     let eventsData = [];
+    let hasDashboardData = false;
+    let hasLogData = false;
+    let dashboardLoading = false;
+    let logLoading = false;
 
     if (adminKey) {
       adminKeyInput.value = adminKey;
@@ -770,17 +773,33 @@
       checkoutsTableBody.innerHTML = rows;
     }
 
-    async function loadDashboard() {
-      dashboardStatus.textContent = "Loading dashboard...";
-      checkoutsTableBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+    async function loadDashboard({ silent = false } = {}) {
+      if (dashboardLoading) return;
+      dashboardLoading = true;
+      const initial = !hasDashboardData;
+      if (initial) {
+        dashboardStatus.textContent = "Loading dashboard...";
+        checkoutsTableBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+      } else if (!silent) {
+        dashboardStatus.textContent = "Refreshing…";
+      }
       try {
         const data = await adminJson("/admin/checkins/active");
         dashboardData = data.items || [];
-        dashboardStatus.textContent = `Loaded ${dashboardData.length} active headphones.`;
+        hasDashboardData = true;
         renderDashboard();
+        const stamp = new Date().toLocaleTimeString();
+        dashboardStatus.textContent = silent
+          ? `Auto-refreshed ${stamp}`
+          : `Updated ${stamp}`;
       } catch (err) {
-        dashboardStatus.textContent = "Error loading dashboard.";
-        checkoutsTableBody.innerHTML = `<tr><td colspan='6'>${err.message}</td></tr>`;
+        const message = err.message || "Error loading dashboard.";
+        if (!hasDashboardData) {
+          checkoutsTableBody.innerHTML = `<tr><td colspan='6'>${message}</td></tr>`;
+        }
+        dashboardStatus.textContent = `Last update failed: ${message}`;
+      } finally {
+        dashboardLoading = false;
       }
     }
 
@@ -822,7 +841,12 @@
       if (dashboardTimer) {
         clearInterval(dashboardTimer);
       }
-      dashboardTimer = setInterval(loadDashboard, 3000);
+      dashboardTimer = setInterval(() => {
+        loadDashboard({ silent: true });
+        loadLog({ silent: true });
+      }, 3000);
+      loadDashboard({ silent: true });
+      loadLog({ silent: true });
     }
 
     if (autoRefreshToggle) {
@@ -888,17 +912,33 @@
       logTableBody.innerHTML = rows;
     }
 
-    async function loadLog() {
-      logStatus.textContent = "Loading log...";
-      logTableBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+    async function loadLog({ silent = false } = {}) {
+      if (logLoading) return;
+      logLoading = true;
+      const initial = !hasLogData;
+      if (initial) {
+        logStatus.textContent = "Loading log...";
+        logTableBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+      } else if (!silent) {
+        logStatus.textContent = "Refreshing…";
+      }
       try {
         const data = await adminJson("/admin/checkins/log?limit=200");
         logData = data.items || [];
-        logStatus.textContent = `Showing ${logData.length} headphones in log.`;
+        hasLogData = true;
         renderLog();
+        const stamp = new Date().toLocaleTimeString();
+        logStatus.textContent = silent
+          ? `Auto-refreshed ${stamp}`
+          : `Updated ${stamp}`;
       } catch (err) {
-        logStatus.textContent = "Error loading log.";
-        logTableBody.innerHTML = `<tr><td colspan='5'>${err.message}</td></tr>`;
+        const message = err.message || "Error loading log.";
+        if (!hasLogData) {
+          logTableBody.innerHTML = `<tr><td colspan='5'>${message}</td></tr>`;
+        }
+        logStatus.textContent = `Last update failed: ${message}`;
+      } finally {
+        logLoading = false;
       }
     }
 
