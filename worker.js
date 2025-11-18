@@ -9,11 +9,11 @@
 const CORS_ORIGIN = "https://app.silentdiscohq.com";
 const STRIPE_API_BASE = "https://api.stripe.com/v1";
 const RESEND_API_BASE = "https://api.resend.com/emails";
-const ADMIN_API_KEY = "SE2_ADMIN_TEST_KEY";
 const ADMIN_ACCOUNTS_KEY = "admins:accounts";
 const ADMIN_ACTIVITY_PREFIX = "adminlog:";
 const SESSION_PREFIX = "session:";
 const SESSION_ADMIN_PREFIX = "session:active:";
+const AUTH_SESSION_PREFIX = "authsession:";
 const HID_COUNTER_KEY = "global:HID_COUNTER";
 const HID_RELEASE_POOL_KEY = "headphones:pool";
 const EVENTS_LIST_KEY = "events:list";
@@ -39,7 +39,7 @@ function unauthorizedResponse() {
 
 function sanitizeAdminAccount(account) {
   if (!account) return null;
-  const { apiKey, ...rest } = account;
+  const { passwordHash, usernameLower, apiKey, ...rest } = account;
   return rest;
 }
 
@@ -47,30 +47,57 @@ function ensureArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password || "");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return toHex(hashBuffer);
+}
+
+async function verifyPassword(password, hash) {
+  if (!hash) return false;
+  const computed = await hashPassword(password || "");
+  return computed === hash;
+}
+
+async function ensureDefaultSuperAdmin(env) {
+  if (!env.CHECKINS) return [];
+  const now = new Date().toISOString();
+  const defaultAccount = {
+    id: "adm_super_seed",
+    name: "Super Admin",
+    email: "",
+    role: "super",
+    username: "Kbell629",
+    usernameLower: "kbell629",
+    passwordHash: await hashPassword("3087"),
+    createdAt: now,
+    updatedAt: now,
+  };
+  await env.CHECKINS.put(ADMIN_ACCOUNTS_KEY, JSON.stringify([defaultAccount]));
+  return [defaultAccount];
+}
+
 async function getAdminAccounts(env) {
   if (!env.CHECKINS) return [];
   const raw = await env.CHECKINS.get(ADMIN_ACCOUNTS_KEY);
   if (!raw) {
-    if (ADMIN_API_KEY) {
-      const fallback = [
-        {
-          id: "adm_default",
-          name: "Staging Admin",
-          email: "",
-          role: "super",
-          apiKey: ADMIN_API_KEY,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      await env.CHECKINS.put(ADMIN_ACCOUNTS_KEY, JSON.stringify(fallback));
-      return fallback;
-    }
-    return [];
+    return await ensureDefaultSuperAdmin(env);
   }
   try {
-    return ensureArray(JSON.parse(raw));
+    const list = ensureArray(JSON.parse(raw));
+    if (list.length === 0) {
+      return await ensureDefaultSuperAdmin(env);
+    }
+    return list;
   } catch {
-    return [];
+    return await ensureDefaultSuperAdmin(env);
   }
 }
 
@@ -79,10 +106,61 @@ async function saveAdminAccounts(env, accounts) {
   await env.CHECKINS.put(ADMIN_ACCOUNTS_KEY, JSON.stringify(accounts));
 }
 
-async function getAdminByKey(env, key) {
-  if (!key) return null;
+async function getAdminByUsername(env, username) {
+  if (!username) return null;
+  const needle = String(username).toLowerCase();
   const accounts = await getAdminAccounts(env);
-  return accounts.find((acct) => acct.apiKey === key) || null;
+  return accounts.find((acct) => acct.usernameLower === needle) || null;
+}
+
+async function getAdminById(env, adminId) {
+  if (!adminId) return null;
+  const accounts = await getAdminAccounts(env);
+  return accounts.find((acct) => acct.id === adminId) || null;
+}
+
+async function createAuthSession(env, admin) {
+  if (!env.CHECKINS || !admin) return null;
+  const token = generateId("authtoken");
+  const now = new Date().toISOString();
+  const record = {
+    id: token,
+    adminId: admin.id,
+    role: admin.role,
+    createdAt: now,
+  };
+  await env.CHECKINS.put(`${AUTH_SESSION_PREFIX}${token}`, JSON.stringify(record), {
+    expirationTtl: 60 * 60 * 12,
+  });
+  return record;
+}
+
+async function getAuthSession(env, token) {
+  if (!env.CHECKINS || !token) return null;
+  const raw = await env.CHECKINS.get(`${AUTH_SESSION_PREFIX}${token}`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function destroyAuthSession(env, token) {
+  if (!env.CHECKINS || !token) return;
+  await env.CHECKINS.delete(`${AUTH_SESSION_PREFIX}${token}`);
+}
+
+function extractAuthToken(request, url) {
+  const authHeader = request.headers.get("authorization") || "";
+  if (authHeader.toLowerCase().startsWith("bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+  const headerToken = request.headers.get("x-admin-token") || "";
+  if (headerToken) return headerToken;
+  const queryToken = url.searchParams.get("token") || url.searchParams.get("adminToken") || "";
+  if (queryToken) return queryToken;
+  return "";
 }
 
 function generateId(prefix) {
@@ -126,20 +204,23 @@ async function fetchAdminActivity(env, adminId, limit = 100) {
 
 async function requireAdmin(request, url, env, options = {}) {
   const expectedRole = options.role || "admin";
-  const headerKey = request.headers.get("x-admin-key") || "";
-  const queryKey = url.searchParams.get("adminKey") || "";
-  const provided = headerKey || queryKey;
-  if (!provided) {
+  const token = extractAuthToken(request, url);
+  if (!token) {
     return { ok: false, response: unauthorizedResponse() };
   }
-  const admin = await getAdminByKey(env, provided);
+  const authSession = await getAuthSession(env, token);
+  if (!authSession) {
+    return { ok: false, response: unauthorizedResponse() };
+  }
+  const admin = await getAdminById(env, authSession.adminId);
   if (!admin) {
+    await destroyAuthSession(env, token);
     return { ok: false, response: unauthorizedResponse() };
   }
   if (expectedRole === "super" && admin.role !== "super") {
     return { ok: false, response: unauthorizedResponse() };
   }
-  return { ok: true, admin };
+  return { ok: true, admin, token, authSession };
 }
 
 async function checkRateLimit(env, request, limit = 8, windowSeconds = 60) {
@@ -641,30 +722,119 @@ async function handleRequest(request, env, ctx) {
     return jsonResponse({ ok: true, app: "Silent Disco HQ", api: "v0.8.0", env: "staging" });
   }
 
-  if (pathname === "/admin/login" && request.method === "POST") {
+  if (pathname === "/auth/register" && request.method === "POST") {
     let body;
     try {
       body = await request.json();
     } catch {
       return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
     }
-    const key = String(body.key || body.adminKey || "").trim();
-    if (!key) {
-      return jsonResponse({ ok: false, error: "Missing key" }, 400);
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim();
+    const username = String(body.username || "").trim();
+    const password = String(body.password || "").trim();
+    if (!name || !username || !password) {
+      return jsonResponse({ ok: false, error: "Name, username, and password are required" }, 400);
     }
-    const admin = await getAdminByKey(env, key);
+    const usernameLower = username.toLowerCase();
+    const accounts = await getAdminAccounts(env);
+    if (accounts.some((acct) => acct.usernameLower === usernameLower)) {
+      return jsonResponse({ ok: false, error: "Username already in use" }, 409);
+    }
+    const now = new Date().toISOString();
+    const newAccount = {
+      id: generateId("adm"),
+      name,
+      email,
+      role: "admin",
+      username,
+      usernameLower,
+      passwordHash: await hashPassword(password),
+      createdAt: now,
+      updatedAt: now,
+    };
+    accounts.push(newAccount);
+    await saveAdminAccounts(env, accounts);
+    const session = await createAuthSession(env, newAccount);
+    await recordAdminActivity(env, newAccount, "auth.register", {});
+    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(newAccount), token: session?.id || null });
+  }
+
+  if (pathname === "/auth/login" && request.method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const username = String(body.username || "").trim();
+    const password = String(body.password || "").trim();
+    if (!username || !password) {
+      return jsonResponse({ ok: false, error: "Username and password are required" }, 400);
+    }
+    const admin = await getAdminByUsername(env, username);
     if (!admin) {
       return unauthorizedResponse();
     }
-    const session = await getSessionForAdmin(env, admin.id);
-    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(admin), session });
+    const valid = await verifyPassword(password, admin.passwordHash);
+    if (!valid) {
+      return unauthorizedResponse();
+    }
+    const session = await createAuthSession(env, admin);
+    await recordAdminActivity(env, admin, "auth.login", {});
+    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(admin), token: session?.id || null });
+  }
+
+  if (pathname === "/auth/logout" && request.method === "POST") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    await destroyAuthSession(env, auth.token);
+    await recordAdminActivity(env, auth.admin, "auth.logout", {});
+    return jsonResponse({ ok: true });
+  }
+
+  if (pathname === "/auth/profile" && request.method === "GET") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    const session = await getSessionForAdmin(env, auth.admin.id);
+    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(auth.admin), session });
+  }
+
+  if (pathname === "/auth/password" && request.method === "POST") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const currentPassword = String(body.currentPassword || "").trim();
+    const newPassword = String(body.newPassword || "").trim();
+    if (!currentPassword || !newPassword) {
+      return jsonResponse({ ok: false, error: "Current and new passwords are required" }, 400);
+    }
+    const valid = await verifyPassword(currentPassword, auth.admin.passwordHash);
+    if (!valid) {
+      return jsonResponse({ ok: false, error: "Current password is incorrect" }, 403);
+    }
+    const accounts = await getAdminAccounts(env);
+    const idx = accounts.findIndex((acct) => acct.id === auth.admin.id);
+    if (idx === -1) {
+      return unauthorizedResponse();
+    }
+    accounts[idx].passwordHash = await hashPassword(newPassword);
+    accounts[idx].updatedAt = new Date().toISOString();
+    await saveAdminAccounts(env, accounts);
+    await recordAdminActivity(env, auth.admin, "auth.password", {});
+    return jsonResponse({ ok: true });
   }
 
   if (pathname === "/super/admins" && request.method === "GET") {
     const auth = await requireAdmin(request, url, env, { role: "super" });
     if (!auth.ok) return auth.response;
     const accounts = await getAdminAccounts(env);
-    const sanitized = accounts.map((acct) => ({ ...sanitizeAdminAccount(acct), apiKey: acct.apiKey }));
+    const sanitized = accounts.map((acct) => sanitizeAdminAccount(acct));
     return jsonResponse({ ok: true, admins: sanitized });
   }
 
@@ -683,22 +853,32 @@ async function handleRequest(request, env, ctx) {
     }
     const email = String(body.email || "").trim();
     const role = body.role === "super" ? "super" : "admin";
-    const apiKey = body.apiKey ? String(body.apiKey).trim() : generateId("admkey");
+    const username = String(body.username || "").trim();
+    const password = String(body.password || "").trim();
+    if (!username) {
+      return jsonResponse({ ok: false, error: "Username is required" }, 400);
+    }
     const accounts = await getAdminAccounts(env);
+    if (accounts.some((acct) => acct.usernameLower === username.toLowerCase())) {
+      return jsonResponse({ ok: false, error: "Username already exists" }, 409);
+    }
+    const plainPassword = password || Math.random().toString(36).slice(2, 10);
     const now = new Date().toISOString();
     const newAccount = {
       id: generateId("adm"),
       name,
       email,
       role,
-      apiKey,
+      username,
+      usernameLower: username.toLowerCase(),
+      passwordHash: await hashPassword(plainPassword),
       createdAt: now,
       updatedAt: now,
     };
     accounts.push(newAccount);
     await saveAdminAccounts(env, accounts);
     await recordAdminActivity(env, auth.admin, "admin.create", { targetId: newAccount.id });
-    return jsonResponse({ ok: true, admin: newAccount });
+    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(newAccount), tempPassword: password ? null : plainPassword });
   }
 
   if (pathname === "/super/admins/delete" && request.method === "POST") {

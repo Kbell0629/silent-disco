@@ -241,18 +241,55 @@
       border-radius: 20px;
       padding: 24px;
       border: 1px solid rgba(120, 143, 255, 0.4);
-      width: min(360px, 90vw);
-      text-align: center;
+      width: min(420px, 92vw);
+      text-align: left;
     }
-    .auth-box input {
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(129, 153, 255, 0.5);
+      background: rgba(4, 9, 30, 0.9);
+      color: #cfd7ff;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .auth-tab.active {
+      background: linear-gradient(135deg, #7c5cff, #ff4fe8);
+      color: #fff;
+      border-color: transparent;
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .auth-form input {
       width: 100%;
-      margin-top: 10px;
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid rgba(175, 192, 255, 0.5);
       background: rgba(4, 9, 26, 0.9);
       color: #f5f7ff;
       font-size: 14px;
+    }
+    .auth-form.hidden {
+      display: none;
+    }
+    .auth-note {
+      font-size: 12px;
+      color: #9fb3ff;
+      margin-top: 6px;
+    }
+    .auth-link {
+      color: #8fd2ff;
+      text-decoration: underline;
     }
     .auto-refresh {
       display: flex;
@@ -340,16 +377,54 @@
     .session-summary strong {
       color: #ffffff;
     }
+    .key-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .password-form {
+      margin-top: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .password-form.active {
+      display: flex;
+    }
+    .password-form input {
+      padding: 7px 9px;
+      border-radius: 10px;
+      border: 1px solid rgba(175, 192, 255, 0.5);
+      background: rgba(4, 9, 26, 0.9);
+      color: #f5f7ff;
+    }
   </style>
 </head>
 <body>
   <div class="auth-overlay" id="authGate">
     <div class="auth-box">
-      <h2 style="margin-bottom:6px;">Admin access</h2>
-      <p style="font-size:13px;color:#c7d0ff;">Enter the nightly admin API key to unlock tools.</p>
-      <input type="password" id="adminKeyInput" placeholder="SE2 admin key" />
-      <button class="btn btn-primary" id="authUnlockBtn" style="margin-top:12px;width:100%;justify-content:center;">Unlock</button>
-      <div style="font-size:11px;color:#9fb3ff;margin-top:8px;">Key saved locally for this device.</div>
+      <h2 style="margin-bottom:4px;">Admin portal</h2>
+      <p style="font-size:13px;color:#c7d0ff;">Sign in with your staff account or create one.</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-tab="login" type="button">Sign in</button>
+        <button class="auth-tab" data-auth-tab="register" type="button">Create account</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required />
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
+        <button class="btn btn-primary" type="submit" id="loginSubmitBtn" style="width:100%;justify-content:center;">Sign in</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <input type="text" id="registerName" placeholder="Full name" required />
+        <input type="email" id="registerEmail" placeholder="Email (optional)" />
+        <input type="text" id="registerUsername" placeholder="Choose a username" autocomplete="username" required />
+        <input type="password" id="registerPassword" placeholder="Choose a password" autocomplete="new-password" required />
+        <button class="btn btn-primary" type="submit" id="registerSubmitBtn" style="width:100%;justify-content:center;">Create account</button>
+      </form>
+      <div id="authStatus" class="auth-note">
+        Super admins manage staff accounts at <a class="auth-link" href="superadmin/">/superadmin</a>.
+      </div>
     </div>
   </div>
 
@@ -439,12 +514,20 @@
         <div class="badge"><span class="badge-dot"></span><span>Admin session</span></div>
         <div class="key-card-row">
           <div>
-            <div class="section-title" style="margin:0;">API key status</div>
-            <div id="keyStatusLabel" class="key-status-label">Admin key not loaded.</div>
+            <div class="section-title" style="margin:0;">Account</div>
+            <div id="keyStatusLabel" class="key-status-label">Not signed in.</div>
           </div>
-          <button class="small-btn" type="button" id="changeKeyBtn">Change key</button>
+          <div class="key-actions">
+            <button class="small-btn" type="button" id="changePasswordBtn">Change password</button>
+            <button class="small-btn" type="button" id="logoutBtn">Sign out</button>
+          </div>
         </div>
-        <div class="note">Key is stored locally in this browser until you change it.</div>
+        <form id="passwordForm" class="password-form">
+          <input type="password" id="currentPasswordInput" placeholder="Current password" autocomplete="current-password" />
+          <input type="password" id="newPasswordInput" placeholder="New password" autocomplete="new-password" />
+          <button class="small-btn" type="submit">Save new password</button>
+        </form>
+        <div class="note">Need full control? Visit the <a class="auth-link" href="superadmin/">super admin console</a>.</div>
       </div>
 
       <div class="card">
@@ -527,6 +610,10 @@
           <label for="newAdminEmail">Email</label>
           <input id="newAdminEmail" type="email" placeholder="team@example.com" />
         </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminUsername">Username</label>
+          <input id="newAdminUsername" type="text" placeholder="e.g. emma.staff" />
+        </div>
         <div class="field" style="margin-bottom:10px;">
           <label for="newAdminRole">Role</label>
           <select id="newAdminRole" style="padding:7px 9px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;">
@@ -534,8 +621,12 @@
             <option value="super">Super admin</option>
           </select>
         </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label for="newAdminPassword">Temporary password (optional)</label>
+          <input id="newAdminPassword" type="text" placeholder="Leave blank to auto-generate" />
+        </div>
         <div class="row" style="gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" id="createAdminBtn" type="button">Generate key</button>
+          <button class="btn btn-primary" id="createAdminBtn" type="button">Create account</button>
           <button class="btn btn-secondary" id="refreshTeamBtn" type="button">Refresh</button>
         </div>
         <div class="note" id="superAdminStatus">Manage your team and audit their actions.</div>
@@ -559,8 +650,7 @@
 
   <script>
     const API_BASE = "https://api.silentdiscohq.com";
-    const DEFAULT_ADMIN_KEY = "SE2_ADMIN_TEST_KEY";
-    let adminKey = localStorage.getItem("sdhqAdminKey") || "";
+    let authToken = localStorage.getItem("sdhqAdminToken") || "";
     let adminProfile = null;
     const storedProfile = localStorage.getItem("sdhqAdminProfile");
     if (storedProfile) {
@@ -571,20 +661,26 @@
       }
     }
     const authGate = document.getElementById("authGate");
-    const adminKeyInput = document.getElementById("adminKeyInput");
-    const authUnlockBtn = document.getElementById("authUnlockBtn");
-    const keyStatusBar = document.getElementById("keyStatusBar");
+    const authTabs = document.querySelectorAll("[data-auth-tab]");
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const authStatus = document.getElementById("authStatus");
+    const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+    const registerSubmitBtn = document.getElementById("registerSubmitBtn");
     const keyStatusLabel = document.getElementById("keyStatusLabel");
-    const changeKeyBtn = document.getElementById("changeKeyBtn");
-    if (adminKey && adminKeyInput) {
-      adminKeyInput.value = adminKey;
-    }
+    const changePasswordBtn = document.getElementById("changePasswordBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const passwordForm = document.getElementById("passwordForm");
+    const currentPasswordInput = document.getElementById("currentPasswordInput");
+    const newPasswordInput = document.getElementById("newPasswordInput");
     const sessionStatusText = document.getElementById("sessionStatusText");
     const endSessionBtn = document.getElementById("endSessionBtn");
     const superAdminCard = document.getElementById("superAdminCard");
     const newAdminNameInput = document.getElementById("newAdminName");
     const newAdminEmailInput = document.getElementById("newAdminEmail");
+    const newAdminUsernameInput = document.getElementById("newAdminUsername");
     const newAdminRoleSelect = document.getElementById("newAdminRole");
+    const newAdminPasswordInput = document.getElementById("newAdminPassword");
     const createAdminBtn = document.getElementById("createAdminBtn");
     const refreshTeamBtn = document.getElementById("refreshTeamBtn");
     const teamListEl = document.getElementById("teamList");
@@ -618,29 +714,47 @@
       }
     }
 
-    function updateKeyStatus() {
-      if (!keyStatusBar || !keyStatusLabel) return;
-      if (adminKey) {
-        const masked = adminKey.length <= 4 ? adminKey : `••••${adminKey.slice(-4)}`;
-        const displayName = adminProfile?.name || "Admin";
-        const roleLabel = adminProfile?.role ? adminProfile.role.toUpperCase() : "STAFF";
-        keyStatusLabel.textContent = `Signed in as ${displayName} (${roleLabel}) · key ${masked}`;
-      } else {
-        keyStatusLabel.textContent = "Admin key not loaded.";
+    function setAuthTab(mode) {
+      const target = mode === "register" ? "register" : "login";
+      authTabs.forEach((tab) => {
+        const isActive = tab.dataset.authTab === target;
+        tab.classList.toggle("active", isActive);
+      });
+      if (loginForm && registerForm) {
+        if (target === "register") {
+          loginForm.classList.add("hidden");
+          registerForm.classList.remove("hidden");
+        } else {
+          registerForm.classList.add("hidden");
+          loginForm.classList.remove("hidden");
+        }
       }
     }
 
-    function promptForKey() {
+    function showAuthOverlay(mode = "login") {
+      setAuthTab(mode);
       authGate.style.display = "flex";
-      adminKeyInput.focus();
-      adminKeyInput.select();
     }
 
-    function clearAdminKey() {
-      adminKey = "";
-      localStorage.removeItem("sdhqAdminKey");
-      adminKeyInput.value = "";
+    function hideAuthOverlay() {
+      authGate.style.display = "none";
+    }
+
+    function updateKeyStatus() {
+      if (!keyStatusLabel) return;
+      if (adminProfile && authToken) {
+        const displayName = adminProfile.name || "Admin";
+        const roleLabel = adminProfile.role ? adminProfile.role.toUpperCase() : "STAFF";
+        keyStatusLabel.textContent = `Signed in as ${displayName} (${roleLabel})`;
+      } else {
+        keyStatusLabel.textContent = "Not signed in.";
+      }
+    }
+
+    function clearAuth({ silent = false } = {}) {
+      authToken = "";
       adminProfile = null;
+      localStorage.removeItem("sdhqAdminToken");
       localStorage.removeItem("sdhqAdminProfile");
       persistSession(null);
       updateKeyStatus();
@@ -649,56 +763,82 @@
         dashboardTimer = null;
       }
       showSuperAdminCardIfNeeded();
+      if (!silent) {
+        showAuthOverlay("login");
+      }
     }
 
-    async function setAdminKey(value, { silent = false } = {}) {
-      const trimmed = (value || "").trim();
-      if (!trimmed) {
-        clearAdminKey();
-        if (!silent) alert("Enter the admin key to continue.");
-        promptForKey();
-        return false;
+    function handleUnauthorized() {
+      alert("Your session expired. Please sign in again.");
+      clearAuth();
+    }
+
+    function buildAdminHeaders(extra = {}) {
+      if (!authToken) throw new Error("Missing admin token");
+      return { ...extra, Authorization: `Bearer ${authToken}` };
+    }
+
+    async function adminFetch(path, options = {}) {
+      const headers = buildAdminHeaders(options.headers || {});
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (res.status === 401) {
+        handleUnauthorized();
+        throw new Error("Unauthorized");
+      }
+      return res;
+    }
+
+    async function adminJson(path, options = {}) {
+      const res = await adminFetch(path, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        const message = data.error || "API error";
+        const err = new Error(message);
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function applyAuth(token, profile) {
+      if (!token || !profile) return;
+      authToken = token;
+      adminProfile = profile;
+      localStorage.setItem("sdhqAdminToken", token);
+      localStorage.setItem("sdhqAdminProfile", JSON.stringify(profile));
+      updateKeyStatus();
+      hideAuthOverlay();
+      showSuperAdminCardIfNeeded();
+      refreshSessionFromApi();
+      if (appBootstrapped) {
+        loadDashboard();
+        loadLog();
+        loadEvents();
+      } else {
+        bootstrap();
+      }
+    }
+
+    async function bootstrapAuth() {
+      if (!authToken) {
+        showAuthOverlay("login");
+        return;
       }
       try {
-        const res = await fetch(API_BASE + "/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: trimmed }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.ok === false) {
-          throw new Error(data.error || "Invalid admin key");
-        }
-        adminKey = trimmed;
+        const data = await adminJson("/auth/profile");
         adminProfile = data.admin || null;
-        localStorage.setItem("sdhqAdminKey", trimmed);
         if (adminProfile) {
           localStorage.setItem("sdhqAdminProfile", JSON.stringify(adminProfile));
         }
-        adminKeyInput.value = trimmed;
-        authGate.style.display = "none";
         updateKeyStatus();
+        hideAuthOverlay();
         persistSession(data.session || null);
-        await refreshSessionFromApi();
         showSuperAdminCardIfNeeded();
-        if (appBootstrapped) {
-          loadDashboard();
-          loadLog();
-          loadEvents();
-          if (autoRefreshToggle && autoRefreshToggle.checked) {
-            startAutoRefresh();
-          }
-        } else {
-          bootstrap();
-        }
-        return true;
+        bootstrap();
       } catch (err) {
-        clearAdminKey();
-        if (!silent) {
-          alert(err.message || "Unable to unlock admin tools.");
-        }
-        promptForKey();
-        return false;
+        console.warn("Auth restore failed", err);
+        clearAuth({ silent: true });
+        showAuthOverlay("login");
       }
     }
 
@@ -753,59 +893,126 @@
       persistSession(null);
     }
 
-    authUnlockBtn.addEventListener("click", async () => {
-      const value = adminKeyInput.value.trim() || DEFAULT_ADMIN_KEY || "";
-      await setAdminKey(value);
+    authTabs.forEach((tab) => {
+      tab.addEventListener("click", () => setAuthTab(tab.dataset.authTab || "login"));
     });
 
-    if (changeKeyBtn) {
-      changeKeyBtn.addEventListener("click", () => {
-        clearAdminKey();
-        promptForKey();
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = (document.getElementById("loginUsername")?.value || "").trim();
+        const password = (document.getElementById("loginPassword")?.value || "").trim();
+        if (!username || !password) {
+          authStatus.textContent = "Enter your username and password.";
+          return;
+        }
+        if (loginSubmitBtn) loginSubmitBtn.disabled = true;
+        authStatus.textContent = "Signing in...";
+        try {
+          const res = await fetch(API_BASE + "/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) {
+            throw new Error(data.error || "Sign-in failed");
+          }
+          authStatus.textContent = "Signed in.";
+          applyAuth(data.token, data.admin || null);
+        } catch (err) {
+          authStatus.textContent = err.message || "Unable to sign in.";
+        } finally {
+          if (loginSubmitBtn) loginSubmitBtn.disabled = false;
+        }
       });
     }
 
-
-    function buildAdminHeaders(extra = {}) {
-      if (!adminKey) throw new Error("Admin key missing");
-      return { ...extra, "x-admin-key": adminKey };
+    if (registerForm) {
+      registerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const name = (document.getElementById("registerName")?.value || "").trim();
+        const email = (document.getElementById("registerEmail")?.value || "").trim();
+        const username = (document.getElementById("registerUsername")?.value || "").trim();
+        const password = (document.getElementById("registerPassword")?.value || "").trim();
+        if (!name || !username || !password) {
+          authStatus.textContent = "Fill in all required fields.";
+          return;
+        }
+        if (registerSubmitBtn) registerSubmitBtn.disabled = true;
+        authStatus.textContent = "Creating account...";
+        try {
+          const res = await fetch(API_BASE + "/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, username, password }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) {
+            throw new Error(data.error || "Unable to create account");
+          }
+          authStatus.textContent = "Account ready. Signing in...";
+          applyAuth(data.token, data.admin || null);
+        } catch (err) {
+          authStatus.textContent = err.message || "Unable to create account.";
+        } finally {
+          if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+        }
+      });
     }
 
-    function handleUnauthorized() {
-      alert("Admin key expired or invalid. Please enter it again.");
-      clearAdminKey();
-      if (dashboardTimer) {
-        clearInterval(dashboardTimer);
-        dashboardTimer = null;
-      }
-      promptForKey();
+    if (changePasswordBtn && passwordForm) {
+      changePasswordBtn.addEventListener("click", () => {
+        passwordForm.classList.toggle("active");
+        if (passwordForm.classList.contains("active")) {
+          currentPasswordInput?.focus();
+        }
+      });
     }
 
-    async function adminFetch(path, options = {}) {
-      const headers = buildAdminHeaders(options.headers || {});
-      const url = new URL(API_BASE + path);
-      if (adminKey) {
-        url.searchParams.set("adminKey", adminKey);
-      }
-      const res = await fetch(url.toString(), { ...options, headers });
-      if (res.status === 401) {
-        handleUnauthorized();
-        throw new Error("Unauthorized");
-      }
-      return res;
+    if (passwordForm) {
+      passwordForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const currentPassword = (currentPasswordInput?.value || "").trim();
+        const newPassword = (newPasswordInput?.value || "").trim();
+        if (!currentPassword || !newPassword) {
+          alert("Enter your current and new password.");
+          return;
+        }
+        try {
+          await adminJson("/auth/password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          alert("Password updated.");
+          if (currentPasswordInput) currentPasswordInput.value = "";
+          if (newPasswordInput) newPasswordInput.value = "";
+          passwordForm.classList.remove("active");
+        } catch (err) {
+          alert(err.message || "Unable to update password.");
+        }
+      });
     }
 
-    async function adminJson(path, options = {}) {
-      const res = await adminFetch(path, options);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.ok === false) {
-        const message = data.error || "API error";
-        const err = new Error(message);
-        err.data = data;
-        throw err;
-      }
-      return data;
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        if (!authToken) {
+          clearAuth();
+          return;
+        }
+        try {
+          await adminJson("/auth/logout", { method: "POST" });
+        } catch (err) {
+          console.warn("Logout failed", err);
+        }
+        clearAuth();
+      });
     }
+
+    updateKeyStatus();
+    showSuperAdminCardIfNeeded();
+    bootstrapAuth();
 
     const refreshDashboardBtn = document.getElementById("refreshDashboardBtn");
     const dashboardStatus = document.getElementById("dashboardStatus");
@@ -856,15 +1063,6 @@
     let hasLogData = false;
     let dashboardLoading = false;
     let logLoading = false;
-
-    if (adminKey) {
-      setAdminKey(adminKey, { silent: true });
-    } else if (DEFAULT_ADMIN_KEY) {
-      adminKeyInput.value = DEFAULT_ADMIN_KEY;
-      setAdminKey(DEFAULT_ADMIN_KEY, { silent: true });
-    } else {
-      promptForKey();
-    }
 
     drawerCloseBtn.addEventListener("click", () => recordDrawer.classList.remove("active"));
 
@@ -1550,17 +1748,17 @@
       }
       teamListEl.innerHTML = teamData
         .map((member) => {
-          const masked = member.apiKey ? `••••${member.apiKey.slice(-4)}` : "No key";
           const roleLabel = member.role === "super" ? "pill pill-ok" : "pill pill-warn";
+          const username = member.username ? `Username ${member.username}` : "";
+          const metaParts = [member.email || "No email", username].filter(Boolean).join(" · ");
           return `
             <div class="team-row">
               <div class="team-row-title">
                 <span>${member.name || member.id}</span>
                 <span class="${roleLabel}">${member.role || "admin"}</span>
               </div>
-              <div class="activity-meta">${member.email || "No email"} · Key ${masked}</div>
+              <div class="activity-meta">${metaParts}</div>
               <div class="team-row-actions">
-                <button class="small-btn" data-team-action="copy" data-admin-id="${member.id}">Copy key</button>
                 <button class="small-btn" data-team-action="delete" data-admin-id="${member.id}">Remove</button>
               </div>
             </div>
@@ -1584,9 +1782,11 @@
     async function createAdminAccount() {
       const name = (newAdminNameInput?.value || "").trim();
       const email = (newAdminEmailInput?.value || "").trim();
+      const username = (newAdminUsernameInput?.value || "").trim();
+      const password = (newAdminPasswordInput?.value || "").trim();
       const role = newAdminRoleSelect?.value === "super" ? "super" : "admin";
-      if (!name) {
-        alert("Enter a name for this admin account.");
+      if (!name || !username) {
+        alert("Enter a name and username for this admin account.");
         return;
       }
       createAdminBtn.disabled = true;
@@ -1595,21 +1795,22 @@
         const data = await adminJson("/super/admins", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, role }),
+          body: JSON.stringify({ name, email, role, username, password }),
         });
         teamData.push(data.admin);
         renderTeamList();
         populateActivitySelect();
-        superAdminStatus.textContent = `Created ${name}. Key copied to clipboard.`;
+        superAdminStatus.textContent = data.tempPassword
+          ? `Created ${name}. Temporary password shown.`
+          : `Created ${name}.`;
         if (newAdminNameInput) newAdminNameInput.value = "";
         if (newAdminEmailInput) newAdminEmailInput.value = "";
+        if (newAdminUsernameInput) newAdminUsernameInput.value = "";
         if (newAdminRoleSelect) newAdminRoleSelect.value = "admin";
-        if (navigator.clipboard && data.admin?.apiKey) {
-          try {
-            await navigator.clipboard.writeText(data.admin.apiKey);
-          } catch (err) {}
+        if (newAdminPasswordInput) newAdminPasswordInput.value = "";
+        if (data.tempPassword) {
+          alert(`Temporary password for ${name}: ${data.tempPassword}`);
         }
-        alert(`Admin key for ${name}: ${data.admin?.apiKey || "Unavailable"}`);
       } catch (err) {
         superAdminStatus.textContent = err.message || "Unable to create admin.";
       } finally {
@@ -1824,15 +2025,6 @@
         if (!btn) return;
         const adminId = btn.getAttribute("data-admin-id");
         const action = btn.getAttribute("data-team-action");
-        const member = teamData.find((item) => item.id === adminId);
-        if (action === "copy" && member?.apiKey) {
-          try {
-            await navigator.clipboard.writeText(member.apiKey);
-            superAdminStatus.textContent = `Copied key for ${member.name || member.id}.`;
-          } catch (err) {
-            alert(member.apiKey);
-          }
-        }
         if (action === "delete") {
           await deleteAdminAccount(adminId);
         }
