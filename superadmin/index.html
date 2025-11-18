@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Silent Disco HQ – Super Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #141a33 0, #020414 55%, #000000 100%);
+      color: #f5f7ff;
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .card {
+      background: radial-gradient(circle at top left, #1c2440 0, #0b1021 45%, #050814 100%);
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid rgba(120, 143, 255, 0.3);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(248, 249, 252, 0.1);
+      font-size: 11px;
+      margin-bottom: 12px;
+      color: #cbd4ff;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #6fffd0;
+      box-shadow: 0 0 10px rgba(111, 255, 208, 0.8);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .field label {
+      font-size: 12px;
+      color: #cbd4ff;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(175, 192, 255, 0.5);
+      background: rgba(4, 9, 26, 0.9);
+      color: #f5f7ff;
+      font-size: 13px;
+    }
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c5cff, #ff4fe8);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+    .btn-secondary {
+      background: rgba(9, 17, 52, 0.95);
+      color: #d7e0ff;
+      border: 1px solid rgba(129, 153, 255, 0.7);
+    }
+    .small-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(129, 153, 255, 0.7);
+      background: rgba(4, 9, 30, 0.9);
+      color: #e0e5ff;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .list {
+      margin-top: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(70, 91, 180, 0.9);
+      background: rgba(2, 4, 18, 0.96);
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 10px;
+      font-size: 12px;
+    }
+    .list-item {
+      border-bottom: 1px solid rgba(80, 100, 190, 0.3);
+      padding: 8px 0;
+    }
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    .note {
+      font-size: 12px;
+      color: #9fb3ff;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 11px;
+    }
+    .pill-ok {
+      background: rgba(6, 243, 138, 0.1);
+      color: #6fffd0;
+      border: 1px solid rgba(111, 255, 208, 0.6);
+    }
+    .pill-warn {
+      background: rgba(255, 175, 104, 0.08);
+      color: #ffd6a1;
+      border: 1px solid rgba(255, 199, 130, 0.7);
+    }
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 18, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .auth-box {
+      background: #050b1f;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid rgba(120, 143, 255, 0.4);
+      width: min(380px, 90vw);
+    }
+    .auth-box h2 {
+      margin-bottom: 8px;
+    }
+    .auth-box form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .auth-box input {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(175, 192, 255, 0.5);
+      background: rgba(4, 9, 26, 0.9);
+      color: #f5f7ff;
+    }
+    .auth-note {
+      font-size: 12px;
+      color: #9fb3ff;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-overlay" id="authGate">
+    <div class="auth-box">
+      <h2>Super admin sign-in</h2>
+      <p class="note">Use your super admin credentials (default: <strong>Kbell629 / 3087</strong>).</p>
+      <form id="loginForm">
+        <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required />
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
+        <button class="btn btn-primary" type="submit" id="loginSubmitBtn" style="justify-content:center;">Sign in</button>
+      </form>
+      <div id="loginStatus" class="auth-note"></div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="card">
+      <div class="badge"><span class="badge-dot"></span><span>Silent Disco HQ</span></div>
+      <h1>Super Admin Console</h1>
+      <p class="note">Manage employee accounts, review activity, and audit headphone history.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Account</span></div>
+        <div class="field">
+          <label>Signed in as</label>
+          <div id="accountLabel">Not signed in</div>
+        </div>
+        <form id="passwordForm">
+          <div class="field">
+            <label for="currentPassword">Current password</label>
+            <input type="password" id="currentPassword" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" autocomplete="new-password" />
+          </div>
+          <button class="btn btn-secondary" type="submit">Update password</button>
+        </form>
+        <button class="btn btn-secondary" id="logoutBtn" style="margin-top:12px;">Sign out</button>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Create admin</span></div>
+        <div class="field">
+          <label for="newName">Name</label>
+          <input id="newName" type="text" placeholder="Team member" />
+        </div>
+        <div class="field">
+          <label for="newEmail">Email</label>
+          <input id="newEmail" type="email" placeholder="team@example.com" />
+        </div>
+        <div class="field">
+          <label for="newUsername">Username</label>
+          <input id="newUsername" type="text" placeholder="e.g. emma.staff" />
+        </div>
+        <div class="field">
+          <label for="newRole">Role</label>
+          <select id="newRole">
+            <option value="admin">Admin</option>
+            <option value="super">Super admin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="newPasswordTemp">Temporary password (optional)</label>
+          <input id="newPasswordTemp" type="text" placeholder="Leave blank to auto-generate" />
+        </div>
+        <button class="btn btn-primary" id="createBtn" style="width:100%;justify-content:center;">Create account</button>
+        <div class="note" id="createStatus" style="margin-top:8px;">Ready.</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Team directory</span></div>
+        <button class="small-btn" id="refreshTeam" style="margin-bottom:8px;">Refresh</button>
+        <div class="list" id="teamList">Loading...</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Activity audit</span></div>
+        <div class="field">
+          <label for="activityAdmin">Select admin</label>
+          <select id="activityAdmin">
+            <option value="">Choose…</option>
+          </select>
+        </div>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-secondary" id="loadActivityBtn">Load activity</button>
+        </div>
+        <div class="list" id="activityList">Select an admin to view their log.</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Headphone history</span></div>
+        <div class="field">
+          <label for="historyAdmin">Select admin</label>
+          <select id="historyAdmin">
+            <option value="">Choose…</option>
+          </select>
+        </div>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-secondary" id="loadHistoryBtn">Load history</button>
+          <button class="btn btn-secondary" id="downloadHistoryBtn">Download CSV</button>
+        </div>
+        <div class="list" id="historyList">Select an admin to load headphone check-ins.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.silentdiscohq.com";
+    let authToken = localStorage.getItem("sdhqSuperToken") || "";
+    let profile = null;
+    let teamData = [];
+    let activityData = [];
+    let historyData = [];
+
+    const authGate = document.getElementById("authGate");
+    const loginForm = document.getElementById("loginForm");
+    const loginStatus = document.getElementById("loginStatus");
+    const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+    const accountLabel = document.getElementById("accountLabel");
+    const passwordForm = document.getElementById("passwordForm");
+    const currentPasswordInput = document.getElementById("currentPassword");
+    const newPasswordInput = document.getElementById("newPassword");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const teamListEl = document.getElementById("teamList");
+    const refreshTeamBtn = document.getElementById("refreshTeam");
+    const createBtn = document.getElementById("createBtn");
+    const createStatus = document.getElementById("createStatus");
+    const activityAdminSelect = document.getElementById("activityAdmin");
+    const loadActivityBtn = document.getElementById("loadActivityBtn");
+    const activityListEl = document.getElementById("activityList");
+    const historyAdminSelect = document.getElementById("historyAdmin");
+    const loadHistoryBtn = document.getElementById("loadHistoryBtn");
+    const downloadHistoryBtn = document.getElementById("downloadHistoryBtn");
+    const historyListEl = document.getElementById("historyList");
+
+    function showOverlay(message = "") {
+      if (loginStatus) loginStatus.textContent = message;
+      authGate.style.display = "flex";
+    }
+
+    function hideOverlay() {
+      authGate.style.display = "none";
+    }
+
+    function updateAccountLabel() {
+      if (!accountLabel) return;
+      if (profile && authToken) {
+        accountLabel.textContent = `${profile.name || profile.username} (${profile.role || "admin"})`;
+      } else {
+        accountLabel.textContent = "Not signed in";
+      }
+    }
+
+    function buildHeaders(extra = {}) {
+      if (!authToken) throw new Error("Missing token");
+      return { ...extra, Authorization: `Bearer ${authToken}` };
+    }
+
+    async function authedJson(path, options = {}) {
+      const headers = buildHeaders(options.headers || {});
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (res.status === 401) {
+        alert("Session expired. Please sign in again.");
+        clearAuth();
+        throw new Error("Unauthorized");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "API error");
+      }
+      return data;
+    }
+
+    function applyAuth(token, admin) {
+      if (!token || !admin) return;
+      if (admin.role !== "super") {
+        alert("This area requires a super admin account.");
+        return;
+      }
+      authToken = token;
+      profile = admin;
+      localStorage.setItem("sdhqSuperToken", token);
+      localStorage.setItem("sdhqSuperProfile", JSON.stringify(admin));
+      updateAccountLabel();
+      hideOverlay();
+      bootstrap();
+    }
+
+    function clearAuth() {
+      authToken = "";
+      profile = null;
+      localStorage.removeItem("sdhqSuperToken");
+      localStorage.removeItem("sdhqSuperProfile");
+      updateAccountLabel();
+      showOverlay();
+    }
+
+    async function bootstrap() {
+      try {
+        await loadTeam();
+      } catch (err) {
+        console.warn("Team load failed", err);
+      }
+    }
+
+    async function loadTeam() {
+      teamListEl.textContent = "Loading...";
+      const data = await authedJson("/super/admins");
+      teamData = data.admins || [];
+      renderTeam();
+      populateAdminSelects();
+    }
+
+    function renderTeam() {
+      if (!teamData.length) {
+        teamListEl.innerHTML = "<div class='note'>No team members yet.</div>";
+        return;
+      }
+      teamListEl.innerHTML = teamData
+        .map((member) => {
+          const roleLabel = member.role === "super" ? "pill pill-ok" : "pill pill-warn";
+          const metaParts = [member.email || "No email", member.username ? `Username ${member.username}` : ""]
+            .filter(Boolean)
+            .join(" · ");
+          return `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;gap:10px;">
+                <strong>${member.name || member.id}</strong>
+                <span class="${roleLabel}">${member.role || "admin"}</span>
+              </div>
+              <div class="note">${metaParts}</div>
+              <div style="margin-top:6px;display:flex;gap:6px;">
+                <button class="small-btn" data-team-delete="${member.id}">Remove</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function populateAdminSelects() {
+      const options = ["<option value=''>Choose…</option>"]
+        .concat(
+          teamData.map((member) => `<option value="${member.id}">${member.name || member.username || member.id}</option>`)
+        )
+        .join("\n");
+      activityAdminSelect.innerHTML = options;
+      historyAdminSelect.innerHTML = options;
+    }
+
+    async function createAdmin() {
+      const name = (document.getElementById("newName")?.value || "").trim();
+      const email = (document.getElementById("newEmail")?.value || "").trim();
+      const username = (document.getElementById("newUsername")?.value || "").trim();
+      const role = document.getElementById("newRole")?.value === "super" ? "super" : "admin";
+      const password = (document.getElementById("newPasswordTemp")?.value || "").trim();
+      if (!name || !username) {
+        alert("Enter a name and username.");
+        return;
+      }
+      createBtn.disabled = true;
+      createStatus.textContent = "Creating admin...";
+      try {
+        const data = await authedJson("/super/admins", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, username, role, password }),
+        });
+        teamData.push(data.admin);
+        renderTeam();
+        populateAdminSelects();
+        document.getElementById("newName").value = "";
+        document.getElementById("newEmail").value = "";
+        document.getElementById("newUsername").value = "";
+        document.getElementById("newPasswordTemp").value = "";
+        document.getElementById("newRole").value = "admin";
+        createStatus.textContent = data.tempPassword
+          ? `Created ${name}. Temporary password: ${data.tempPassword}`
+          : `Created ${name}.`;
+        if (data.tempPassword) {
+          alert(`Temporary password for ${name}: ${data.tempPassword}`);
+        }
+      } catch (err) {
+        createStatus.textContent = err.message || "Unable to create admin.";
+      } finally {
+        createBtn.disabled = false;
+      }
+    }
+
+    async function deleteAdmin(adminId) {
+      if (!adminId) return;
+      if (!confirm("Remove this admin account?")) return;
+      await authedJson("/super/admins/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminId }),
+      });
+      teamData = teamData.filter((member) => member.id !== adminId);
+      renderTeam();
+      populateAdminSelects();
+    }
+
+    async function loadActivity(adminId) {
+      if (!adminId) {
+        activityListEl.innerHTML = "<div class='note'>Select an admin to view activity.</div>";
+        return;
+      }
+      activityListEl.textContent = "Loading...";
+      const data = await authedJson(`/super/admins/activity?adminId=${encodeURIComponent(adminId)}&limit=200`);
+      activityData = data.activity || [];
+      if (!activityData.length) {
+        activityListEl.innerHTML = "<div class='note'>No recorded actions.</div>";
+        return;
+      }
+      activityListEl.innerHTML = activityData
+        .map((entry) => {
+          return `
+            <div class="list-item">
+              <strong>${entry.action}</strong>
+              <div class="note">${new Date(entry.at).toLocaleString()}</div>
+              <div class="note">${JSON.stringify(entry.payload || {})}</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    async function loadHistory(adminId) {
+      if (!adminId) {
+        historyListEl.innerHTML = "<div class='note'>Select an admin to view history.</div>";
+        return;
+      }
+      historyListEl.textContent = "Loading...";
+      const data = await authedJson(`/super/admins/checkins?adminId=${encodeURIComponent(adminId)}&limit=200`);
+      historyData = data.records || data.flattened || [];
+      if (!historyData.length) {
+        historyListEl.innerHTML = "<div class='note'>No headphone activity yet.</div>";
+        return;
+      }
+      historyListEl.innerHTML = historyData
+        .map((record) => {
+          const hp = record.headphones?.map((h) => h.id).join(", ") || "N/A";
+          return `
+            <div class="list-item">
+              <strong>${record.customer?.fullName || "Guest"}</strong>
+              <div class="note">${record.event?.name || "Event"} · ${new Date(record.createdAt).toLocaleString()}</div>
+              <div class="note">Headphones: ${hp}</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function downloadHistoryCsv() {
+      if (!historyData.length) {
+        alert("Load a history first.");
+        return;
+      }
+      const rows = [
+        ["checkinId", "customer", "event", "headphones", "status", "createdAt"],
+        ...historyData.map((record) => [
+          record.id,
+          record.customer?.fullName || "Guest",
+          record.event?.name || "",
+          (record.headphones || []).map((h) => h.id).join("|") || "",
+          record.status || "",
+          record.createdAt || "",
+        ]),
+      ];
+      const csv = rows.map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "sdhq-headphone-history.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const username = (document.getElementById("loginUsername")?.value || "").trim();
+      const password = (document.getElementById("loginPassword")?.value || "").trim();
+      if (!username || !password) {
+        loginStatus.textContent = "Enter both fields.";
+        return;
+      }
+      if (loginSubmitBtn) loginSubmitBtn.disabled = true;
+      loginStatus.textContent = "Signing in...";
+      try {
+        const res = await fetch(API_BASE + "/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) {
+          throw new Error(data.error || "Sign-in failed");
+        }
+        loginStatus.textContent = "Signed in.";
+        applyAuth(data.token, data.admin || null);
+      } catch (err) {
+        loginStatus.textContent = err.message || "Unable to sign in.";
+      } finally {
+        if (loginSubmitBtn) loginSubmitBtn.disabled = false;
+      }
+    });
+
+    passwordForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const currentPassword = (currentPasswordInput?.value || "").trim();
+      const newPassword = (newPasswordInput?.value || "").trim();
+      if (!currentPassword || !newPassword) {
+        alert("Enter your current and new password.");
+        return;
+      }
+      try {
+        await authedJson("/auth/password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+        alert("Password updated.");
+        currentPasswordInput.value = "";
+        newPasswordInput.value = "";
+      } catch (err) {
+        alert(err.message || "Unable to update password.");
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      if (!authToken) {
+        clearAuth();
+        return;
+      }
+      try {
+        await authedJson("/auth/logout", { method: "POST" });
+      } catch (err) {
+        console.warn("Logout error", err);
+      }
+      clearAuth();
+    });
+
+    createBtn.addEventListener("click", createAdmin);
+    refreshTeamBtn.addEventListener("click", loadTeam);
+
+    teamListEl.addEventListener("click", async (event) => {
+      const target = event.target.closest("[data-team-delete]");
+      if (!target) return;
+      const adminId = target.getAttribute("data-team-delete");
+      await deleteAdmin(adminId);
+    });
+
+    loadActivityBtn.addEventListener("click", () => loadActivity(activityAdminSelect.value));
+    loadHistoryBtn.addEventListener("click", () => loadHistory(historyAdminSelect.value));
+    downloadHistoryBtn.addEventListener("click", downloadHistoryCsv);
+
+    const storedProfileRaw = localStorage.getItem("sdhqSuperProfile");
+    if (storedProfileRaw && authToken) {
+      try {
+        profile = JSON.parse(storedProfileRaw);
+      } catch (err) {
+        profile = null;
+      }
+    }
+
+    if (authToken && profile) {
+      updateAccountLabel();
+      hideOverlay();
+      bootstrap();
+    } else if (authToken) {
+      // validate token
+      authedJson("/auth/profile")
+        .then((data) => {
+          if (data.admin?.role !== "super") {
+            clearAuth();
+            return;
+          }
+          profile = data.admin;
+          localStorage.setItem("sdhqSuperProfile", JSON.stringify(profile));
+          updateAccountLabel();
+          hideOverlay();
+          bootstrap();
+        })
+        .catch(() => clearAuth());
+    } else {
+      showOverlay("Sign in to continue.");
+    }
+  </script>
+</body>
+</html>

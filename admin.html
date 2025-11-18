@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Silent Disco HQ – Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #141a33 0, #020414 55%, #000000 100%);
+      color: #f5f7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1280px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .card {
+      background: radial-gradient(circle at top left, #1c2440 0, #0b1021 45%, #050814 100%);
+      border-radius: 24px;
+      padding: 22px 22px 20px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(120, 143, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(113, 212, 255, 0.18), transparent 60%),
+        radial-gradient(circle at 100% 0%, rgba(180, 108, 255, 0.18), transparent 60%);
+      opacity: 0.85;
+      z-index: -1;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(248, 249, 252, 0.1);
+      font-size: 11px;
+      margin-bottom: 10px;
+      color: #cbd4ff;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #6fffd0;
+      box-shadow: 0 0 10px rgba(111, 255, 208, 0.8);
+    }
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c5cff, #ff4fe8);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+    .btn-secondary {
+      background: rgba(9, 17, 52, 0.95);
+      color: #d7e0ff;
+      border: 1px solid rgba(129, 153, 255, 0.7);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+    .small-btn {
+      padding: 4px 9px;
+      font-size: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(129, 153, 255, 0.7);
+      background: rgba(4, 9, 30, 0.9);
+      color: #e0e5ff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .small-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    th, td {
+      padding: 6px 4px;
+      border-bottom: 1px solid rgba(80, 100, 190, 0.4);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-weight: 600;
+      color: #cbd4ff;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0 8px;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      border-radius: 14px;
+      padding: 8px 10px;
+      background: rgba(4, 9, 30, 0.95);
+      border: 1px solid rgba(113, 136, 255, 0.6);
+      font-size: 11px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 11px;
+    }
+    .pill-ok {
+      background: rgba(6, 243, 138, 0.1);
+      color: #6fffd0;
+      border: 1px solid rgba(111, 255, 208, 0.6);
+    }
+    .pill-warn {
+      background: rgba(255, 175, 104, 0.08);
+      color: #ffd6a1;
+      border: 1px solid rgba(255, 199, 130, 0.7);
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .note {
+      font-size: 11px;
+      color: #9fb3ff;
+      margin-top: 4px;
+    }
+    .locked-input {
+      background: rgba(9, 17, 52, 0.4);
+      border-style: dashed;
+      color: #9fb3ff;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #c4cffc;
+      margin-bottom: 12px;
+    }
+    .output {
+      margin-top: 10px;
+      background: rgba(2, 4, 18, 0.96);
+      border-radius: 12px;
+      border: 1px solid rgba(70, 91, 180, 0.9);
+      padding: 10px;
+      font-size: 11px;
+      color: #d1dcff;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .drawer {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: min(420px, 90vw);
+      max-height: 70vh;
+      overflow: auto;
+      background: rgba(5, 11, 28, 0.95);
+      border-radius: 20px;
+      border: 1px solid rgba(103, 126, 255, 0.4);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      padding: 16px;
+      display: none;
+      z-index: 500;
+    }
+    .drawer.active {
+      display: block;
+    }
+    .drawer h3 {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 18, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .auth-box {
+      background: #050b1f;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid rgba(120, 143, 255, 0.4);
+      width: min(420px, 92vw);
+      text-align: left;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(129, 153, 255, 0.5);
+      background: rgba(4, 9, 30, 0.9);
+      color: #cfd7ff;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .auth-tab.active {
+      background: linear-gradient(135deg, #7c5cff, #ff4fe8);
+      color: #fff;
+      border-color: transparent;
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(175, 192, 255, 0.5);
+      background: rgba(4, 9, 26, 0.9);
+      color: #f5f7ff;
+      font-size: 14px;
+    }
+    .auth-form.hidden {
+      display: none;
+    }
+    .auth-note {
+      font-size: 12px;
+      color: #9fb3ff;
+      margin-top: 6px;
+    }
+    .auth-link {
+      color: #8fd2ff;
+      text-decoration: underline;
+    }
+    .auto-refresh {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: #aeb8ff;
+    }
+    .event-list {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(70, 91, 180, 0.9);
+      background: rgba(2, 4, 18, 0.96);
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .event-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(80, 100, 190, 0.3);
+      font-size: 12px;
+    }
+    .event-row:last-child {
+      border-bottom: none;
+    }
+    .event-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .key-card-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .key-status-label {
+      font-size: 13px;
+      color: #f5f7ff;
+    }
+    .team-row,
+    .activity-row {
+      border-bottom: 1px solid rgba(80, 100, 190, 0.3);
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .team-row:last-child,
+    .activity-row:last-child {
+      border-bottom: none;
+    }
+    .team-row-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .team-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .activity-meta {
+      font-size: 11px;
+      color: #9fb3ff;
+      margin-top: 2px;
+    }
+    .session-summary {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(4, 9, 30, 0.9);
+      border: 1px solid rgba(113, 136, 255, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .session-summary strong {
+      color: #ffffff;
+    }
+    .key-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .password-form {
+      margin-top: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .password-form.active {
+      display: flex;
+    }
+    .password-form input {
+      padding: 7px 9px;
+      border-radius: 10px;
+      border: 1px solid rgba(175, 192, 255, 0.5);
+      background: rgba(4, 9, 26, 0.9);
+      color: #f5f7ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-overlay" id="authGate">
+    <div class="auth-box">
+      <h2 style="margin-bottom:4px;">Admin portal</h2>
+      <p style="font-size:13px;color:#c7d0ff;">Sign in with your staff account or create one.</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-tab="login" type="button">Sign in</button>
+        <button class="auth-tab" data-auth-tab="register" type="button">Create account</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required />
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
+        <button class="btn btn-primary" type="submit" id="loginSubmitBtn" style="width:100%;justify-content:center;">Sign in</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <input type="text" id="registerName" placeholder="Full name" required />
+        <input type="email" id="registerEmail" placeholder="Email (optional)" />
+        <input type="text" id="registerUsername" placeholder="Choose a username" autocomplete="username" required />
+        <input type="password" id="registerPassword" placeholder="Choose a password" autocomplete="new-password" required />
+        <button class="btn btn-primary" type="submit" id="registerSubmitBtn" style="width:100%;justify-content:center;">Create account</button>
+      </form>
+      <div id="authStatus" class="auth-note">
+        Super admins manage staff accounts at <a class="auth-link" href="/superadmin/">/superadmin</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer" id="recordDrawer">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h3>Check-in record</h3>
+      <button class="small-btn" id="drawerCloseBtn">Close</button>
+    </div>
+    <div id="recordContent" class="output" style="max-height:50vh;"></div>
+  </div>
+
+  <div class="shell">
+    <div class="card">
+      <div class="badge"><span class="badge-dot"></span><span>Live Checkouts</span></div>
+      <h1>Active Headphones</h1>
+      <div class="subtitle">Each row represents a headphone that is still out.</div>
+      <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="refreshDashboardBtn">Refresh now</button>
+        <div class="auto-refresh">
+          <label for="autoRefreshToggle">Auto-refresh</label>
+          <input type="checkbox" id="autoRefreshToggle" checked /> every 3s
+        </div>
+        <input id="searchInput" type="text" placeholder="Search by guest, headphone, event..." style="flex:1;min-width:200px;padding:7px 10px;border-radius:999px;border:1px solid rgba(129,153,255,0.7);background:rgba(4,9,26,0.9);color:#f5f7ff;font-size:12px;" />
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Active guests</div>
+          <div class="stat-value" id="statActiveGuests">0</div>
+          <div class="stat-sub" style="font-size:10px;color:#9fb3ff;">Unique check-ins</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Headphones out</div>
+          <div class="stat-value" id="statHeadphonesOut">0</div>
+          <div class="stat-sub" style="font-size:10px;color:#9fb3ff;">Not returned</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg / guest</div>
+          <div class="stat-value" id="statAvgPerGuest">0</div>
+          <div class="stat-sub" style="font-size:10px;color:#9fb3ff;">Headphones per guest</div>
+        </div>
+      </div>
+      <div class="note" id="dashboardStatus" style="font-size:12px;color:#9fb3ff;">Loading...</div>
+      <div style="overflow-x:auto;margin-top:8px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Headphone</th>
+              <th>Guest</th>
+              <th>Contact</th>
+              <th>Event</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="checkoutsTableBody">
+            <tr><td colspan="6">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title" style="font-size:13px;font-weight:600;margin-top:18px;">Recent activity log</div>
+      <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-secondary" id="refreshLogBtn">Refresh log</button>
+        <input id="logSearchInput" type="text" placeholder="Filter log by guest, headphone, event..." style="flex:1;min-width:200px;padding:7px 10px;border-radius:999px;border:1px solid rgba(129,153,255,0.7);background:rgba(4,9,26,0.9);color:#f5f7ff;font-size:12px;" />
+      </div>
+      <div class="note" id="logStatus" style="font-size:12px;color:#9fb3ff;">Loading log...</div>
+      <div style="margin-top:8px;overflow-x:auto;max-height:280px;overflow-y:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Headphone</th>
+              <th>Guest</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="5">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px;">
+      <div class="card" id="keyStatusBar">
+        <div class="badge"><span class="badge-dot"></span><span>Admin session</span></div>
+        <div class="key-card-row">
+          <div>
+            <div class="section-title" style="margin:0;">Account</div>
+            <div id="keyStatusLabel" class="key-status-label">Not signed in.</div>
+          </div>
+          <div class="key-actions">
+            <button class="small-btn" type="button" id="changePasswordBtn">Change password</button>
+            <button class="small-btn" type="button" id="logoutBtn">Sign out</button>
+          </div>
+        </div>
+        <form id="passwordForm" class="password-form">
+          <input type="password" id="currentPasswordInput" placeholder="Current password" autocomplete="current-password" />
+          <input type="password" id="newPasswordInput" placeholder="New password" autocomplete="new-password" />
+          <button class="small-btn" type="submit">Save new password</button>
+        </form>
+        <div class="note">Need full control? Visit the <a class="auth-link" href="/superadmin/">super admin console</a>.</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Scan to Return</span></div>
+        <div class="section-title" style="font-size:13px;font-weight:600;">Instant NFC return</div>
+        <div class="subtitle" style="font-size:13px;color:#c4cffc;margin-bottom:12px;">Tap a headphone tag to return it immediately.</div>
+        <button class="btn btn-primary" id="scanReturnBtn">Scan &amp; return</button>
+        <div class="note" id="scanReturnStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">Idle</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Headphone Lookup</span></div>
+        <div class="field">
+          <label for="hpInput" style="font-size:12px;color:#cbd4ff;">Headphone ID</label>
+          <div class="row" style="gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <input id="hpInput" type="text" placeholder="HID000000123" style="flex:1;padding:7px 10px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;" />
+            <button class="small-btn" type="button" id="scanLookupBtn">Scan NFC</button>
+          </div>
+          <div class="note" id="scanLookupStatus">Scan a headphone tag to auto-fill and look up its holder.</div>
+        </div>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="hpLookupBtn">Lookup holder</button>
+          <button class="btn btn-secondary" id="hpReturnBtn">Return by ID</button>
+          <button class="btn btn-secondary" id="hpClearBtn">Clear</button>
+        </div>
+        <div class="note">Status: <span id="hpStatus" class="pill pill-warn">Idle</span></div>
+        <div id="hpOutput" class="output">Ready for lookup.</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Nightly Event Setup</span></div>
+        <div class="section-title">Add event to tonight's roster</div>
+        <div class="field">
+          <label for="eventName">Event name</label>
+          <input id="eventName" type="text" placeholder="Silent Disco at RiverWorks" />
+        </div>
+        <div class="field">
+          <label for="eventDate">Event date</label>
+          <input id="eventDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="eventVenue">Event venue</label>
+          <input id="eventVenue" type="text" placeholder="Buffalo RiverWorks, Buffalo NY" />
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="saveEventBtn" style="flex:1;justify-content:center;">Add event</button>
+          <button class="btn btn-secondary" id="refreshEventsBtn" type="button">Refresh</button>
+        </div>
+        <div class="note" id="eventStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">Loading events...</div>
+        <div id="eventOutput" class="output" style="margin-top:8px;">Waiting for event settings.</div>
+        <div class="session-summary">
+          <div><strong>Your event session</strong></div>
+          <div id="sessionStatusText">No active session.</div>
+          <button class="small-btn" id="endSessionBtn" type="button" disabled>End session</button>
+        </div>
+        <div class="section-title" style="margin-top:14px;">Active sessions</div>
+        <div class="event-list" id="eventList">Loading events...</div>
+      </div>
+
+      <div class="card">
+        <div class="badge"><span class="badge-dot"></span><span>Reporting &amp; Audits</span></div>
+        <div class="section-title">Download CSV snapshots</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="downloadActiveCsvBtn">Active headphones CSV</button>
+          <button class="btn btn-secondary" id="downloadLogCsvBtn">Recent log CSV</button>
+        </div>
+        <div class="note" id="reportStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">
+          Uses the data currently loaded in the tables. Refresh the dashboard/log first for the latest exports.
+        </div>
+      </div>
+
+      <div class="card" id="superAdminCard" style="display:none;">
+        <div class="badge"><span class="badge-dot"></span><span>Super admin</span></div>
+        <div class="section-title">Create admin account</div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminName">Name</label>
+          <input id="newAdminName" type="text" placeholder="Team member" />
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminEmail">Email</label>
+          <input id="newAdminEmail" type="email" placeholder="team@example.com" />
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminUsername">Username</label>
+          <input id="newAdminUsername" type="text" placeholder="e.g. emma.staff" />
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label for="newAdminRole">Role</label>
+          <select id="newAdminRole" style="padding:7px 9px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;">
+            <option value="admin">Admin</option>
+            <option value="super">Super admin</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label for="newAdminPassword">Temporary password (optional)</label>
+          <input id="newAdminPassword" type="text" placeholder="Leave blank to auto-generate" />
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="createAdminBtn" type="button">Create account</button>
+          <button class="btn btn-secondary" id="refreshTeamBtn" type="button">Refresh</button>
+        </div>
+        <div class="note" id="superAdminStatus">Manage your team and audit their actions.</div>
+        <div class="section-title" style="margin-top:14px;">Team directory</div>
+        <div class="event-list" id="teamList">No team members yet.</div>
+        <div class="section-title" style="margin-top:14px;">Activity audit</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <select id="activityAdminSelect" style="flex:1;min-width:180px;padding:7px 9px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;">
+            <option value="">Select admin…</option>
+          </select>
+          <button class="btn btn-secondary" id="refreshActivityBtn" type="button">Load activity</button>
+          <button class="btn btn-secondary" id="loadAdminCheckinsBtn" type="button">Headphone history</button>
+          <button class="btn btn-secondary" id="downloadAdminCheckinsBtn" type="button">Download CSV</button>
+        </div>
+        <div class="event-list" id="activityList">Choose an admin to view their actions.</div>
+        <div class="section-title" style="margin-top:14px;">Headphone history (per admin)</div>
+        <div class="event-list" id="adminCheckinsList">Select an admin and load headphone history.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.silentdiscohq.com";
+    let authToken = localStorage.getItem("sdhqAdminToken") || "";
+    let adminProfile = null;
+    const storedProfile = localStorage.getItem("sdhqAdminProfile");
+    if (storedProfile) {
+      try {
+        adminProfile = JSON.parse(storedProfile);
+      } catch (err) {
+        adminProfile = null;
+      }
+    }
+    const authGate = document.getElementById("authGate");
+    const authTabs = document.querySelectorAll("[data-auth-tab]");
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const authStatus = document.getElementById("authStatus");
+    const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+    const registerSubmitBtn = document.getElementById("registerSubmitBtn");
+    const keyStatusLabel = document.getElementById("keyStatusLabel");
+    const changePasswordBtn = document.getElementById("changePasswordBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const passwordForm = document.getElementById("passwordForm");
+    const currentPasswordInput = document.getElementById("currentPasswordInput");
+    const newPasswordInput = document.getElementById("newPasswordInput");
+    const sessionStatusText = document.getElementById("sessionStatusText");
+    const endSessionBtn = document.getElementById("endSessionBtn");
+    const superAdminCard = document.getElementById("superAdminCard");
+    const newAdminNameInput = document.getElementById("newAdminName");
+    const newAdminEmailInput = document.getElementById("newAdminEmail");
+    const newAdminUsernameInput = document.getElementById("newAdminUsername");
+    const newAdminRoleSelect = document.getElementById("newAdminRole");
+    const newAdminPasswordInput = document.getElementById("newAdminPassword");
+    const createAdminBtn = document.getElementById("createAdminBtn");
+    const refreshTeamBtn = document.getElementById("refreshTeamBtn");
+    const teamListEl = document.getElementById("teamList");
+    const superAdminStatus = document.getElementById("superAdminStatus");
+    const activityAdminSelect = document.getElementById("activityAdminSelect");
+    const refreshActivityBtn = document.getElementById("refreshActivityBtn");
+    const activityListEl = document.getElementById("activityList");
+    const loadAdminCheckinsBtn = document.getElementById("loadAdminCheckinsBtn");
+    const downloadAdminCheckinsBtn = document.getElementById("downloadAdminCheckinsBtn");
+    const adminCheckinsList = document.getElementById("adminCheckinsList");
+    let appBootstrapped = false;
+    let autoRefreshToggle = null;
+    let dashboardTimer = null;
+    let currentSession = null;
+    let eventsData = [];
+    let teamData = [];
+    let activityData = [];
+    let adminCheckinsData = [];
+    const storedSessionRaw = localStorage.getItem("sdhqEventSession");
+    if (storedSessionRaw) {
+      try {
+        const parsed = JSON.parse(storedSessionRaw);
+        if (parsed && parsed.active !== false) {
+          currentSession = parsed;
+        } else {
+          localStorage.removeItem("sdhqEventSession");
+        }
+      } catch (err) {
+        currentSession = null;
+        localStorage.removeItem("sdhqEventSession");
+      }
+    }
+
+    function setAuthTab(mode) {
+      const target = mode === "register" ? "register" : "login";
+      authTabs.forEach((tab) => {
+        const isActive = tab.dataset.authTab === target;
+        tab.classList.toggle("active", isActive);
+      });
+      if (loginForm && registerForm) {
+        if (target === "register") {
+          loginForm.classList.add("hidden");
+          registerForm.classList.remove("hidden");
+        } else {
+          registerForm.classList.add("hidden");
+          loginForm.classList.remove("hidden");
+        }
+      }
+    }
+
+    function showAuthOverlay(mode = "login") {
+      setAuthTab(mode);
+      authGate.style.display = "flex";
+    }
+
+    function hideAuthOverlay() {
+      authGate.style.display = "none";
+    }
+
+    function updateKeyStatus() {
+      if (!keyStatusLabel) return;
+      if (adminProfile && authToken) {
+        const displayName = adminProfile.name || "Admin";
+        const roleLabel = adminProfile.role ? adminProfile.role.toUpperCase() : "STAFF";
+        keyStatusLabel.textContent = `Signed in as ${displayName} (${roleLabel})`;
+      } else {
+        keyStatusLabel.textContent = "Not signed in.";
+      }
+    }
+
+    function clearAuth({ silent = false } = {}) {
+      authToken = "";
+      adminProfile = null;
+      localStorage.removeItem("sdhqAdminToken");
+      localStorage.removeItem("sdhqAdminProfile");
+      persistSession(null);
+      updateKeyStatus();
+      if (dashboardTimer) {
+        clearInterval(dashboardTimer);
+        dashboardTimer = null;
+      }
+      showSuperAdminCardIfNeeded();
+      if (!silent) {
+        showAuthOverlay("login");
+      }
+    }
+
+    function handleUnauthorized() {
+      alert("Your session expired. Please sign in again.");
+      clearAuth();
+    }
+
+    function buildAdminHeaders(extra = {}) {
+      if (!authToken) throw new Error("Missing admin token");
+      return { ...extra, Authorization: `Bearer ${authToken}` };
+    }
+
+    async function adminFetch(path, options = {}) {
+      const headers = buildAdminHeaders(options.headers || {});
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (res.status === 401) {
+        handleUnauthorized();
+        throw new Error("Unauthorized");
+      }
+      return res;
+    }
+
+    async function adminJson(path, options = {}) {
+      const res = await adminFetch(path, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        const message = data.error || "API error";
+        const err = new Error(message);
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function applyAuth(token, profile) {
+      if (!token || !profile) return;
+      authToken = token;
+      adminProfile = profile;
+      localStorage.setItem("sdhqAdminToken", token);
+      localStorage.setItem("sdhqAdminProfile", JSON.stringify(profile));
+      updateKeyStatus();
+      hideAuthOverlay();
+      showSuperAdminCardIfNeeded();
+      refreshSessionFromApi();
+      if (appBootstrapped) {
+        loadDashboard();
+        loadLog();
+        loadEvents();
+      } else {
+        bootstrap();
+      }
+    }
+
+    async function bootstrapAuth() {
+      if (!authToken) {
+        showAuthOverlay("login");
+        return;
+      }
+      try {
+        const data = await adminJson("/auth/profile");
+        adminProfile = data.admin || null;
+        if (adminProfile) {
+          localStorage.setItem("sdhqAdminProfile", JSON.stringify(adminProfile));
+        }
+        updateKeyStatus();
+        hideAuthOverlay();
+        persistSession(data.session || null);
+        showSuperAdminCardIfNeeded();
+        bootstrap();
+      } catch (err) {
+        console.warn("Auth restore failed", err);
+        clearAuth({ silent: true });
+        showAuthOverlay("login");
+      }
+    }
+
+    function persistSession(session) {
+      const valid = session && session.active !== false ? session : null;
+      currentSession = valid;
+      if (valid) {
+        localStorage.setItem("sdhqEventSession", JSON.stringify(valid));
+        if (sessionStatusText) {
+          const evt = valid.eventSnapshot || {};
+          const parts = [evt.name || "Event", evt.date || "", evt.venue || ""].filter(Boolean);
+          const started = valid.startedAt ? new Date(valid.startedAt).toLocaleTimeString() : "";
+          sessionStatusText.innerHTML = `Locked to <strong>${parts[0] || "Event"}</strong>${parts[1] ? ` · ${parts[1]}` : ""}${parts[2] ? ` · ${parts[2]}` : ""}<br/><span class="activity-meta">Started ${started || "now"}</span>`;
+        }
+        if (endSessionBtn) {
+          endSessionBtn.disabled = false;
+        }
+      } else {
+        localStorage.removeItem("sdhqEventSession");
+        if (sessionStatusText) {
+          sessionStatusText.textContent = "No active session.";
+        }
+        if (endSessionBtn) {
+          endSessionBtn.disabled = true;
+        }
+      }
+      renderEvents();
+    }
+
+    function showSuperAdminCardIfNeeded() {
+      if (!superAdminCard) return;
+      if (adminProfile?.role === "super") {
+        superAdminCard.style.display = "block";
+        loadAdminDirectory();
+      } else {
+        superAdminCard.style.display = "none";
+      }
+    }
+
+    async function refreshSessionFromApi() {
+      try {
+        const data = await adminJson("/admin/session");
+        persistSession(data.session || null);
+      } catch (err) {
+        console.warn("Session refresh failed", err);
+      }
+    }
+
+    if (currentSession) {
+      persistSession(currentSession);
+    } else {
+      persistSession(null);
+    }
+
+    authTabs.forEach((tab) => {
+      tab.addEventListener("click", () => setAuthTab(tab.dataset.authTab || "login"));
+    });
+
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = (document.getElementById("loginUsername")?.value || "").trim();
+        const password = (document.getElementById("loginPassword")?.value || "").trim();
+        if (!username || !password) {
+          authStatus.textContent = "Enter your username and password.";
+          return;
+        }
+        if (loginSubmitBtn) loginSubmitBtn.disabled = true;
+        authStatus.textContent = "Signing in...";
+        try {
+          const res = await fetch(API_BASE + "/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) {
+            throw new Error(data.error || "Sign-in failed");
+          }
+          authStatus.textContent = "Signed in.";
+          applyAuth(data.token, data.admin || null);
+        } catch (err) {
+          authStatus.textContent = err.message || "Unable to sign in.";
+        } finally {
+          if (loginSubmitBtn) loginSubmitBtn.disabled = false;
+        }
+      });
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const name = (document.getElementById("registerName")?.value || "").trim();
+        const email = (document.getElementById("registerEmail")?.value || "").trim();
+        const username = (document.getElementById("registerUsername")?.value || "").trim();
+        const password = (document.getElementById("registerPassword")?.value || "").trim();
+        if (!name || !username || !password) {
+          authStatus.textContent = "Fill in all required fields.";
+          return;
+        }
+        if (registerSubmitBtn) registerSubmitBtn.disabled = true;
+        authStatus.textContent = "Creating account...";
+        try {
+          const res = await fetch(API_BASE + "/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, username, password }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) {
+            throw new Error(data.error || "Unable to create account");
+          }
+          authStatus.textContent = "Account ready. Signing in...";
+          applyAuth(data.token, data.admin || null);
+        } catch (err) {
+          authStatus.textContent = err.message || "Unable to create account.";
+        } finally {
+          if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+        }
+      });
+    }
+
+    if (changePasswordBtn && passwordForm) {
+      changePasswordBtn.addEventListener("click", () => {
+        passwordForm.classList.toggle("active");
+        if (passwordForm.classList.contains("active")) {
+          currentPasswordInput?.focus();
+        }
+      });
+    }
+
+    if (passwordForm) {
+      passwordForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const currentPassword = (currentPasswordInput?.value || "").trim();
+        const newPassword = (newPasswordInput?.value || "").trim();
+        if (!currentPassword || !newPassword) {
+          alert("Enter your current and new password.");
+          return;
+        }
+        try {
+          await adminJson("/auth/password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          alert("Password updated.");
+          if (currentPasswordInput) currentPasswordInput.value = "";
+          if (newPasswordInput) newPasswordInput.value = "";
+          passwordForm.classList.remove("active");
+        } catch (err) {
+          alert(err.message || "Unable to update password.");
+        }
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        if (!authToken) {
+          clearAuth();
+          return;
+        }
+        try {
+          await adminJson("/auth/logout", { method: "POST" });
+        } catch (err) {
+          console.warn("Logout failed", err);
+        }
+        clearAuth();
+      });
+    }
+
+    updateKeyStatus();
+    showSuperAdminCardIfNeeded();
+    bootstrapAuth();
+
+    const refreshDashboardBtn = document.getElementById("refreshDashboardBtn");
+    const dashboardStatus = document.getElementById("dashboardStatus");
+    const checkoutsTableBody = document.getElementById("checkoutsTableBody");
+    const searchInput = document.getElementById("searchInput");
+    const statActiveGuests = document.getElementById("statActiveGuests");
+    const statHeadphonesOut = document.getElementById("statHeadphonesOut");
+    const statAvgPerGuest = document.getElementById("statAvgPerGuest");
+    autoRefreshToggle = document.getElementById("autoRefreshToggle");
+
+    const refreshLogBtn = document.getElementById("refreshLogBtn");
+    const logStatus = document.getElementById("logStatus");
+    const logTableBody = document.getElementById("logTableBody");
+    const logSearchInput = document.getElementById("logSearchInput");
+
+    const hpInput = document.getElementById("hpInput");
+    const hpLookupBtn = document.getElementById("hpLookupBtn");
+    const hpReturnBtn = document.getElementById("hpReturnBtn");
+    const hpClearBtn = document.getElementById("hpClearBtn");
+    const hpStatus = document.getElementById("hpStatus");
+    const hpOutput = document.getElementById("hpOutput");
+    const scanLookupBtn = document.getElementById("scanLookupBtn");
+    const scanLookupStatus = document.getElementById("scanLookupStatus");
+
+    const scanReturnBtn = document.getElementById("scanReturnBtn");
+    const scanReturnStatus = document.getElementById("scanReturnStatus");
+
+    const eventNameInput = document.getElementById("eventName");
+    const eventDateInput = document.getElementById("eventDate");
+    const eventVenueInput = document.getElementById("eventVenue");
+    const saveEventBtn = document.getElementById("saveEventBtn");
+    const refreshEventsBtn = document.getElementById("refreshEventsBtn");
+    const eventStatus = document.getElementById("eventStatus");
+    const eventOutput = document.getElementById("eventOutput");
+    const eventListContainer = document.getElementById("eventList");
+
+    const downloadActiveCsvBtn = document.getElementById("downloadActiveCsvBtn");
+    const downloadLogCsvBtn = document.getElementById("downloadLogCsvBtn");
+    const reportStatus = document.getElementById("reportStatus");
+
+    const recordDrawer = document.getElementById("recordDrawer");
+    const recordContent = document.getElementById("recordContent");
+    const drawerCloseBtn = document.getElementById("drawerCloseBtn");
+
+    let dashboardData = [];
+    let logData = [];
+    let hasDashboardData = false;
+    let hasLogData = false;
+    let dashboardLoading = false;
+    let logLoading = false;
+
+    drawerCloseBtn.addEventListener("click", () => recordDrawer.classList.remove("active"));
+
+    if (endSessionBtn) {
+      endSessionBtn.addEventListener("click", () => {
+        if (!currentSession) {
+          alert("No active session to end.");
+          return;
+        }
+        if (!confirm("End your current event session?")) return;
+        endEventSession();
+      });
+    }
+
+    function prettyJson(obj) {
+      return JSON.stringify(obj, null, 2);
+    }
+
+    function setPill(el, text, ok) {
+      el.textContent = text;
+      el.className = "pill " + (ok ? "pill-ok" : "pill-warn");
+    }
+
+    function playBeep() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = 880;
+        gain.gain.value = 0.12;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, 120);
+      } catch (e) {}
+    }
+
+    function toCsv(rows, columns) {
+      const header = columns.map((col) => `"${col.label}"`).join(",");
+      const lines = rows.map((row) =>
+        columns
+          .map((col) => {
+            const value = col.value(row);
+            const safe = value === undefined || value === null ? "" : String(value);
+            return `"${safe.replace(/"/g, '""')}"`;
+          })
+          .join(",")
+      );
+      return [header].concat(lines).join("\n");
+    }
+
+    function downloadCsv(filename, csv) {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function computeStats(items) {
+      const uniqueGuests = new Set(items.map((item) => item.id));
+      const headphonesOut = items.length;
+      statActiveGuests.textContent = String(uniqueGuests.size);
+      statHeadphonesOut.textContent = String(headphonesOut);
+      statAvgPerGuest.textContent = uniqueGuests.size > 0
+        ? (headphonesOut / uniqueGuests.size).toFixed(2)
+        : "0";
+    }
+
+    function matchesSearch(item, term) {
+      if (!term) return true;
+      const t = term.toLowerCase();
+      const customer = item.customer || {};
+      const event = item.event || {};
+      const headphone = item.headphone || {};
+      const fields = [
+        item.id || "",
+        headphone.id || "",
+        customer.fullName || "",
+        customer.email || "",
+        customer.phone || "",
+        event.name || "",
+        event.venue || "",
+      ];
+      return fields.some((field) => (field || "").toLowerCase().includes(t));
+    }
+
+    function renderDashboard() {
+      const term = searchInput.value.trim();
+      const filtered = dashboardData.filter((item) => matchesSearch(item, term));
+      computeStats(filtered);
+      if (filtered.length === 0) {
+        checkoutsTableBody.innerHTML = "<tr><td colspan='6'>No active headphones out.</td></tr>";
+        return;
+      }
+      const rows = filtered
+        .map((item) => {
+          const headphone = item.headphone || {};
+          const customer = item.customer || {};
+          const event = item.event || {};
+          const statusPill = headphone.lost
+            ? `<span class="pill pill-warn">Lost</span>`
+            : `<span class="pill pill-warn">Out</span>`;
+          return `
+            <tr>
+              <td>
+                <strong>${headphone.id || "N/A"}</strong><br/>
+                <span style="font-size:10px;color:#9fb3ff;">Check-in ${item.id}</span>
+              </td>
+              <td>${customer.fullName || "Guest"}</td>
+              <td>
+                <div>${customer.phone || "n/a"}</div>
+                <div style="font-size:10px;color:#9fb3ff;">${customer.email || ""}</div>
+              </td>
+              <td>
+                <div>${event.name || "N/A"}</div>
+                <div style="font-size:10px;color:#9fb3ff;">${event.date || ""}${event.date && event.venue ? " · " : ""}${event.venue || ""}</div>
+              </td>
+              <td>${statusPill}</td>
+              <td>
+                <button class="small-btn" data-action="return" data-headphone="${headphone.id || ""}">Return</button>
+                <button class="small-btn" data-action="lost" data-checkin="${item.id}" data-headphone="${headphone.id || ""}" style="margin-top:4px;">Mark lost</button>
+                <button class="small-btn" data-action="view" data-checkin="${item.id}" style="margin-top:4px;">View</button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+      checkoutsTableBody.innerHTML = rows;
+    }
+
+    async function loadDashboard({ silent = false } = {}) {
+      if (dashboardLoading) return;
+      dashboardLoading = true;
+      const initial = !hasDashboardData;
+      if (initial) {
+        dashboardStatus.textContent = "Loading dashboard...";
+        checkoutsTableBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+      } else if (!silent) {
+        dashboardStatus.textContent = "Refreshing…";
+      }
+      try {
+        const data = await adminJson("/admin/checkins/active");
+        dashboardData = data.items || [];
+        hasDashboardData = true;
+        renderDashboard();
+        const stamp = new Date().toLocaleTimeString();
+        dashboardStatus.textContent = silent
+          ? `Auto-refreshed ${stamp}`
+          : `Updated ${stamp}`;
+      } catch (err) {
+        const message = err.message || "Error loading dashboard.";
+        if (!hasDashboardData) {
+          checkoutsTableBody.innerHTML = `<tr><td colspan='6'>${message}</td></tr>`;
+        }
+        dashboardStatus.textContent = `Last update failed: ${message}`;
+      } finally {
+        dashboardLoading = false;
+      }
+    }
+
+    checkoutsTableBody.addEventListener("click", async (event) => {
+      const target = event.target;
+      const action = target.getAttribute("data-action");
+      if (!action) return;
+      if (action === "return") {
+        const headphoneId = target.getAttribute("data-headphone");
+        if (!headphoneId) return;
+        const result = await markHeadphoneReturned(headphoneId);
+        if (result.ok) {
+          await loadDashboard();
+          await loadLog();
+        }
+      }
+      if (action === "lost") {
+        const headphoneId = target.getAttribute("data-headphone");
+        const checkinId = target.getAttribute("data-checkin");
+        if (!headphoneId || !checkinId) return;
+        if (!confirm(`Mark ${headphoneId} as lost (test charge $80)?`)) return;
+        const result = await markHeadphoneLostSingle(checkinId, headphoneId, 8000);
+        if (result.ok) {
+          await loadDashboard();
+          await loadLog();
+        }
+      }
+      if (action === "view") {
+        const checkinId = target.getAttribute("data-checkin");
+        if (!checkinId) return;
+        await openRecordDrawer(checkinId);
+      }
+    });
+
+    refreshDashboardBtn.addEventListener("click", loadDashboard);
+    searchInput.addEventListener("input", renderDashboard);
+
+    function startAutoRefresh() {
+      if (dashboardTimer) {
+        clearInterval(dashboardTimer);
+      }
+      dashboardTimer = setInterval(() => {
+        loadDashboard({ silent: true });
+        loadLog({ silent: true });
+      }, 3000);
+      loadDashboard({ silent: true });
+      loadLog({ silent: true });
+    }
+
+    if (autoRefreshToggle) {
+      autoRefreshToggle.addEventListener("change", () => {
+        if (autoRefreshToggle.checked) {
+          startAutoRefresh();
+        } else if (dashboardTimer) {
+          clearInterval(dashboardTimer);
+          dashboardTimer = null;
+        }
+      });
+    }
+
+    function matchesLogSearch(item, term) {
+      if (!term) return true;
+      const t = term.toLowerCase();
+      const customer = item.customer || {};
+      const headphone = item.headphone || {};
+      const event = item.event || {};
+      const fields = [
+        headphone.id || "",
+        customer.fullName || "",
+        customer.phone || "",
+        event.name || "",
+        event.venue || "",
+        item.status || "",
+      ];
+      return fields.some((field) => (field || "").toLowerCase().includes(t));
+    }
+
+    function renderLog() {
+      const term = logSearchInput.value.trim();
+      const filtered = logData.filter((item) => matchesLogSearch(item, term));
+      if (filtered.length === 0) {
+        logTableBody.innerHTML = "<tr><td colspan='5'>No log entries.</td></tr>";
+        return;
+      }
+      const rows = filtered
+        .map((item) => {
+          const headphone = item.headphone || {};
+          const customer = item.customer || {};
+          const created = item.createdAt ? new Date(item.createdAt).toLocaleString() : "N/A";
+          const status = headphone.returnedAt
+            ? `Returned ${new Date(headphone.returnedAt).toLocaleTimeString()}`
+            : headphone.lost
+            ? "Lost"
+            : item.status;
+          return `
+            <tr>
+              <td>${created}</td>
+              <td><strong>${headphone.id || "N/A"}</strong><br/><span style="font-size:10px;color:#9fb3ff;">Check-in ${item.id}</span></td>
+              <td>${customer.fullName || "Guest"}</td>
+              <td>${status}</td>
+              <td>
+                <button class="small-btn" data-log-return="${headphone.id || ""}">Return</button>
+                <button class="small-btn" data-log-lost="${headphone.id || ""}" data-checkin="${item.id}" style="margin-top:4px;">Lost</button>
+                <button class="small-btn" data-log-view="${item.id}" style="margin-top:4px;">View</button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+      logTableBody.innerHTML = rows;
+    }
+
+    async function loadLog({ silent = false } = {}) {
+      if (logLoading) return;
+      logLoading = true;
+      const initial = !hasLogData;
+      if (initial) {
+        logStatus.textContent = "Loading log...";
+        logTableBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+      } else if (!silent) {
+        logStatus.textContent = "Refreshing…";
+      }
+      try {
+        const data = await adminJson("/admin/checkins/log?limit=200");
+        logData = data.items || [];
+        hasLogData = true;
+        renderLog();
+        const stamp = new Date().toLocaleTimeString();
+        logStatus.textContent = silent
+          ? `Auto-refreshed ${stamp}`
+          : `Updated ${stamp}`;
+      } catch (err) {
+        const message = err.message || "Error loading log.";
+        if (!hasLogData) {
+          logTableBody.innerHTML = `<tr><td colspan='5'>${message}</td></tr>`;
+        }
+        logStatus.textContent = `Last update failed: ${message}`;
+      } finally {
+        logLoading = false;
+      }
+    }
+
+    logSearchInput.addEventListener("input", renderLog);
+    refreshLogBtn.addEventListener("click", loadLog);
+
+    logTableBody.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (target.dataset.logReturn) {
+        const headphoneId = target.dataset.logReturn;
+        if (!headphoneId) return;
+        const result = await markHeadphoneReturned(headphoneId);
+        if (result.ok) {
+          await loadDashboard();
+          await loadLog();
+        }
+        return;
+      }
+      if (target.dataset.logLost) {
+        const headphoneId = target.dataset.logLost;
+        const checkinId = target.dataset.checkin;
+        if (!headphoneId || !checkinId) return;
+        if (!confirm(`Mark ${headphoneId} as lost (test charge $80)?`)) return;
+        const result = await markHeadphoneLostSingle(checkinId, headphoneId, 8000);
+        if (result.ok) {
+          await loadDashboard();
+          await loadLog();
+        }
+        return;
+      }
+      if (target.dataset.logView) {
+        await openRecordDrawer(target.dataset.logView);
+      }
+    });
+
+    async function markHeadphoneReturned(headphoneId) {
+      try {
+        const data = await adminJson("/admin/headphone/return", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ headphoneId }),
+        });
+        playBeep();
+        return { ok: true, data };
+      } catch (err) {
+        alert(`Failed to mark returned: ${err.message}`);
+        return { ok: false };
+      }
+    }
+
+    async function markHeadphoneLostSingle(checkinId, headphoneId, perFeeCents) {
+      try {
+        await adminJson("/admin/checkin/lost", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            checkinId,
+            lostHeadphoneIds: [headphoneId],
+            lossPerHeadphoneCents: perFeeCents,
+          }),
+        });
+        alert(`Loss recorded (test): $${(perFeeCents / 100).toFixed(2)}`);
+        return { ok: true };
+      } catch (err) {
+        alert(`Error marking lost: ${err.message}`);
+        return { ok: false };
+      }
+    }
+
+    async function openRecordDrawer(checkinId) {
+      try {
+        const data = await adminJson(`/admin/checkin?id=${encodeURIComponent(checkinId)}`);
+        recordContent.textContent = prettyJson(data.checkin);
+        recordDrawer.classList.add("active");
+      } catch (err) {
+        alert(`Unable to load record: ${err.message}`);
+      }
+    }
+
+    hpLookupBtn.addEventListener("click", lookupHeadphone);
+    hpReturnBtn.addEventListener("click", async () => {
+      const hp = hpInput.value.trim();
+      if (!hp) {
+        alert("Enter a headphone ID first.");
+        return;
+      }
+      const result = await markHeadphoneReturned(hp);
+      if (result.ok) {
+        setPill(hpStatus, `Returned ${hp}`, true);
+        hpOutput.textContent = `Returned ${hp}.`;
+        await loadDashboard();
+        await loadLog();
+      }
+    });
+    hpClearBtn.addEventListener("click", () => {
+      hpInput.value = "";
+      setPill(hpStatus, "Idle", false);
+      hpOutput.textContent = "Ready for lookup.";
+    });
+
+    async function scanForLookup() {
+      if (!("NDEFReader" in window)) {
+        scanLookupStatus.textContent = "This device/browser does not support Web NFC.";
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        scanLookupStatus.textContent = "Hold the headphone tag close...";
+        reader.onreading = async (event) => {
+          let value = event.serialNumber || "";
+          if (event.message && event.message.records.length > 0) {
+            for (const record of event.message.records) {
+              if (record.recordType === "text") {
+                const decoder = new TextDecoder(record.encoding || "utf-8");
+                value = decoder.decode(record.data);
+                break;
+              }
+            }
+          }
+          if (!value) value = "UNKNOWN_TAG";
+          hpInput.value = value;
+          scanLookupStatus.textContent = `Scanned ${value}, looking up...`;
+          await lookupHeadphone();
+        };
+        reader.onreadingerror = () => {
+          scanLookupStatus.textContent = "NFC read error.";
+        };
+      } catch (err) {
+        console.error("NFC lookup error", err);
+        scanLookupStatus.textContent = "NFC error or permission denied.";
+      }
+    }
+
+    if (scanLookupBtn) {
+      scanLookupBtn.addEventListener("click", scanForLookup);
+    }
+
+    async function lookupHeadphone() {
+      const hp = hpInput.value.trim();
+      if (!hp) {
+        setPill(hpStatus, "Enter an ID", false);
+        hpOutput.textContent = "No Headphone ID entered.";
+        return;
+      }
+      hpLookupBtn.disabled = true;
+      setPill(hpStatus, "Looking up...", false);
+      hpOutput.textContent = "Checking API...";
+      try {
+        const data = await adminJson(`/admin/headphone?headphoneId=${encodeURIComponent(hp)}`);
+        setPill(hpStatus, "Found", true);
+        hpOutput.textContent = prettyJson({
+          checkinId: data.checkin.id,
+          status: data.checkin.status,
+          customer: data.checkin.customer,
+          headphones: data.checkin.headphones,
+        });
+      } catch (err) {
+        setPill(hpStatus, "Not found", false);
+        hpOutput.textContent = err.message;
+      } finally {
+        hpLookupBtn.disabled = false;
+      }
+    }
+
+    async function scanAndReturn() {
+      if (!("NDEFReader" in window)) {
+        scanReturnStatus.textContent = "This device/browser does not support Web NFC.";
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        scanReturnStatus.textContent = "Hold the headphone tag close...";
+        reader.onreading = async (event) => {
+          let value = event.serialNumber || "";
+          if (event.message && event.message.records.length > 0) {
+            for (const record of event.message.records) {
+              if (record.recordType === "text") {
+                const decoder = new TextDecoder(record.encoding || "utf-8");
+                value = decoder.decode(record.data);
+                break;
+              }
+            }
+          }
+          if (!value) value = "UNKNOWN_TAG";
+          scanReturnStatus.textContent = `Scanned ${value}, returning...`;
+          const result = await markHeadphoneReturned(value);
+          if (result.ok) {
+            scanReturnStatus.textContent = `Returned ${value}.`;
+            await loadDashboard();
+            await loadLog();
+          } else {
+            scanReturnStatus.textContent = `No active check-in for ${value}.`;
+          }
+        };
+        reader.onreadingerror = () => {
+          scanReturnStatus.textContent = "NFC read error.";
+        };
+      } catch (err) {
+        console.error("NFC error", err);
+        scanReturnStatus.textContent = "NFC error or permission denied.";
+      }
+    }
+
+    scanReturnBtn.addEventListener("click", scanAndReturn);
+
+    function renderEvents() {
+      if (!eventListContainer) return;
+      if (!eventsData.length) {
+        eventListContainer.innerHTML = "<div class='note'>No events saved yet.</div>";
+        eventOutput.textContent = "Add an event to begin.";
+        return;
+      }
+      const rows = eventsData
+        .map((evt) => {
+          const listed = evt.active !== false;
+          const pillClass = listed ? "pill pill-ok" : "pill pill-warn";
+          const details = [evt.date || "", evt.venue || ""].filter(Boolean).join(" · ");
+          const isSession = currentSession?.eventId === evt.id || currentSession?.eventSnapshot?.id === evt.id;
+          return `
+            <div class="event-row">
+              <div>
+                <div class="team-row-title">
+                  <span>${evt.name || "Event"}</span>
+                  <span class="${pillClass}">${listed ? "Listed" : "Hidden"}</span>
+                </div>
+                <div style="font-size:11px;color:#9fb3ff;">${details || "Date/venue TBD"}</div>
+                ${isSession ? '<div class="activity-meta">This is your active session.</div>' : ""}
+              </div>
+              <div class="event-row-actions">
+                <button class="small-btn" data-event-action="session" data-event-id="${evt.id}" ${isSession ? "disabled" : ""}>
+                  ${isSession ? "Session active" : "Start session"}
+                </button>
+                <button class="small-btn" data-event-action="toggle" data-event-id="${evt.id}" data-active="${listed}">
+                  ${listed ? "Hide from list" : "Show to staff"}
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+      eventListContainer.innerHTML = rows;
+      eventOutput.textContent = prettyJson(eventsData);
+    }
+
+    async function startEventSession(eventId) {
+      if (!eventId) return;
+      if (sessionStatusText) sessionStatusText.textContent = "Starting session...";
+      try {
+        const data = await adminJson("/admin/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        });
+        persistSession(data.session || null);
+      } catch (err) {
+        if (sessionStatusText) sessionStatusText.textContent = err.message || "Unable to start session.";
+        alert(err.message || "Unable to start session");
+      }
+    }
+
+    async function endEventSession() {
+      if (sessionStatusText) sessionStatusText.textContent = "Ending session...";
+      try {
+        await adminJson("/admin/session", { method: "DELETE" });
+        persistSession(null);
+      } catch (err) {
+        if (sessionStatusText) sessionStatusText.textContent = err.message || "Unable to end session.";
+        alert(err.message || "Unable to end session");
+      }
+    }
+
+    async function loadEvents() {
+      eventStatus.textContent = "Loading events...";
+      if (eventListContainer) {
+        eventListContainer.textContent = "Loading...";
+      }
+      try {
+        const data = await adminJson("/admin/events");
+        eventsData = data.events || [];
+        eventStatus.textContent = `Tracking ${eventsData.length} event(s).`;
+        renderEvents();
+      } catch (err) {
+        eventStatus.textContent = "Error loading events.";
+        if (eventListContainer) {
+          eventListContainer.innerHTML = `<div class='note'>${err.message}</div>`;
+        }
+      }
+    }
+
+    saveEventBtn.addEventListener("click", async () => {
+      const payload = {
+        eventName: eventNameInput.value || "",
+        eventDate: eventDateInput.value || "",
+        eventVenue: eventVenueInput.value || "",
+        active: true,
+      };
+      if (!payload.eventName) {
+        alert("Enter an event name before saving.");
+        return;
+      }
+      saveEventBtn.disabled = true;
+      eventStatus.textContent = "Saving event...";
+      eventOutput.textContent = prettyJson(payload);
+      try {
+        const data = await adminJson("/admin/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        eventStatus.textContent = "Event saved.";
+        eventsData = data.events || eventsData;
+        eventOutput.textContent = prettyJson(data.event);
+        renderEvents();
+        await loadEvents();
+      } catch (err) {
+        eventStatus.textContent = "Error saving event.";
+        eventOutput.textContent = err.message;
+      } finally {
+        saveEventBtn.disabled = false;
+      }
+    });
+
+    if (refreshEventsBtn) {
+      refreshEventsBtn.addEventListener("click", loadEvents);
+    }
+
+    if (eventListContainer) {
+      eventListContainer.addEventListener("click", async (event) => {
+        const btn = event.target.closest("button[data-event-action]");
+        if (!btn) return;
+        const eventId = btn.getAttribute("data-event-id");
+        if (!eventId) return;
+        const action = btn.getAttribute("data-event-action");
+        if (action === "session") {
+          await startEventSession(eventId);
+          return;
+        }
+        const current = btn.getAttribute("data-active") === "true";
+        const confirmMsg = current
+          ? "Hide this event from staff lists?"
+          : "Show this event to staff in the check-in app?";
+        if (!confirm(confirmMsg)) return;
+        try {
+          await adminJson("/admin/events/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId, active: !current }),
+          });
+          await loadEvents();
+        } catch (err) {
+          alert(`Unable to update event: ${err.message}`);
+        }
+      });
+    }
+
+    async function loadAdminDirectory() {
+      if (!superAdminCard || adminProfile?.role !== "super") return;
+      superAdminStatus.textContent = "Loading team...";
+      try {
+        const data = await adminJson("/super/admins");
+        teamData = data.admins || [];
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = `Loaded ${teamData.length} admin account(s).`;
+      } catch (err) {
+        superAdminStatus.textContent = `Unable to load admins: ${err.message}`;
+      }
+    }
+
+    function renderTeamList() {
+      if (!teamListEl) return;
+      if (!teamData.length) {
+        teamListEl.innerHTML = "<div class='note'>No team members yet.</div>";
+        return;
+      }
+      teamListEl.innerHTML = teamData
+        .map((member) => {
+          const roleLabel = member.role === "super" ? "pill pill-ok" : "pill pill-warn";
+          const username = member.username ? `Username ${member.username}` : "";
+          const metaParts = [member.email || "No email", username].filter(Boolean).join(" · ");
+          return `
+            <div class="team-row">
+              <div class="team-row-title">
+                <span>${member.name || member.id}</span>
+                <span class="${roleLabel}">${member.role || "admin"}</span>
+              </div>
+              <div class="activity-meta">${metaParts}</div>
+              <div class="team-row-actions">
+                <button class="small-btn" data-team-action="delete" data-admin-id="${member.id}">Remove</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function populateActivitySelect() {
+      if (!activityAdminSelect) return;
+      const options = ["<option value=''>Select admin…</option>"]
+        .concat(
+          teamData.map(
+            (member) => `<option value="${member.id}">${member.name || member.email || member.id}</option>`
+          )
+        )
+        .join("\n");
+      activityAdminSelect.innerHTML = options;
+    }
+
+    async function createAdminAccount() {
+      const name = (newAdminNameInput?.value || "").trim();
+      const email = (newAdminEmailInput?.value || "").trim();
+      const username = (newAdminUsernameInput?.value || "").trim();
+      const password = (newAdminPasswordInput?.value || "").trim();
+      const role = newAdminRoleSelect?.value === "super" ? "super" : "admin";
+      if (!name || !username) {
+        alert("Enter a name and username for this admin account.");
+        return;
+      }
+      createAdminBtn.disabled = true;
+      superAdminStatus.textContent = "Creating admin...";
+      try {
+        const data = await adminJson("/super/admins", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, role, username, password }),
+        });
+        teamData.push(data.admin);
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = data.tempPassword
+          ? `Created ${name}. Temporary password shown.`
+          : `Created ${name}.`;
+        if (newAdminNameInput) newAdminNameInput.value = "";
+        if (newAdminEmailInput) newAdminEmailInput.value = "";
+        if (newAdminUsernameInput) newAdminUsernameInput.value = "";
+        if (newAdminRoleSelect) newAdminRoleSelect.value = "admin";
+        if (newAdminPasswordInput) newAdminPasswordInput.value = "";
+        if (data.tempPassword) {
+          alert(`Temporary password for ${name}: ${data.tempPassword}`);
+        }
+      } catch (err) {
+        superAdminStatus.textContent = err.message || "Unable to create admin.";
+      } finally {
+        createAdminBtn.disabled = false;
+      }
+    }
+
+    async function deleteAdminAccount(adminId) {
+      if (!adminId) return;
+      if (!confirm("Remove this admin account?")) return;
+      try {
+        await adminJson("/super/admins/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminId }),
+        });
+        teamData = teamData.filter((member) => member.id !== adminId);
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = "Admin removed.";
+      } catch (err) {
+        alert(err.message || "Unable to remove admin");
+      }
+    }
+
+    async function loadAdminActivity(adminId) {
+      if (!activityListEl) return;
+      if (!adminId) {
+        activityListEl.innerHTML = "<div class='note'>Select an admin to view their activity.</div>";
+        return;
+      }
+      activityListEl.innerHTML = "Loading activity...";
+      try {
+        const data = await adminJson(`/super/admins/activity?adminId=${encodeURIComponent(adminId)}&limit=100`);
+        activityData = data.activity || [];
+        if (!activityData.length) {
+          activityListEl.innerHTML = "<div class='note'>No logged actions yet.</div>";
+          return;
+        }
+        activityListEl.innerHTML = activityData
+          .map((entry) => {
+            const timestamp = entry.at ? new Date(entry.at).toLocaleString() : "";
+            return `
+              <div class="activity-row">
+                <div><strong>${entry.action}</strong></div>
+                <div class="activity-meta">${timestamp}</div>
+                <div class="activity-meta">${JSON.stringify(entry.payload || {})}</div>
+              </div>
+            `;
+          })
+          .join("");
+      } catch (err) {
+        activityListEl.innerHTML = `<div class='note'>${err.message}</div>`;
+      }
+    }
+
+    async function loadAdminCheckins(adminId) {
+      if (!adminCheckinsList) return;
+      if (!adminId) {
+        adminCheckinsData = [];
+        adminCheckinsList.innerHTML = "<div class='note'>Select an admin above.</div>";
+        return;
+      }
+      adminCheckinsList.innerHTML = "Loading headphone history...";
+      try {
+        const params = new URLSearchParams({
+          adminId,
+          limit: "200",
+          includeReturned: "true",
+        });
+        const data = await adminJson(`/super/admins/checkins?${params.toString()}`);
+        adminCheckinsData = data.flattened || [];
+        if (!adminCheckinsData.length) {
+          adminCheckinsList.innerHTML = "<div class='note'>No check-ins recorded for this admin yet.</div>";
+          return;
+        }
+        adminCheckinsList.innerHTML = adminCheckinsData
+          .map((entry) => {
+            const headphone = entry.headphone || {};
+            const headphoneId = headphone.id || "Unassigned";
+            const guest = entry.customer?.fullName || "Guest";
+            const eventName = entry.event?.name || "Event";
+            const eventMeta = [entry.event?.date, entry.event?.venue].filter(Boolean).join(" · ");
+            const checkoutAt = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "";
+            const returnAt = headphone.returnedAt ? new Date(headphone.returnedAt).toLocaleString() : "";
+            const statusLabel = headphone.lost
+              ? "Lost"
+              : returnAt
+              ? "Returned"
+              : entry.status || "Checked out";
+            const statusClass = headphone.lost ? "pill pill-warn" : returnAt ? "pill pill-ok" : "pill pill-warn";
+            const handledBy = entry.handledBy?.name || entry.handledBy?.id || "";
+            return `
+              <div class="activity-row">
+                <div>
+                  <strong>${headphoneId}</strong> · <span class="${statusClass}">${statusLabel}</span>
+                </div>
+                <div class="activity-meta">${guest} · ${eventName}${eventMeta ? " · " + eventMeta : ""}</div>
+                <div class="activity-meta">${checkoutAt}${returnAt ? " → " + returnAt : ""}</div>
+                ${handledBy ? `<div class="activity-meta">Handled by ${handledBy}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      } catch (err) {
+        adminCheckinsData = [];
+        adminCheckinsList.innerHTML = `<div class='note'>${err.message}</div>`;
+      }
+    }
+
+    if (downloadActiveCsvBtn) {
+      downloadActiveCsvBtn.addEventListener("click", () => {
+        if (!dashboardData.length) {
+          alert("Load the active dashboard before exporting.");
+          return;
+        }
+        const columns = [
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Email", value: (row) => row.customer?.email || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Status", value: (row) => row.status || "" },
+          { label: "Checked Out At", value: (row) => row.createdAt || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+        ];
+        const csv = toCsv(dashboardData, columns);
+        downloadCsv(`active_headphones_${new Date().toISOString()}.csv`, csv);
+        if (reportStatus) {
+          reportStatus.textContent = "Active headphones CSV downloaded.";
+        }
+      });
+    }
+
+    if (downloadLogCsvBtn) {
+      downloadLogCsvBtn.addEventListener("click", () => {
+        if (!logData.length) {
+          alert("Load the activity log before exporting.");
+          return;
+        }
+        const columns = [
+          { label: "Timestamp", value: (row) => row.createdAt || "" },
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Status", value: (row) => row.status || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+        ];
+        const csv = toCsv(logData, columns);
+        downloadCsv(`recent_log_${new Date().toISOString()}.csv`, csv);
+        if (reportStatus) {
+          reportStatus.textContent = "Recent log CSV downloaded.";
+        }
+      });
+    }
+
+    if (loadAdminCheckinsBtn) {
+      loadAdminCheckinsBtn.addEventListener("click", () => {
+        const adminId = activityAdminSelect?.value || "";
+        if (!adminId) {
+          alert("Select an admin from the dropdown first.");
+          return;
+        }
+        loadAdminCheckins(adminId);
+      });
+    }
+
+    if (downloadAdminCheckinsBtn) {
+      downloadAdminCheckinsBtn.addEventListener("click", () => {
+        if (!adminCheckinsData.length) {
+          alert("Load headphone history before downloading.");
+          return;
+        }
+        const columns = [
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Status", value: (row) => (row.headphone?.lost ? "Lost" : row.headphone?.returnedAt ? "Returned" : row.status || "Out") },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Email", value: (row) => row.customer?.email || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Checked Out", value: (row) => row.createdAt || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+          { label: "Handled By", value: (row) => row.handledBy?.name || row.handledBy?.id || "" },
+        ];
+        const csv = toCsv(adminCheckinsData, columns);
+        const adminId = activityAdminSelect?.value || "admin";
+        downloadCsv(`admin_${adminId}_headphone_history_${new Date().toISOString()}.csv`, csv);
+      });
+    }
+
+    if (createAdminBtn) {
+      createAdminBtn.addEventListener("click", createAdminAccount);
+    }
+
+    if (refreshTeamBtn) {
+      refreshTeamBtn.addEventListener("click", loadAdminDirectory);
+    }
+
+    if (teamListEl) {
+      teamListEl.addEventListener("click", async (event) => {
+        const btn = event.target.closest("[data-team-action]");
+        if (!btn) return;
+        const adminId = btn.getAttribute("data-admin-id");
+        const action = btn.getAttribute("data-team-action");
+        if (action === "delete") {
+          await deleteAdminAccount(adminId);
+        }
+      });
+    }
+
+    if (activityAdminSelect) {
+      activityAdminSelect.addEventListener("change", () => {
+        loadAdminActivity(activityAdminSelect.value);
+      });
+    }
+
+    if (refreshActivityBtn) {
+      refreshActivityBtn.addEventListener("click", () => {
+        loadAdminActivity(activityAdminSelect?.value || "");
+      });
+    }
+
+    function bootstrap() {
+      if (appBootstrapped) return;
+      appBootstrapped = true;
+      loadDashboard();
+      loadLog();
+      loadEvents();
+      if (autoRefreshToggle && autoRefreshToggle.checked) {
+        startAutoRefresh();
+      }
+    }
+  </script>
+</body>
+</html>
