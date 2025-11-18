@@ -141,6 +141,20 @@
       color: #9fb3ff;
     }
 
+    .event-details-box {
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(4, 9, 30, 0.85);
+      border: 1px solid rgba(110, 132, 255, 0.45);
+      font-size: 13px;
+      color: #d2dcff;
+      line-height: 1.4;
+    }
+
+    .event-details-box strong {
+      color: #ffffff;
+    }
+
     .field input:focus,
     .field select:focus,
     .field textarea:focus {
@@ -460,24 +474,18 @@
           <label for="headphonesQty">Total headphones</label>
           <input id="headphonesQty" name="headphonesQty" type="number" min="0" step="1" value="0" readonly />
         </div>
-        <div class="field">
+        <div class="field full-width">
           <label for="eventSelect">Event session</label>
           <select id="eventSelect">
             <option value="">Loading events…</option>
           </select>
           <div class="submit-caption" id="eventSelectHint">Active events load automatically from the admin console.</div>
         </div>
-        <div class="field">
-          <label for="eventName">Event name</label>
-          <input id="eventName" name="eventName" type="text" />
-        </div>
-        <div class="field">
-          <label for="eventDate">Event date</label>
-          <input id="eventDate" name="eventDate" type="date" />
-        </div>
         <div class="field full-width">
-          <label for="eventVenue">Event venue</label>
-          <input id="eventVenue" name="eventVenue" type="text" placeholder="e.g. Buffalo RiverWorks" />
+          <label>Event details</label>
+          <div id="eventDetailsBox" class="event-details-box">
+            Waiting for sessions from the admin console.
+          </div>
         </div>
 
         <div class="consents">
@@ -555,9 +563,7 @@
     const headphonesQtyInput = document.getElementById("headphonesQty");
     const eventSelect = document.getElementById("eventSelect");
     const eventSelectHint = document.getElementById("eventSelectHint");
-    const eventNameInput = document.getElementById("eventName");
-    const eventDateInput = document.getElementById("eventDate");
-    const eventVenueInput = document.getElementById("eventVenue");
+    const eventDetailsBox = document.getElementById("eventDetailsBox");
     const SESSION_STORAGE_KEY = "sdhqEventSession";
     let pinnedSession = null;
 
@@ -908,18 +914,43 @@
     }
     pingApiStatus();
 
-    function applyEventToFields(evt) {
-      if (!evt) return;
-      if (eventNameInput) eventNameInput.value = evt.name || "";
-      if (eventDateInput) eventDateInput.value = evt.date || "";
-      if (eventVenueInput) eventVenueInput.value = evt.venue || "";
+    function getCurrentEventSnapshot() {
+      if (pinnedSession?.eventSnapshot) {
+        return pinnedSession.eventSnapshot;
+      }
+      if (selectedEventId && eventCatalog.has(selectedEventId)) {
+        return eventCatalog.get(selectedEventId);
+      }
+      return null;
+    }
+
+    function renderEventDetails(evt = null) {
+      if (!eventDetailsBox) return;
+      const snapshot = evt || getCurrentEventSnapshot();
+      if (!snapshot) {
+        eventDetailsBox.innerHTML = "Select an event session or ask your admin to start one.";
+        return;
+      }
+      const lines = [];
+      if (snapshot.name) {
+        lines.push(`<strong>${snapshot.name}</strong>`);
+      }
+      const meta = [];
+      if (snapshot.date) meta.push(snapshot.date);
+      if (snapshot.venue) meta.push(snapshot.venue);
+      if (meta.length > 0) {
+        lines.push(meta.join(" · "));
+      }
+      if (snapshot.notes) {
+        lines.push(snapshot.notes);
+      }
+      eventDetailsBox.innerHTML = lines.join("<br/>") || "Event session selected.";
     }
 
     function applySessionToForm(session) {
       pinnedSession = session || null;
       if (session && session.eventSnapshot) {
         const evt = session.eventSnapshot;
-        applyEventToFields(evt);
         selectedEventId = evt.id || "";
         if (eventSelect) {
           const label = [evt.name || "Event", evt.date || ""].filter(Boolean).join(" · ");
@@ -928,12 +959,7 @@
           eventSelect.disabled = true;
           eventSelect.classList.add("locked-input");
         }
-        [eventNameInput, eventDateInput, eventVenueInput].forEach((input) => {
-          if (input) {
-            input.readOnly = true;
-            input.classList.add("locked-input");
-          }
-        });
+        renderEventDetails(evt);
         if (eventSelectHint) {
           eventSelectHint.textContent = `Locked to ${evt.name || "session"} (set in admin console).`;
         }
@@ -943,12 +969,7 @@
           eventSelect.disabled = false;
           eventSelect.classList.remove("locked-input");
         }
-        [eventNameInput, eventDateInput, eventVenueInput].forEach((input) => {
-          if (input) {
-            input.readOnly = false;
-            input.classList.remove("locked-input");
-          }
-        });
+        renderEventDetails();
         if (eventSelectHint) {
           eventSelectHint.textContent = "Select the event session for this guest.";
         }
@@ -1025,10 +1046,11 @@
       if (defaultEvt?.id) {
         eventSelect.value = defaultEvt.id;
         selectedEventId = defaultEvt.id;
-        applyEventToFields(defaultEvt);
+        renderEventDetails(defaultEvt);
       } else {
         eventSelect.value = "";
         selectedEventId = "";
+        renderEventDetails(null);
       }
     }
 
@@ -1038,7 +1060,7 @@
         if (!res.ok) return;
         const data = await res.json();
         if (data?.event) {
-          applyEventToFields(data.event);
+          renderEventDetails(data.event);
         }
       } catch (err) {
         console.warn("Event default load failed", err);
@@ -1063,9 +1085,9 @@
         renderEventSelectOptions(listToRender);
         if (eventSelectHint) {
           if (listToRender.length === 0) {
-            eventSelectHint.textContent = "No events available. Enter details manually.";
+            eventSelectHint.textContent = "No sessions available. Ask your admin to start one.";
           } else if (active.length === 0) {
-            eventSelectHint.textContent = "No sessions are marked active; showing saved events.";
+            eventSelectHint.textContent = "Showing saved events (none marked active).";
           } else {
             eventSelectHint.textContent = "Select the event session for this guest.";
           }
@@ -1081,7 +1103,7 @@
           selectedEventId = "";
         }
         if (eventSelectHint) {
-          eventSelectHint.textContent = "Unable to load events automatically. Enter details manually.";
+          eventSelectHint.textContent = "Unable to load events automatically. Ask your admin to verify sessions.";
         }
         await loadEventFallback();
       }
@@ -1096,7 +1118,9 @@
         const value = eventSelect.value;
         selectedEventId = value || "";
         if (value && eventCatalog.has(value)) {
-          applyEventToFields(eventCatalog.get(value));
+          renderEventDetails(eventCatalog.get(value));
+        } else {
+          renderEventDetails(null);
         }
       });
     }
@@ -1159,15 +1183,16 @@
         console.warn("Signature capture error", err);
       }
 
+      const eventSnapshot = getCurrentEventSnapshot();
       const payload = {
         fullName: document.getElementById("fullName").value || "",
         email: document.getElementById("email").value || "",
         phone: document.getElementById("phone").value || "",
         sessionId: pinnedSession?.id || "",
-        eventId: pinnedSession?.eventSnapshot?.id || selectedEventId || "",
-        eventName: eventNameInput?.value || "",
-        eventDate: eventDateInput?.value || "",
-        eventVenue: eventVenueInput?.value || "",
+        eventId: eventSnapshot?.id || "",
+        eventName: eventSnapshot?.name || "",
+        eventDate: eventSnapshot?.date || "",
+        eventVenue: eventSnapshot?.venue || "",
         headphonesQty: headphones.length,
         headphoneIds: headphones.map((h) => h.hid),
         headphonesMeta: headphones.map((h) => ({
