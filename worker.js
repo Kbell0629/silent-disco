@@ -10,6 +10,10 @@ const CORS_ORIGIN = "https://app.silentdiscohq.com";
 const STRIPE_API_BASE = "https://api.stripe.com/v1";
 const RESEND_API_BASE = "https://api.resend.com/emails";
 const ADMIN_API_KEY = "SE2_ADMIN_TEST_KEY";
+const ADMIN_ACCOUNTS_KEY = "admins:accounts";
+const ADMIN_ACTIVITY_PREFIX = "adminlog:";
+const SESSION_PREFIX = "session:";
+const SESSION_ADMIN_PREFIX = "session:active:";
 const HID_COUNTER_KEY = "global:HID_COUNTER";
 const HID_RELEASE_POOL_KEY = "headphones:pool";
 const EVENTS_LIST_KEY = "events:list";
@@ -33,14 +37,109 @@ function unauthorizedResponse() {
   return jsonResponse({ ok: false, error: "Unauthorized" }, 401);
 }
 
-async function requireAdmin(request, url) {
+function sanitizeAdminAccount(account) {
+  if (!account) return null;
+  const { apiKey, ...rest } = account;
+  return rest;
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+async function getAdminAccounts(env) {
+  if (!env.CHECKINS) return [];
+  const raw = await env.CHECKINS.get(ADMIN_ACCOUNTS_KEY);
+  if (!raw) {
+    if (ADMIN_API_KEY) {
+      const fallback = [
+        {
+          id: "adm_default",
+          name: "Staging Admin",
+          email: "",
+          role: "super",
+          apiKey: ADMIN_API_KEY,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+      await env.CHECKINS.put(ADMIN_ACCOUNTS_KEY, JSON.stringify(fallback));
+      return fallback;
+    }
+    return [];
+  }
+  try {
+    return ensureArray(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+async function saveAdminAccounts(env, accounts) {
+  if (!env.CHECKINS) return;
+  await env.CHECKINS.put(ADMIN_ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+async function getAdminByKey(env, key) {
+  if (!key) return null;
+  const accounts = await getAdminAccounts(env);
+  return accounts.find((acct) => acct.apiKey === key) || null;
+}
+
+function generateId(prefix) {
+  if (typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function recordAdminActivity(env, admin, action, payload = {}) {
+  if (!env.CHECKINS || !admin) return;
+  const entry = {
+    id: generateId("log"),
+    adminId: admin.id,
+    adminName: admin.name || "",
+    action,
+    payload,
+    at: new Date().toISOString(),
+  };
+  const key = `${ADMIN_ACTIVITY_PREFIX}${admin.id}:${entry.id}`;
+  await env.CHECKINS.put(key, JSON.stringify(entry), { expirationTtl: 60 * 60 * 24 * 180 });
+}
+
+async function fetchAdminActivity(env, adminId, limit = 100) {
+  if (!env.CHECKINS || !adminId) return [];
+  const prefix = `${ADMIN_ACTIVITY_PREFIX}${adminId}:`;
+  const list = await env.CHECKINS.list({ prefix });
+  const items = [];
+  for (const key of list.keys) {
+    const raw = await env.CHECKINS.get(key.name);
+    if (!raw) continue;
+    try {
+      items.push(JSON.parse(raw));
+    } catch {
+      continue;
+    }
+  }
+  items.sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+  return items.slice(0, limit);
+}
+
+async function requireAdmin(request, url, env, options = {}) {
+  const expectedRole = options.role || "admin";
   const headerKey = request.headers.get("x-admin-key") || "";
   const queryKey = url.searchParams.get("adminKey") || "";
   const provided = headerKey || queryKey;
-  if (ADMIN_API_KEY && provided !== ADMIN_API_KEY) {
+  if (!provided) {
     return { ok: false, response: unauthorizedResponse() };
   }
-  return { ok: true };
+  const admin = await getAdminByKey(env, provided);
+  if (!admin) {
+    return { ok: false, response: unauthorizedResponse() };
+  }
+  if (expectedRole === "super" && admin.role !== "super") {
+    return { ok: false, response: unauthorizedResponse() };
+  }
+  return { ok: true, admin };
 }
 
 async function checkRateLimit(env, request, limit = 8, windowSeconds = 60) {
@@ -282,6 +381,53 @@ async function releaseHeadphones(env, ids = []) {
   await saveReleasedPool(env, merged);
 }
 
+async function saveSession(env, session) {
+  if (!env.CHECKINS || !session || !session.id) return;
+  await env.CHECKINS.put(`${SESSION_PREFIX}${session.id}`, JSON.stringify(session), {
+    expirationTtl: 60 * 60 * 24,
+  });
+}
+
+async function getSession(env, sessionId) {
+  if (!env.CHECKINS || !sessionId) return null;
+  const raw = await env.CHECKINS.get(`${SESSION_PREFIX}${sessionId}`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function setActiveSessionForAdmin(env, adminId, sessionId) {
+  if (!env.CHECKINS || !adminId) return;
+  if (!sessionId) {
+    await env.CHECKINS.delete(`${SESSION_ADMIN_PREFIX}${adminId}`);
+    return;
+  }
+  await env.CHECKINS.put(`${SESSION_ADMIN_PREFIX}${adminId}`, sessionId, { expirationTtl: 60 * 60 * 24 });
+}
+
+async function getSessionForAdmin(env, adminId) {
+  if (!env.CHECKINS || !adminId) return null;
+  const sessionId = await env.CHECKINS.get(`${SESSION_ADMIN_PREFIX}${adminId}`);
+  if (!sessionId) return null;
+  return await getSession(env, sessionId);
+}
+
+async function endSession(env, sessionId) {
+  if (!env.CHECKINS || !sessionId) return null;
+  const session = await getSession(env, sessionId);
+  if (!session) return null;
+  session.active = false;
+  session.endedAt = new Date().toISOString();
+  await saveSession(env, session);
+  if (session.adminId) {
+    await setActiveSessionForAdmin(env, session.adminId, null);
+  }
+  return session;
+}
+
 async function hashSignature(dataUrl) {
   if (!dataUrl) return null;
   const encoder = new TextEncoder();
@@ -425,6 +571,8 @@ function flattenCheckin(record, { includeReturned = false } = {}) {
     customer: record.customer || null,
     event: record.event || null,
     eventId: record.eventId || null,
+    handledBy: record.handledBy || null,
+    sessionId: record.sessionId || null,
   };
   if (!Array.isArray(record.headphones) || record.headphones.length === 0) {
     return [
@@ -441,6 +589,20 @@ function flattenCheckin(record, { includeReturned = false } = {}) {
     rows.push({ ...base, headphone: hp });
   }
   return rows;
+}
+
+async function listCheckinsByAdmin(env, adminId, limit = 200) {
+  if (!env.CHECKINS || !adminId) return [];
+  const list = await env.CHECKINS.list({ prefix: "checkin:" });
+  const matches = [];
+  for (const key of list.keys) {
+    const id = key.name.substring("checkin:".length);
+    const rec = await getCheckinById(env, id);
+    if (!rec || !rec.handledBy || rec.handledBy.id !== adminId) continue;
+    matches.push(rec);
+  }
+  matches.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return matches.slice(0, limit);
 }
 
 async function sendCheckinEmails(env, record) {
@@ -479,6 +641,116 @@ async function handleRequest(request, env, ctx) {
     return jsonResponse({ ok: true, app: "Silent Disco HQ", api: "v0.8.0", env: "staging" });
   }
 
+  if (pathname === "/admin/login" && request.method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const key = String(body.key || body.adminKey || "").trim();
+    if (!key) {
+      return jsonResponse({ ok: false, error: "Missing key" }, 400);
+    }
+    const admin = await getAdminByKey(env, key);
+    if (!admin) {
+      return unauthorizedResponse();
+    }
+    const session = await getSessionForAdmin(env, admin.id);
+    return jsonResponse({ ok: true, admin: sanitizeAdminAccount(admin), session });
+  }
+
+  if (pathname === "/super/admins" && request.method === "GET") {
+    const auth = await requireAdmin(request, url, env, { role: "super" });
+    if (!auth.ok) return auth.response;
+    const accounts = await getAdminAccounts(env);
+    const sanitized = accounts.map((acct) => ({ ...sanitizeAdminAccount(acct), apiKey: acct.apiKey }));
+    return jsonResponse({ ok: true, admins: sanitized });
+  }
+
+  if (pathname === "/super/admins" && request.method === "POST") {
+    const auth = await requireAdmin(request, url, env, { role: "super" });
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const name = String(body.name || "").trim();
+    if (!name) {
+      return jsonResponse({ ok: false, error: "Name is required" }, 400);
+    }
+    const email = String(body.email || "").trim();
+    const role = body.role === "super" ? "super" : "admin";
+    const apiKey = body.apiKey ? String(body.apiKey).trim() : generateId("admkey");
+    const accounts = await getAdminAccounts(env);
+    const now = new Date().toISOString();
+    const newAccount = {
+      id: generateId("adm"),
+      name,
+      email,
+      role,
+      apiKey,
+      createdAt: now,
+      updatedAt: now,
+    };
+    accounts.push(newAccount);
+    await saveAdminAccounts(env, accounts);
+    await recordAdminActivity(env, auth.admin, "admin.create", { targetId: newAccount.id });
+    return jsonResponse({ ok: true, admin: newAccount });
+  }
+
+  if (pathname === "/super/admins/delete" && request.method === "POST") {
+    const auth = await requireAdmin(request, url, env, { role: "super" });
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const adminId = String(body.adminId || "").trim();
+    if (!adminId) {
+      return jsonResponse({ ok: false, error: "adminId required" }, 400);
+    }
+    let accounts = await getAdminAccounts(env);
+    const before = accounts.length;
+    accounts = accounts.filter((acct) => acct.id !== adminId);
+    if (accounts.length === before) {
+      return jsonResponse({ ok: false, error: "Admin not found" }, 404);
+    }
+    await saveAdminAccounts(env, accounts);
+    await recordAdminActivity(env, auth.admin, "admin.delete", { targetId: adminId });
+    return jsonResponse({ ok: true, admins: accounts.map(sanitizeAdminAccount) });
+  }
+
+  if (pathname === "/super/admins/activity" && request.method === "GET") {
+    const auth = await requireAdmin(request, url, env, { role: "super" });
+    if (!auth.ok) return auth.response;
+    const adminId = searchParams.get("adminId");
+    const limit = Number(searchParams.get("limit") || 100) || 100;
+    if (!adminId) {
+      return jsonResponse({ ok: false, error: "adminId required" }, 400);
+    }
+    const activity = await fetchAdminActivity(env, adminId, limit);
+    return jsonResponse({ ok: true, activity });
+  }
+
+  if (pathname === "/super/admins/checkins" && request.method === "GET") {
+    const auth = await requireAdmin(request, url, env, { role: "super" });
+    if (!auth.ok) return auth.response;
+    const adminId = searchParams.get("adminId");
+    const limit = Number(searchParams.get("limit") || 200) || 200;
+    const includeReturned = searchParams.get("includeReturned") !== "false";
+    if (!adminId) {
+      return jsonResponse({ ok: false, error: "adminId required" }, 400);
+    }
+    const records = await listCheckinsByAdmin(env, adminId, limit);
+    const flattened = records.flatMap((rec) => flattenCheckin(rec, { includeReturned }));
+    return jsonResponse({ ok: true, adminId, count: records.length, flattened, records });
+  }
+
   if (pathname === "/public/events" && request.method === "GET") {
     const allEvents = await getEventsList(env);
     const active = allEvents.filter((evt) => evt.active);
@@ -493,6 +765,84 @@ async function handleRequest(request, env, ctx) {
     }
     const event = await getCurrentEvent(env);
     return jsonResponse({ ok: true, event });
+  }
+
+  if (pathname === "/public/session" && request.method === "GET") {
+    const sessionId = searchParams.get("sessionId");
+    if (!sessionId) {
+      return jsonResponse({ ok: false, error: "sessionId required" }, 400);
+    }
+    const session = await getSession(env, sessionId);
+    if (!session || !session.active) {
+      return jsonResponse({ ok: false, error: "Session not found" }, 404);
+    }
+    return jsonResponse({ ok: true, session });
+  }
+
+  if (pathname === "/admin/session" && request.method === "GET") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    const session = await getSessionForAdmin(env, auth.admin.id);
+    return jsonResponse({ ok: true, session });
+  }
+
+  if (pathname === "/admin/session" && request.method === "POST") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ ok: false, error: "Invalid JSON" }, 400);
+    }
+    const eventId = String(body.eventId || "").trim();
+    if (!eventId) {
+      return jsonResponse({ ok: false, error: "eventId required" }, 400);
+    }
+    const events = await getEventsList(env);
+    const target = events.find((evt) => evt.id === eventId);
+    if (!target) {
+      return jsonResponse({ ok: false, error: "Event not found" }, 404);
+    }
+    const now = new Date().toISOString();
+    const session = {
+      id: generateId("sess"),
+      adminId: auth.admin.id,
+      adminName: auth.admin.name,
+      adminEmail: auth.admin.email,
+      adminRole: auth.admin.role,
+      adminSnapshot: sanitizeAdminAccount(auth.admin),
+      eventId: target.id,
+      eventSnapshot: {
+        id: target.id,
+        name: target.name,
+        date: target.date,
+        venue: target.venue,
+      },
+      startedAt: now,
+      active: true,
+    };
+    await saveSession(env, session);
+    await setActiveSessionForAdmin(env, auth.admin.id, session.id);
+    await recordAdminActivity(env, auth.admin, "session.start", { eventId: target.id, sessionId: session.id });
+    return jsonResponse({ ok: true, session });
+  }
+
+  if (pathname === "/admin/session" && request.method === "DELETE") {
+    const auth = await requireAdmin(request, url, env);
+    if (!auth.ok) return auth.response;
+    let sessionId = searchParams.get("sessionId");
+    if (!sessionId && env.CHECKINS) {
+      sessionId = await env.CHECKINS.get(`${SESSION_ADMIN_PREFIX}${auth.admin.id}`);
+    }
+    if (!sessionId) {
+      return jsonResponse({ ok: true, session: null });
+    }
+    const session = await endSession(env, sessionId);
+    if (session) {
+      await recordAdminActivity(env, auth.admin, "session.end", { sessionId });
+    }
+    return jsonResponse({ ok: true, session });
   }
 
   if (pathname === "/headphones/reserve" && request.method === "POST") {
@@ -535,6 +885,17 @@ async function handleRequest(request, env, ctx) {
     }
     const now = new Date().toISOString();
     const recordId = "chk_" + Math.random().toString(36).slice(2, 10);
+    let session = null;
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : "";
+    if (sessionId) {
+      session = await getSession(env, sessionId);
+      if (!session || !session.active) {
+        return jsonResponse(
+          { ok: false, error: "Invalid or expired session", errorCode: "session_invalid" },
+          400
+        );
+      }
+    }
     const headphones = normalizeHeadphonesFromBody(body, now);
     if (headphones.length === 0) {
       return jsonResponse({ ok: false, error: "At least one headphone required" }, 400);
@@ -594,7 +955,14 @@ async function handleRequest(request, env, ctx) {
       date: body.eventDate || "",
       venue: body.eventVenue || "",
     };
-    if (eventId) {
+    if (session?.eventSnapshot) {
+      eventId = session.eventSnapshot.id || session.eventId || eventId;
+      eventInfo = {
+        name: session.eventSnapshot.name || "",
+        date: session.eventSnapshot.date || "",
+        venue: session.eventSnapshot.venue || "",
+      };
+    } else if (eventId) {
       const events = await getEventsList(env);
       const found = events.find((evt) => evt.id === eventId);
       if (found) {
@@ -641,6 +1009,8 @@ async function handleRequest(request, env, ctx) {
       },
       eventId: eventId || null,
       event: eventInfo,
+      sessionId: session?.id || null,
+      handledBy: session?.adminSnapshot || null,
       consents: body.consents || {},
       signature: body.signature || null,
       signatureHash,
@@ -652,6 +1022,7 @@ async function handleRequest(request, env, ctx) {
           type: "checkin",
           at: now,
           description: `Check-in created with ${headphones.length} headphone(s)`,
+          sessionId: session?.id || null,
         },
       ],
     };
@@ -660,6 +1031,17 @@ async function handleRequest(request, env, ctx) {
       await saveCheckin(env, record);
     } catch (err) {
       console.error("KV saveCheckin failed", err);
+    }
+
+    if (session?.adminSnapshot) {
+      ctx.waitUntil(
+        recordAdminActivity(env, session.adminSnapshot, "checkin.create", {
+          checkinId: record.id,
+          sessionId: session.id,
+          eventId: record.eventId,
+          headphones: record.headphones.map((h) => h.id),
+        })
+      );
     }
 
     ctx.waitUntil(sendCheckinEmails(env, record));
@@ -682,7 +1064,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/checkin" && request.method === "GET") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     const id = searchParams.get("id");
     if (!id) return jsonResponse({ ok: false, error: "Missing id" }, 400);
@@ -692,7 +1074,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/headphone" && request.method === "GET") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     const hp = searchParams.get("headphoneId");
     if (!hp) return jsonResponse({ ok: false, error: "Missing headphoneId" }, 400);
@@ -703,7 +1085,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/headphone/return" && request.method === "POST") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     let body;
     try {
@@ -751,11 +1133,18 @@ async function handleRequest(request, env, ctx) {
     if (remaining === 0) {
       ctx.waitUntil(sendReturnEmails(env, record));
     }
+    ctx.waitUntil(
+      recordAdminActivity(env, auth.admin, "headphone.return", {
+        headphoneId: hpId,
+        checkinId: record.id,
+        remaining,
+      })
+    );
     return jsonResponse({ ok: true, headphoneId: hpId, checkin: record });
   }
 
   if (pathname === "/admin/checkin/lost" && request.method === "POST") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     let body;
     try {
@@ -807,6 +1196,13 @@ async function handleRequest(request, env, ctx) {
     record.history.push({ type: "loss", at: now, headphoneIds: lostIds });
     await saveCheckin(env, record);
     ctx.waitUntil(sendWebhook(env, { type: "loss", checkinId, lostIds }));
+    ctx.waitUntil(
+      recordAdminActivity(env, auth.admin, "headphone.loss", {
+        checkinId,
+        lostHeadphoneIds: lostIds,
+        totalLossCents,
+      })
+    );
     return jsonResponse({
       ok: true,
       checkin: record,
@@ -815,7 +1211,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/checkins/active" && request.method === "GET") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     if (!env.CHECKINS) return jsonResponse({ ok: false, error: "KV not configured" }, 500);
     const list = await env.CHECKINS.list({ prefix: "checkin:" });
@@ -835,7 +1231,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/checkins/log" && request.method === "GET") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     if (!env.CHECKINS) return jsonResponse({ ok: false, error: "KV not configured" }, 500);
     const limit = Number(searchParams.get("limit") || 200) || 200;
@@ -853,7 +1249,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/events" && request.method === "GET") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     const events = await getEventsList(env);
     events.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
@@ -861,7 +1257,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (pathname === "/admin/events" && request.method === "POST") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     let body;
     try {
@@ -911,11 +1307,17 @@ async function handleRequest(request, env, ctx) {
         active: true,
       });
     }
+    ctx.waitUntil(
+      recordAdminActivity(env, auth.admin, "event.save", {
+        eventId: target.id,
+        active: target.active,
+      })
+    );
     return jsonResponse({ ok: true, event: target, events });
   }
 
   if (pathname === "/admin/events/activate" && request.method === "POST") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     let body;
     try {
@@ -947,11 +1349,17 @@ async function handleRequest(request, env, ctx) {
     } else {
       await saveCurrentEvent(env, null);
     }
+    ctx.waitUntil(
+      recordAdminActivity(env, auth.admin, "event.activate", {
+        eventId: target.id,
+        active: target.active,
+      })
+    );
     return jsonResponse({ ok: true, event: target, events });
   }
 
   if (pathname === "/admin/event" && request.method === "POST") {
-    const auth = await requireAdmin(request, url);
+    const auth = await requireAdmin(request, url, env);
     if (!auth.ok) return auth.response;
     let body;
     try {
@@ -985,6 +1393,13 @@ async function handleRequest(request, env, ctx) {
       });
     }
     await saveEventsList(env, events);
+    ctx.waitUntil(
+      recordAdminActivity(env, auth.admin, "event.save_manual", {
+        name: event.name,
+        date: event.date,
+        venue: event.venue,
+      })
+    );
     return jsonResponse({ ok: true, event, events, message: "Event settings updated." });
   }
 

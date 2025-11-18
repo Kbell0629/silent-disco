@@ -135,6 +135,11 @@
       font-size: 14px;
       outline: none;
     }
+    .locked-input {
+      border-style: dashed;
+      background: rgba(4, 9, 26, 0.4);
+      color: #9fb3ff;
+    }
 
     .field input:focus,
     .field select:focus,
@@ -553,6 +558,8 @@
     const eventNameInput = document.getElementById("eventName");
     const eventDateInput = document.getElementById("eventDate");
     const eventVenueInput = document.getElementById("eventVenue");
+    const SESSION_STORAGE_KEY = "sdhqEventSession";
+    let pinnedSession = null;
 
     const confirmationModal = document.getElementById("confirmationModal");
     const modalTitle = document.getElementById("modalTitle");
@@ -908,6 +915,94 @@
       if (eventVenueInput) eventVenueInput.value = evt.venue || "";
     }
 
+    function applySessionToForm(session) {
+      pinnedSession = session || null;
+      if (session && session.eventSnapshot) {
+        const evt = session.eventSnapshot;
+        applyEventToFields(evt);
+        selectedEventId = evt.id || "";
+        if (eventSelect) {
+          const label = [evt.name || "Event", evt.date || ""].filter(Boolean).join(" · ");
+          eventSelect.innerHTML = `<option value="${evt.id || ""}">${label || evt.id || "Session"}</option>`;
+          eventSelect.value = evt.id || "";
+          eventSelect.disabled = true;
+          eventSelect.classList.add("locked-input");
+        }
+        [eventNameInput, eventDateInput, eventVenueInput].forEach((input) => {
+          if (input) {
+            input.readOnly = true;
+            input.classList.add("locked-input");
+          }
+        });
+        if (eventSelectHint) {
+          eventSelectHint.textContent = `Locked to ${evt.name || "session"} (set in admin console).`;
+        }
+      } else {
+        selectedEventId = "";
+        if (eventSelect) {
+          eventSelect.disabled = false;
+          eventSelect.classList.remove("locked-input");
+        }
+        [eventNameInput, eventDateInput, eventVenueInput].forEach((input) => {
+          if (input) {
+            input.readOnly = false;
+            input.classList.remove("locked-input");
+          }
+        });
+        if (eventSelectHint) {
+          eventSelectHint.textContent = "Select the event session for this guest.";
+        }
+      }
+    }
+
+    function syncSessionFromStorage() {
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!raw) {
+        if (pinnedSession) {
+          pinnedSession = null;
+          applySessionToForm(null);
+          loadEventOptions();
+        }
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.active === false) {
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+          applySessionToForm(null);
+          loadEventOptions();
+          return;
+        }
+        applySessionToForm(parsed);
+      } catch (err) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        applySessionToForm(null);
+        loadEventOptions();
+      }
+    }
+
+    syncSessionFromStorage();
+    window.addEventListener("storage", (event) => {
+      if (event.key === SESSION_STORAGE_KEY) {
+        syncSessionFromStorage();
+      }
+    });
+
+    async function validatePinnedSession() {
+      if (!pinnedSession?.id) return;
+      try {
+        const data = await fetchJson(`${API_BASE}/public/session?sessionId=${encodeURIComponent(pinnedSession.id)}`);
+        if (data.session) {
+          applySessionToForm(data.session);
+        }
+      } catch (err) {
+        applySessionToForm(null);
+        loadEventOptions();
+      }
+    }
+
+    validatePinnedSession();
+
     function renderEventSelectOptions(list) {
       if (!eventSelect) return;
       if (!Array.isArray(list) || list.length === 0) {
@@ -961,6 +1056,10 @@
         const allEvents = Array.isArray(data.allEvents) ? data.allEvents : [];
         eventCatalog = new Map(allEvents.map((evt) => [evt.id, evt]));
         const listToRender = active.length > 0 ? active : allEvents;
+        if (pinnedSession) {
+          applySessionToForm(pinnedSession);
+          return;
+        }
         renderEventSelectOptions(listToRender);
         if (eventSelectHint) {
           if (listToRender.length === 0) {
@@ -990,6 +1089,10 @@
     loadEventOptions();
     if (eventSelect) {
       eventSelect.addEventListener("change", () => {
+        if (pinnedSession) {
+          eventSelect.value = pinnedSession.eventSnapshot?.id || "";
+          return;
+        }
         const value = eventSelect.value;
         selectedEventId = value || "";
         if (value && eventCatalog.has(value)) {
@@ -1060,7 +1163,8 @@
         fullName: document.getElementById("fullName").value || "",
         email: document.getElementById("email").value || "",
         phone: document.getElementById("phone").value || "",
-        eventId: selectedEventId || "",
+        sessionId: pinnedSession?.id || "",
+        eventId: pinnedSession?.eventSnapshot?.id || selectedEventId || "",
         eventName: eventNameInput?.value || "",
         eventDate: eventDateInput?.value || "",
         eventVenue: eventVenueInput?.value || "",

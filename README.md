@@ -33,3 +33,16 @@ Because `diff --git ...` becomes the literal first line of the script. To fix th
 - Ensure the first line of the Worker begins with the comment `// SE2 Events API worker...` as committed in this repo.
 
 Following the raw-file workflow prevents the syntax error and ensures the Worker parses correctly.
+
+## Admin accounts & event sessions
+
+- Admin access is no longer gated by a single hard-coded key. Use the **Super admin** card in `admin.html` to create named accounts
+  for each employee. Each account receives its own API key stored in Workers KV. Super admins can revoke keys or review per-user
+  activity logs via `/super/admins` and `/super/admins/activity`.
+- When an employee selects an event and starts a session in the admin console, the Worker issues a session token. That session is
+  saved to the browser's `sdhqEventSession` localStorage entry so the check-in form (`index.html`) can lock the event fields and
+  send the `sessionId` with every check-in. Multiple events can run simultaneously because every admin session is independent.
+- Ending a session (or letting it expire) clears the localStorage entry so the check-in page reverts to the manual event picker.
+- Super admins also have access to a per-employee headphone audit feed (powered by `/super/admins/checkins`). From the admin console
+  they can load a team member's full headphone history (including returned/lost units) and export it to CSV for investigations or
+  nightly reporting.

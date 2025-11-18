@@ -177,6 +177,11 @@
       color: #9fb3ff;
       margin-top: 4px;
     }
+    .locked-input {
+      background: rgba(9, 17, 52, 0.4);
+      border-style: dashed;
+      color: #9fb3ff;
+    }
     .section-title {
       font-size: 13px;
       font-weight: 600;
@@ -277,6 +282,12 @@
     .event-row:last-child {
       border-bottom: none;
     }
+    .event-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
     .key-card-row {
       display: flex;
       align-items: center;
@@ -287,6 +298,47 @@
     .key-status-label {
       font-size: 13px;
       color: #f5f7ff;
+    }
+    .team-row,
+    .activity-row {
+      border-bottom: 1px solid rgba(80, 100, 190, 0.3);
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .team-row:last-child,
+    .activity-row:last-child {
+      border-bottom: none;
+    }
+    .team-row-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .team-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .activity-meta {
+      font-size: 11px;
+      color: #9fb3ff;
+      margin-top: 2px;
+    }
+    .session-summary {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(4, 9, 30, 0.9);
+      border: 1px solid rgba(113, 136, 255, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .session-summary strong {
+      color: #ffffff;
     }
   </style>
 </head>
@@ -443,6 +495,11 @@
         </div>
         <div class="note" id="eventStatus" style="margin-top:8px;font-size:12px;color:#9fb3ff;">Loading events...</div>
         <div id="eventOutput" class="output" style="margin-top:8px;">Waiting for event settings.</div>
+        <div class="session-summary">
+          <div><strong>Your event session</strong></div>
+          <div id="sessionStatusText">No active session.</div>
+          <button class="small-btn" id="endSessionBtn" type="button" disabled>End session</button>
+        </div>
         <div class="section-title" style="margin-top:14px;">Active sessions</div>
         <div class="event-list" id="eventList">Loading events...</div>
       </div>
@@ -458,6 +515,45 @@
           Uses the data currently loaded in the tables. Refresh the dashboard/log first for the latest exports.
         </div>
       </div>
+
+      <div class="card" id="superAdminCard" style="display:none;">
+        <div class="badge"><span class="badge-dot"></span><span>Super admin</span></div>
+        <div class="section-title">Create admin account</div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminName">Name</label>
+          <input id="newAdminName" type="text" placeholder="Team member" />
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="newAdminEmail">Email</label>
+          <input id="newAdminEmail" type="email" placeholder="team@example.com" />
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label for="newAdminRole">Role</label>
+          <select id="newAdminRole" style="padding:7px 9px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;">
+            <option value="admin">Admin</option>
+            <option value="super">Super admin</option>
+          </select>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="createAdminBtn" type="button">Generate key</button>
+          <button class="btn btn-secondary" id="refreshTeamBtn" type="button">Refresh</button>
+        </div>
+        <div class="note" id="superAdminStatus">Manage your team and audit their actions.</div>
+        <div class="section-title" style="margin-top:14px;">Team directory</div>
+        <div class="event-list" id="teamList">No team members yet.</div>
+        <div class="section-title" style="margin-top:14px;">Activity audit</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <select id="activityAdminSelect" style="flex:1;min-width:180px;padding:7px 9px;border-radius:10px;border:1px solid rgba(175,192,255,0.5);background:rgba(4,9,26,0.9);color:#f5f7ff;">
+            <option value="">Select admin…</option>
+          </select>
+          <button class="btn btn-secondary" id="refreshActivityBtn" type="button">Load activity</button>
+          <button class="btn btn-secondary" id="loadAdminCheckinsBtn" type="button">Headphone history</button>
+          <button class="btn btn-secondary" id="downloadAdminCheckinsBtn" type="button">Download CSV</button>
+        </div>
+        <div class="event-list" id="activityList">Choose an admin to view their actions.</div>
+        <div class="section-title" style="margin-top:14px;">Headphone history (per admin)</div>
+        <div class="event-list" id="adminCheckinsList">Select an admin and load headphone history.</div>
+      </div>
     </div>
   </div>
 
@@ -465,21 +561,70 @@
     const API_BASE = "https://api.silentdiscohq.com";
     const DEFAULT_ADMIN_KEY = "SE2_ADMIN_TEST_KEY";
     let adminKey = localStorage.getItem("sdhqAdminKey") || "";
+    let adminProfile = null;
+    const storedProfile = localStorage.getItem("sdhqAdminProfile");
+    if (storedProfile) {
+      try {
+        adminProfile = JSON.parse(storedProfile);
+      } catch (err) {
+        adminProfile = null;
+      }
+    }
     const authGate = document.getElementById("authGate");
     const adminKeyInput = document.getElementById("adminKeyInput");
     const authUnlockBtn = document.getElementById("authUnlockBtn");
     const keyStatusBar = document.getElementById("keyStatusBar");
     const keyStatusLabel = document.getElementById("keyStatusLabel");
     const changeKeyBtn = document.getElementById("changeKeyBtn");
+    if (adminKey && adminKeyInput) {
+      adminKeyInput.value = adminKey;
+    }
+    const sessionStatusText = document.getElementById("sessionStatusText");
+    const endSessionBtn = document.getElementById("endSessionBtn");
+    const superAdminCard = document.getElementById("superAdminCard");
+    const newAdminNameInput = document.getElementById("newAdminName");
+    const newAdminEmailInput = document.getElementById("newAdminEmail");
+    const newAdminRoleSelect = document.getElementById("newAdminRole");
+    const createAdminBtn = document.getElementById("createAdminBtn");
+    const refreshTeamBtn = document.getElementById("refreshTeamBtn");
+    const teamListEl = document.getElementById("teamList");
+    const superAdminStatus = document.getElementById("superAdminStatus");
+    const activityAdminSelect = document.getElementById("activityAdminSelect");
+    const refreshActivityBtn = document.getElementById("refreshActivityBtn");
+    const activityListEl = document.getElementById("activityList");
+    const loadAdminCheckinsBtn = document.getElementById("loadAdminCheckinsBtn");
+    const downloadAdminCheckinsBtn = document.getElementById("downloadAdminCheckinsBtn");
+    const adminCheckinsList = document.getElementById("adminCheckinsList");
     let appBootstrapped = false;
     let autoRefreshToggle = null;
     let dashboardTimer = null;
+    let currentSession = null;
+    let eventsData = [];
+    let teamData = [];
+    let activityData = [];
+    let adminCheckinsData = [];
+    const storedSessionRaw = localStorage.getItem("sdhqEventSession");
+    if (storedSessionRaw) {
+      try {
+        const parsed = JSON.parse(storedSessionRaw);
+        if (parsed && parsed.active !== false) {
+          currentSession = parsed;
+        } else {
+          localStorage.removeItem("sdhqEventSession");
+        }
+      } catch (err) {
+        currentSession = null;
+        localStorage.removeItem("sdhqEventSession");
+      }
+    }
 
     function updateKeyStatus() {
       if (!keyStatusBar || !keyStatusLabel) return;
       if (adminKey) {
         const masked = adminKey.length <= 4 ? adminKey : `••••${adminKey.slice(-4)}`;
-        keyStatusLabel.textContent = `Admin key active (${masked}).`;
+        const displayName = adminProfile?.name || "Admin";
+        const roleLabel = adminProfile?.role ? adminProfile.role.toUpperCase() : "STAFF";
+        keyStatusLabel.textContent = `Signed in as ${displayName} (${roleLabel}) · key ${masked}`;
       } else {
         keyStatusLabel.textContent = "Admin key not loaded.";
       }
@@ -495,14 +640,18 @@
       adminKey = "";
       localStorage.removeItem("sdhqAdminKey");
       adminKeyInput.value = "";
+      adminProfile = null;
+      localStorage.removeItem("sdhqAdminProfile");
+      persistSession(null);
       updateKeyStatus();
       if (dashboardTimer) {
         clearInterval(dashboardTimer);
         dashboardTimer = null;
       }
+      showSuperAdminCardIfNeeded();
     }
 
-    function setAdminKey(value, { silent = false } = {}) {
+    async function setAdminKey(value, { silent = false } = {}) {
       const trimmed = (value || "").trim();
       if (!trimmed) {
         clearAdminKey();
@@ -510,27 +659,103 @@
         promptForKey();
         return false;
       }
-      adminKey = trimmed;
-      adminKeyInput.value = trimmed;
-      localStorage.setItem("sdhqAdminKey", trimmed);
-      authGate.style.display = "none";
-      updateKeyStatus();
-      if (appBootstrapped) {
-        loadDashboard();
-        loadLog();
-        loadEvents();
-        if (autoRefreshToggle && autoRefreshToggle.checked) {
-          startAutoRefresh();
+      try {
+        const res = await fetch(API_BASE + "/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: trimmed }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) {
+          throw new Error(data.error || "Invalid admin key");
         }
-      } else {
-        bootstrap();
+        adminKey = trimmed;
+        adminProfile = data.admin || null;
+        localStorage.setItem("sdhqAdminKey", trimmed);
+        if (adminProfile) {
+          localStorage.setItem("sdhqAdminProfile", JSON.stringify(adminProfile));
+        }
+        adminKeyInput.value = trimmed;
+        authGate.style.display = "none";
+        updateKeyStatus();
+        persistSession(data.session || null);
+        await refreshSessionFromApi();
+        showSuperAdminCardIfNeeded();
+        if (appBootstrapped) {
+          loadDashboard();
+          loadLog();
+          loadEvents();
+          if (autoRefreshToggle && autoRefreshToggle.checked) {
+            startAutoRefresh();
+          }
+        } else {
+          bootstrap();
+        }
+        return true;
+      } catch (err) {
+        clearAdminKey();
+        if (!silent) {
+          alert(err.message || "Unable to unlock admin tools.");
+        }
+        promptForKey();
+        return false;
       }
-      return true;
     }
 
-    authUnlockBtn.addEventListener("click", () => {
+    function persistSession(session) {
+      const valid = session && session.active !== false ? session : null;
+      currentSession = valid;
+      if (valid) {
+        localStorage.setItem("sdhqEventSession", JSON.stringify(valid));
+        if (sessionStatusText) {
+          const evt = valid.eventSnapshot || {};
+          const parts = [evt.name || "Event", evt.date || "", evt.venue || ""].filter(Boolean);
+          const started = valid.startedAt ? new Date(valid.startedAt).toLocaleTimeString() : "";
+          sessionStatusText.innerHTML = `Locked to <strong>${parts[0] || "Event"}</strong>${parts[1] ? ` · ${parts[1]}` : ""}${parts[2] ? ` · ${parts[2]}` : ""}<br/><span class="activity-meta">Started ${started || "now"}</span>`;
+        }
+        if (endSessionBtn) {
+          endSessionBtn.disabled = false;
+        }
+      } else {
+        localStorage.removeItem("sdhqEventSession");
+        if (sessionStatusText) {
+          sessionStatusText.textContent = "No active session.";
+        }
+        if (endSessionBtn) {
+          endSessionBtn.disabled = true;
+        }
+      }
+      renderEvents();
+    }
+
+    function showSuperAdminCardIfNeeded() {
+      if (!superAdminCard) return;
+      if (adminProfile?.role === "super") {
+        superAdminCard.style.display = "block";
+        loadAdminDirectory();
+      } else {
+        superAdminCard.style.display = "none";
+      }
+    }
+
+    async function refreshSessionFromApi() {
+      try {
+        const data = await adminJson("/admin/session");
+        persistSession(data.session || null);
+      } catch (err) {
+        console.warn("Session refresh failed", err);
+      }
+    }
+
+    if (currentSession) {
+      persistSession(currentSession);
+    } else {
+      persistSession(null);
+    }
+
+    authUnlockBtn.addEventListener("click", async () => {
       const value = adminKeyInput.value.trim() || DEFAULT_ADMIN_KEY || "";
-      setAdminKey(value);
+      await setAdminKey(value);
     });
 
     if (changeKeyBtn) {
@@ -627,16 +852,12 @@
 
     let dashboardData = [];
     let logData = [];
-    let eventsData = [];
     let hasDashboardData = false;
     let hasLogData = false;
     let dashboardLoading = false;
     let logLoading = false;
 
     if (adminKey) {
-      adminKeyInput.value = adminKey;
-      authGate.style.display = "none";
-      updateKeyStatus();
       setAdminKey(adminKey, { silent: true });
     } else if (DEFAULT_ADMIN_KEY) {
       adminKeyInput.value = DEFAULT_ADMIN_KEY;
@@ -646,6 +867,17 @@
     }
 
     drawerCloseBtn.addEventListener("click", () => recordDrawer.classList.remove("active"));
+
+    if (endSessionBtn) {
+      endSessionBtn.addEventListener("click", () => {
+        if (!currentSession) {
+          alert("No active session to end.");
+          return;
+        }
+        if (!confirm("End your current event session?")) return;
+        endEventSession();
+      });
+    }
 
     function prettyJson(obj) {
       return JSON.stringify(obj, null, 2);
@@ -1155,18 +1387,27 @@
       }
       const rows = eventsData
         .map((evt) => {
-          const statusClass = evt.active ? "pill pill-ok" : "pill pill-warn";
-          const actionLabel = evt.active ? "End session" : "Start session";
+          const listed = evt.active !== false;
+          const pillClass = listed ? "pill pill-ok" : "pill pill-warn";
           const details = [evt.date || "", evt.venue || ""].filter(Boolean).join(" · ");
+          const isSession = currentSession?.eventId === evt.id || currentSession?.eventSnapshot?.id === evt.id;
           return `
             <div class="event-row">
               <div>
-                <strong>${evt.name || "Event"}</strong><br/>
-                <span style="font-size:11px;color:#9fb3ff;">${details}</span>
+                <div class="team-row-title">
+                  <span>${evt.name || "Event"}</span>
+                  <span class="${pillClass}">${listed ? "Listed" : "Hidden"}</span>
+                </div>
+                <div style="font-size:11px;color:#9fb3ff;">${details || "Date/venue TBD"}</div>
+                ${isSession ? '<div class="activity-meta">This is your active session.</div>' : ""}
               </div>
-              <div><span class="${statusClass}">${evt.active ? "Active" : "Inactive"}</span></div>
-              <div>
-                <button class="small-btn" data-event-action="toggle" data-event-id="${evt.id}" data-active="${evt.active}">${actionLabel}</button>
+              <div class="event-row-actions">
+                <button class="small-btn" data-event-action="session" data-event-id="${evt.id}" ${isSession ? "disabled" : ""}>
+                  ${isSession ? "Session active" : "Start session"}
+                </button>
+                <button class="small-btn" data-event-action="toggle" data-event-id="${evt.id}" data-active="${listed}">
+                  ${listed ? "Hide from list" : "Show to staff"}
+                </button>
               </div>
             </div>
           `;
@@ -1174,6 +1415,33 @@
         .join("");
       eventListContainer.innerHTML = rows;
       eventOutput.textContent = prettyJson(eventsData);
+    }
+
+    async function startEventSession(eventId) {
+      if (!eventId) return;
+      if (sessionStatusText) sessionStatusText.textContent = "Starting session...";
+      try {
+        const data = await adminJson("/admin/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        });
+        persistSession(data.session || null);
+      } catch (err) {
+        if (sessionStatusText) sessionStatusText.textContent = err.message || "Unable to start session.";
+        alert(err.message || "Unable to start session");
+      }
+    }
+
+    async function endEventSession() {
+      if (sessionStatusText) sessionStatusText.textContent = "Ending session...";
+      try {
+        await adminJson("/admin/session", { method: "DELETE" });
+        persistSession(null);
+      } catch (err) {
+        if (sessionStatusText) sessionStatusText.textContent = err.message || "Unable to end session.";
+        alert(err.message || "Unable to end session");
+      }
     }
 
     async function loadEvents() {
@@ -1236,11 +1504,16 @@
         const btn = event.target.closest("button[data-event-action]");
         if (!btn) return;
         const eventId = btn.getAttribute("data-event-id");
-        const current = btn.getAttribute("data-active") === "true";
         if (!eventId) return;
+        const action = btn.getAttribute("data-event-action");
+        if (action === "session") {
+          await startEventSession(eventId);
+          return;
+        }
+        const current = btn.getAttribute("data-active") === "true";
         const confirmMsg = current
-          ? "End this event session? Guests will no longer see it in the check-in app."
-          : "Start this event session? It will appear in the check-in app.";
+          ? "Hide this event from staff lists?"
+          : "Show this event to staff in the check-in app?";
         if (!confirm(confirmMsg)) return;
         try {
           await adminJson("/admin/events/activate", {
@@ -1253,6 +1526,198 @@
           alert(`Unable to update event: ${err.message}`);
         }
       });
+    }
+
+    async function loadAdminDirectory() {
+      if (!superAdminCard || adminProfile?.role !== "super") return;
+      superAdminStatus.textContent = "Loading team...";
+      try {
+        const data = await adminJson("/super/admins");
+        teamData = data.admins || [];
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = `Loaded ${teamData.length} admin account(s).`;
+      } catch (err) {
+        superAdminStatus.textContent = `Unable to load admins: ${err.message}`;
+      }
+    }
+
+    function renderTeamList() {
+      if (!teamListEl) return;
+      if (!teamData.length) {
+        teamListEl.innerHTML = "<div class='note'>No team members yet.</div>";
+        return;
+      }
+      teamListEl.innerHTML = teamData
+        .map((member) => {
+          const masked = member.apiKey ? `••••${member.apiKey.slice(-4)}` : "No key";
+          const roleLabel = member.role === "super" ? "pill pill-ok" : "pill pill-warn";
+          return `
+            <div class="team-row">
+              <div class="team-row-title">
+                <span>${member.name || member.id}</span>
+                <span class="${roleLabel}">${member.role || "admin"}</span>
+              </div>
+              <div class="activity-meta">${member.email || "No email"} · Key ${masked}</div>
+              <div class="team-row-actions">
+                <button class="small-btn" data-team-action="copy" data-admin-id="${member.id}">Copy key</button>
+                <button class="small-btn" data-team-action="delete" data-admin-id="${member.id}">Remove</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function populateActivitySelect() {
+      if (!activityAdminSelect) return;
+      const options = ["<option value=''>Select admin…</option>"]
+        .concat(
+          teamData.map(
+            (member) => `<option value="${member.id}">${member.name || member.email || member.id}</option>`
+          )
+        )
+        .join("\n");
+      activityAdminSelect.innerHTML = options;
+    }
+
+    async function createAdminAccount() {
+      const name = (newAdminNameInput?.value || "").trim();
+      const email = (newAdminEmailInput?.value || "").trim();
+      const role = newAdminRoleSelect?.value === "super" ? "super" : "admin";
+      if (!name) {
+        alert("Enter a name for this admin account.");
+        return;
+      }
+      createAdminBtn.disabled = true;
+      superAdminStatus.textContent = "Creating admin...";
+      try {
+        const data = await adminJson("/super/admins", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, role }),
+        });
+        teamData.push(data.admin);
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = `Created ${name}. Key copied to clipboard.`;
+        if (newAdminNameInput) newAdminNameInput.value = "";
+        if (newAdminEmailInput) newAdminEmailInput.value = "";
+        if (newAdminRoleSelect) newAdminRoleSelect.value = "admin";
+        if (navigator.clipboard && data.admin?.apiKey) {
+          try {
+            await navigator.clipboard.writeText(data.admin.apiKey);
+          } catch (err) {}
+        }
+        alert(`Admin key for ${name}: ${data.admin?.apiKey || "Unavailable"}`);
+      } catch (err) {
+        superAdminStatus.textContent = err.message || "Unable to create admin.";
+      } finally {
+        createAdminBtn.disabled = false;
+      }
+    }
+
+    async function deleteAdminAccount(adminId) {
+      if (!adminId) return;
+      if (!confirm("Remove this admin account?")) return;
+      try {
+        await adminJson("/super/admins/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminId }),
+        });
+        teamData = teamData.filter((member) => member.id !== adminId);
+        renderTeamList();
+        populateActivitySelect();
+        superAdminStatus.textContent = "Admin removed.";
+      } catch (err) {
+        alert(err.message || "Unable to remove admin");
+      }
+    }
+
+    async function loadAdminActivity(adminId) {
+      if (!activityListEl) return;
+      if (!adminId) {
+        activityListEl.innerHTML = "<div class='note'>Select an admin to view their activity.</div>";
+        return;
+      }
+      activityListEl.innerHTML = "Loading activity...";
+      try {
+        const data = await adminJson(`/super/admins/activity?adminId=${encodeURIComponent(adminId)}&limit=100`);
+        activityData = data.activity || [];
+        if (!activityData.length) {
+          activityListEl.innerHTML = "<div class='note'>No logged actions yet.</div>";
+          return;
+        }
+        activityListEl.innerHTML = activityData
+          .map((entry) => {
+            const timestamp = entry.at ? new Date(entry.at).toLocaleString() : "";
+            return `
+              <div class="activity-row">
+                <div><strong>${entry.action}</strong></div>
+                <div class="activity-meta">${timestamp}</div>
+                <div class="activity-meta">${JSON.stringify(entry.payload || {})}</div>
+              </div>
+            `;
+          })
+          .join("");
+      } catch (err) {
+        activityListEl.innerHTML = `<div class='note'>${err.message}</div>`;
+      }
+    }
+
+    async function loadAdminCheckins(adminId) {
+      if (!adminCheckinsList) return;
+      if (!adminId) {
+        adminCheckinsData = [];
+        adminCheckinsList.innerHTML = "<div class='note'>Select an admin above.</div>";
+        return;
+      }
+      adminCheckinsList.innerHTML = "Loading headphone history...";
+      try {
+        const params = new URLSearchParams({
+          adminId,
+          limit: "200",
+          includeReturned: "true",
+        });
+        const data = await adminJson(`/super/admins/checkins?${params.toString()}`);
+        adminCheckinsData = data.flattened || [];
+        if (!adminCheckinsData.length) {
+          adminCheckinsList.innerHTML = "<div class='note'>No check-ins recorded for this admin yet.</div>";
+          return;
+        }
+        adminCheckinsList.innerHTML = adminCheckinsData
+          .map((entry) => {
+            const headphone = entry.headphone || {};
+            const headphoneId = headphone.id || "Unassigned";
+            const guest = entry.customer?.fullName || "Guest";
+            const eventName = entry.event?.name || "Event";
+            const eventMeta = [entry.event?.date, entry.event?.venue].filter(Boolean).join(" · ");
+            const checkoutAt = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "";
+            const returnAt = headphone.returnedAt ? new Date(headphone.returnedAt).toLocaleString() : "";
+            const statusLabel = headphone.lost
+              ? "Lost"
+              : returnAt
+              ? "Returned"
+              : entry.status || "Checked out";
+            const statusClass = headphone.lost ? "pill pill-warn" : returnAt ? "pill pill-ok" : "pill pill-warn";
+            const handledBy = entry.handledBy?.name || entry.handledBy?.id || "";
+            return `
+              <div class="activity-row">
+                <div>
+                  <strong>${headphoneId}</strong> · <span class="${statusClass}">${statusLabel}</span>
+                </div>
+                <div class="activity-meta">${guest} · ${eventName}${eventMeta ? " · " + eventMeta : ""}</div>
+                <div class="activity-meta">${checkoutAt}${returnAt ? " → " + returnAt : ""}</div>
+                ${handledBy ? `<div class="activity-meta">Handled by ${handledBy}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      } catch (err) {
+        adminCheckinsData = [];
+        adminCheckinsList.innerHTML = `<div class='note'>${err.message}</div>`;
+      }
     }
 
     if (downloadActiveCsvBtn) {
@@ -1305,6 +1770,84 @@
         if (reportStatus) {
           reportStatus.textContent = "Recent log CSV downloaded.";
         }
+      });
+    }
+
+    if (loadAdminCheckinsBtn) {
+      loadAdminCheckinsBtn.addEventListener("click", () => {
+        const adminId = activityAdminSelect?.value || "";
+        if (!adminId) {
+          alert("Select an admin from the dropdown first.");
+          return;
+        }
+        loadAdminCheckins(adminId);
+      });
+    }
+
+    if (downloadAdminCheckinsBtn) {
+      downloadAdminCheckinsBtn.addEventListener("click", () => {
+        if (!adminCheckinsData.length) {
+          alert("Load headphone history before downloading.");
+          return;
+        }
+        const columns = [
+          { label: "Headphone ID", value: (row) => row.headphone?.id || "" },
+          { label: "Status", value: (row) => (row.headphone?.lost ? "Lost" : row.headphone?.returnedAt ? "Returned" : row.status || "Out") },
+          { label: "Guest", value: (row) => row.customer?.fullName || "" },
+          { label: "Phone", value: (row) => row.customer?.phone || "" },
+          { label: "Email", value: (row) => row.customer?.email || "" },
+          { label: "Event", value: (row) => row.event?.name || "" },
+          { label: "Event Date", value: (row) => row.event?.date || "" },
+          { label: "Event Venue", value: (row) => row.event?.venue || "" },
+          { label: "Checked Out", value: (row) => row.createdAt || "" },
+          { label: "Returned At", value: (row) => row.headphone?.returnedAt || "" },
+          { label: "Lost", value: (row) => (row.headphone?.lost ? "Yes" : "") },
+          { label: "Handled By", value: (row) => row.handledBy?.name || row.handledBy?.id || "" },
+        ];
+        const csv = toCsv(adminCheckinsData, columns);
+        const adminId = activityAdminSelect?.value || "admin";
+        downloadCsv(`admin_${adminId}_headphone_history_${new Date().toISOString()}.csv`, csv);
+      });
+    }
+
+    if (createAdminBtn) {
+      createAdminBtn.addEventListener("click", createAdminAccount);
+    }
+
+    if (refreshTeamBtn) {
+      refreshTeamBtn.addEventListener("click", loadAdminDirectory);
+    }
+
+    if (teamListEl) {
+      teamListEl.addEventListener("click", async (event) => {
+        const btn = event.target.closest("[data-team-action]");
+        if (!btn) return;
+        const adminId = btn.getAttribute("data-admin-id");
+        const action = btn.getAttribute("data-team-action");
+        const member = teamData.find((item) => item.id === adminId);
+        if (action === "copy" && member?.apiKey) {
+          try {
+            await navigator.clipboard.writeText(member.apiKey);
+            superAdminStatus.textContent = `Copied key for ${member.name || member.id}.`;
+          } catch (err) {
+            alert(member.apiKey);
+          }
+        }
+        if (action === "delete") {
+          await deleteAdminAccount(adminId);
+        }
+      });
+    }
+
+    if (activityAdminSelect) {
+      activityAdminSelect.addEventListener("change", () => {
+        loadAdminActivity(activityAdminSelect.value);
+      });
+    }
+
+    if (refreshActivityBtn) {
+      refreshActivityBtn.addEventListener("click", () => {
+        loadAdminActivity(activityAdminSelect?.value || "");
       });
     }
 
